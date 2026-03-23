@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "groupware": {
+    "base_url": "https://gw.riman.com",
+    "login_url": "https://gw.riman.com/ekp/view/login/userLogin",
+    "enabled": true,
+    "screenshot_bucket": "riman-groupware-screenshots",
+    "screenshot_prefix": "groupware-screenshots/",
+    "timeout_seconds": 120
+  },
+  "approval_rules": {
+    "CCE": {
+      "Engineer": {
+        "approver_name": "조주현",
+        "approver_search_keyword": "조주현"
+      },
+      "Manager": {
+        "approver_name": "박성현",
+        "approver_search_keyword": "박성현"
+      }
+    }
+  }
+}

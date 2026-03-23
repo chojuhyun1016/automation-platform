@@ -1,0 +1,67 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+dependencies {
+    // common, clients (모듈 의존)
+    implementation project(':common')
+    implementation project(':clients')
+
+    // AWS Lambda
+    implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.11.4'
+
+    // AWS SDK v2
+    implementation platform('software.amazon.awssdk:bom:2.20.26')
+    implementation 'software.amazon.awssdk:sqs'
+    implementation 'software.amazon.awssdk:s3'               // ← S3 접근 (향후 확장 대비)
+    implementation 'software.amazon.awssdk:secretsmanager'   // ← GroupwareCredentialService 에서 사용
+    implementation 'software.amazon.awssdk:kms'              // ← PasswordEncryptionService (KMS 암호화)
+    implementation 'software.amazon.awssdk:dynamodb'         // ← ScheduleMappingQueryService (일정 매핑 조회)
+
+    // Google Calendar API — CurrentTicketFacade에서 Event 직접 참조
+    implementation 'com.google.apis:google-api-services-calendar:v3-rev20220715-2.0.0'
+    implementation 'com.google.api-client:google-api-client:2.2.0'
+    implementation 'com.google.auth:google-auth-library-oauth2-http:1.19.0'
+
+    // Jackson
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.16.1'
+
+    // Logging
+    implementation 'org.slf4j:slf4j-api:2.0.9'
+    implementation 'org.slf4j:slf4j-simple:2.0.9'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+}
+
+shadowJar {
+    archiveBaseName = 'automation-ingest'
+    archiveClassifier = ''
+    archiveVersion = ''
+
+    manifest {
+        attributes 'Main-Class': 'com.riman.automation.ingest.handler.IngestHandler'
+    }
+
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+
+    mergeServiceFiles()
+}
+
+build {
+    dependsOn shadowJar
+}
+
+jar {
+    enabled = false
+}

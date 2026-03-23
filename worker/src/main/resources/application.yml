@@ -1,0 +1,25 @@
+aws:
+    dynamodb:
+      table-name: ${DYNAMODB_TABLE:JiraWebhookEvents}
+    s3:
+      config-bucket: ${CONFIG_BUCKET:automation-platform-747461205838}
+      config-key: ${CONFIG_KEY:config.json}
+
+  spring:
+    application:
+      name: automation-platform-worker
+
+  logging:
+    level:
+      root: INFO
+      com.automation.jira: DEBUG
+    pattern:
+      console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+  # TTL: 30일
+  dedupe:
+    ttl-days: 30
+
+  # 설정 캐시
+  config:
+    cache-ttl-minutes: 5

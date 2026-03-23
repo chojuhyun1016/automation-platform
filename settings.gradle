@@ -1,0 +1,9 @@
+rootProject.name = 'automation-platform'
+
+include 'common'
+include 'clients'
+include 'ingest'
+include 'worker'
+include 'scheduler'
+include 'groupware'
+

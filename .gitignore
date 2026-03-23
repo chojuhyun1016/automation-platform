@@ -1,0 +1,182 @@
+# ============================================================
+# automation-platform .gitignore
+# Java 17 + Gradle + Python + AWS Lambda + Docker
+# ============================================================
+
+
+# ─────────────────────────────────────────────────────────────
+# Gradle
+# ─────────────────────────────────────────────────────────────
+
+.gradle/
+build/
+*/build/
+**/build/
+
+# Gradle Wrapper jar는 커밋 (팀 공유 필요)
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Convention Plugin 캐시
+.gradle-home/
+
+
+# ─────────────────────────────────────────────────────────────
+# Java
+# ─────────────────────────────────────────────────────────────
+
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+
+# ─────────────────────────────────────────────────────────────
+# Python (groupware-bot)
+# ─────────────────────────────────────────────────────────────
+
+groupware-bot/__pycache__/
+groupware-bot/**/__pycache__/
+groupware-bot/*.pyc
+groupware-bot/**/*.pyc
+groupware-bot/*.pyo
+groupware-bot/.pytest_cache/
+groupware-bot/.mypy_cache/
+groupware-bot/.ruff_cache/
+groupware-bot/.venv/
+groupware-bot/venv/
+groupware-bot/dist/
+groupware-bot/*.egg-info/
+groupware-bot/.coverage
+groupware-bot/htmlcov/
+
+
+# ─────────────────────────────────────────────────────────────
+# AWS / Secrets — 절대 커밋 금지
+# ─────────────────────────────────────────────────────────────
+
+# AWS 자격증명
+.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 서비스 계정 키 (Google Calendar API 등)
+google-credentials.json
+*-credentials.json
+*-service-account.json
+service-account*.json
+
+# 환경변수 파일
+.env
+.env.*
+!.env.example
+
+# Terraform / CDK 상태 파일
+*.tfstate
+*.tfstate.*
+.terraform/
+cdk.out/
+
+
+# ─────────────────────────────────────────────────────────────
+# S3 설정 파일 (로컬 사본 — 실제는 S3에 저장)
+# ─────────────────────────────────────────────────────────────
+
+#config.json
+#scheduler-config.json
+#groupware-config.json
+#team-members.json
+#announcements.json
+
+
+# ─────────────────────────────────────────────────────────────
+# Docker
+# ─────────────────────────────────────────────────────────────
+
+.docker/
+docker-compose.override.yml
+
+
+# ─────────────────────────────────────────────────────────────
+# IntelliJ IDEA
+# ─────────────────────────────────────────────────────────────
+
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+# 단, Run Configuration은 팀 공유 가능하므로 선택적으로 허용
+# !.idea/runConfigurations/
+
+
+# ─────────────────────────────────────────────────────────────
+# VS Code
+# ─────────────────────────────────────────────────────────────
+
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+
+
+# ─────────────────────────────────────────────────────────────
+# macOS
+# ─────────────────────────────────────────────────────────────
+
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+
+
+# ─────────────────────────────────────────────────────────────
+# Windows
+# ─────────────────────────────────────────────────────────────
+
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+
+# ─────────────────────────────────────────────────────────────
+# Linux
+# ─────────────────────────────────────────────────────────────
+
+*~
+.nfs*
+
+
+# ─────────────────────────────────────────────────────────────
+# 로그 / 임시 파일
+# ─────────────────────────────────────────────────────────────
+
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+
+# ─────────────────────────────────────────────────────────────
+# 테스트 / 커버리지
+# ─────────────────────────────────────────────────────────────
+
+test-results/
+coverage/
+jacoco/
+*.exec

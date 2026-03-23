@@ -1,0 +1,77 @@
+{
+  "version": "1.1",
+  "routing": {
+    "CCE": {
+      "slack_channel_id": "C09DAQAABS5",
+      "slack_bot_token_secret": "automation-slack-bot-token",
+      "notification_enabled": true,
+      "send_to_channel": false,
+      "send_to_individuals": true,
+      "calendar_enabled": true,
+      "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com"
+    },
+    "RBO": {
+      "slack_channel_id": "C09DAQAABS5",
+      "slack_bot_token_secret": "automation-slack-bot-token",
+      "notification_enabled": true,
+      "send_to_channel": false,
+      "send_to_individuals": true,
+      "calendar_enabled": true,
+      "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com"
+    },
+    "ABO": {
+      "slack_channel_id": "C09DAQAABS5",
+      "slack_bot_token_secret": "automation-slack-bot-token",
+      "notification_enabled": true,
+      "send_to_channel": false,
+      "send_to_individuals": true,
+      "calendar_enabled": true,
+      "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com"
+    },
+    "GADMIN": {
+      "slack_channel_id": "C09DAQAABS5",
+      "slack_bot_token_secret": "automation-slack-bot-token",
+      "notification_enabled": true,
+      "send_to_channel": false,
+      "send_to_individuals": true,
+      "calendar_enabled": true,
+      "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com"
+    },
+    "GER": {
+      "slack_channel_id": "C09DAQAABS5",
+      "slack_bot_token_secret": "automation-slack-bot-token",
+      "notification_enabled": true,
+      "send_to_channel": false,
+      "send_to_individuals": true,
+      "calendar_enabled": true,
+      "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com"
+    },
+    "KEEN": {
+      "slack_channel_id": "C09DAQAABS5",
+      "slack_bot_token_secret": "automation-slack-bot-token",
+      "notification_enabled": true,
+      "send_to_channel": false,
+      "send_to_individuals": true,
+      "calendar_enabled": true,
+      "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com"
+    }
+  },
+  "defaultConfig": {
+    "slack_channel_id": "C09DAQAABS5",
+    "slack_bot_token_secret": "automation-slack-bot-token",
+    "notification_enabled": true,
+    "send_to_channel": false,
+    "send_to_individuals": true,
+    "calendar_enabled": false,
+    "calendar_id": "primary"
+  },
+  "remoteWork": {
+    "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com",
+    "notification_enabled": false,
+    "reminder_days_before": 0
+  },
+  "absence": {
+    "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com",
+    "notification_enabled": false
+  }
+}

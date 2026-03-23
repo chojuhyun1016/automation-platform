@@ -1,0 +1,14 @@
+aws:
+  sqs:
+    queue-url: ${SQS_QUEUE_URL}
+
+spring:
+  application:
+    name: automation-platform-ingest
+
+logging:
+  level:
+    root: INFO
+    com.riman.jira: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

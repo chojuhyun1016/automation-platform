@@ -1,0 +1,57 @@
+{
+  "version": "1.1",
+  "dailyReport": {
+    "enabled": true,
+    "report_channel_id": "C09DAQAABS5",
+    "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com",
+    "ticket_calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com",
+    "jira_project_keys": [
+      "CCE",
+      "RBO",
+      "ABO",
+      "GADMIN",
+      "GER",
+      "KEEN"
+    ],
+    "links": [
+      {
+        "title": "컨플루언스",
+        "url": "https://riman-it.atlassian.net/wiki/spaces/IT/overview"
+      },
+      {
+        "title": "체크리스트",
+        "url": "https://riman-it.atlassian.net/wiki/spaces/IT/pages/2337275907"
+      },
+      {
+        "title": "수당 정책",
+        "url": "https://riman-it.atlassian.net/wiki/spaces/IT/pages/2337800196"
+      },
+      {
+        "title": "주간 보고",
+        "url": "https://riman-it.atlassian.net/wiki/spaces/IT/pages/585007391"
+      },
+      {
+        "title": "장애 보고",
+        "url": "https://riman-it.atlassian.net/wiki/spaces/DX/pages/530972885"
+      }
+    ],
+    "announcements_key": "announcements.json",
+    "schedule_calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com"
+  },
+  "weeklyReport": {
+    "enabled": true,
+    "team_name": "보상코어 개발팀",
+    "confluence_base_url": "https://riman-it.atlassian.net",
+    "confluence_space_key": "IT",
+    "confluence_parent_page_id": "2337538054",
+    "ticket_calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com"
+  },
+  "monthlyReport": {
+    "enabled": true,
+    "team_name": "보상코어 개발팀",
+    "confluence_base_url": "https://riman-it.atlassian.net",
+    "confluence_space_key": "IT",
+    "confluence_parent_page_id": "2337538054",
+    "ticket_calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com"
+  }
+}

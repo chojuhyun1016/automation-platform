@@ -1,0 +1,33 @@
+group = 'com.riman.automation'
+version = '1.0.0'
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+
+    dependencies {
+        // Lombok (공통)
+        compileOnly 'org.projectlombok:lombok:1.18.30'
+        annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+}

@@ -1,0 +1,96 @@
+{
+  "version": "1.1",
+  "updated_at": "2026-02-18T13:30:00+09:00",
+  "members": [
+    {
+      "name": "조주현",
+      "name_en": "Ju Hyun Cho",
+      "email": "juhyun.cho@riman.com",
+      "jira_account_id": "712020:408dbc01-e94f-4034-8bbf-4a72d17d8f6d",
+      "slack_user_id": "U0627755JP7",
+      "active": true,
+      "team": "CCE",
+      "role": "Manager"
+    },
+    {
+      "name": "김진욱",
+      "name_en": "Jinwook Kim",
+      "email": "jinwook.kim@riman.com",
+      "jira_account_id": "712020:75fde3ae-50b2-4a37-97f7-6523230e64b6",
+      "slack_user_id": "U07SMLJ1THB",
+      "active": true,
+      "team": "CCE",
+      "role": "Engineer"
+    },
+    {
+      "name": "이태우",
+      "name_en": "Taewoo Lee",
+      "email": "taewoo.lee@riman.com",
+      "jira_account_id": "712020:27d65deb-386e-4d7e-9001-3118252ab98a",
+      "slack_user_id": "U07SMKNRLQ5",
+      "active": true,
+      "team": "CCE",
+      "role": "Engineer"
+    },
+    {
+      "name": "조홍식",
+      "name_en": "Hongsik Cho",
+      "email": "hongsik.cho@riman.com",
+      "jira_account_id": "712020:34a1f7d0-772f-42de-a6f3-8f74971df2e7",
+      "slack_user_id": "U0A5SMAQ8D6",
+      "active": true,
+      "team": "CCE",
+      "role": "Engineer"
+    },
+    {
+      "name": "이현우",
+      "name_en": "Hyunwoo Lee",
+      "email": "hyunwoo.lee@riman.com",
+      "jira_account_id": "712020:edfc3156-ab29-48b8-8b26-ba56d74c1f37",
+      "slack_user_id": "U09LH18ER3K",
+      "active": true,
+      "team": "CCE",
+      "role": "Engineer"
+    },
+    {
+      "name": "김선아",
+      "name_en": "Suna Kim",
+      "email": "suna.kim@riman.com",
+      "jira_account_id": "712020:41542bdc-d10a-43bc-bb68-11c116b50383",
+      "slack_user_id": "U07ST1PGKBN",
+      "active": true,
+      "team": "CCE",
+      "role": "Engineer"
+    },
+    {
+      "name": "김유경",
+      "name_en": "Yukyeong Kim",
+      "email": "yukyeong.kim@riman.com",
+      "jira_account_id": "712020:e2e57fa7-2f18-451e-93b9-84b745852492",
+      "slack_user_id": "U0AGKH4UG9J",
+      "active": true,
+      "team": "CCE",
+      "role": "Engineer"
+    }
+  ],
+  "bot": {
+    "slack_user_id": "U0AGE6WJNT0",
+    "name": "Compensation-Core-Engineering-Bot",
+    "description": "CCE Team Bot (DM, Google Calendar, 재택, 공지)"
+  },
+  "channels": {
+    "compensation-core-engineering": {
+      "channel_id": "C09DAQAABS5",
+      "enabled": true,
+      "description": "CCE 팀 채널 (개인 DM 우선, 채널 알림 비활성화)",
+      "send_to_channel": false,
+      "send_to_individuals": true
+    }
+  },
+  "metadata": {
+    "total_members": 7,
+    "active_members": 7,
+    "teams": ["CCE"],
+    "last_sync_date": "2026-02-18"
+  }
+}
