@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -83,6 +84,13 @@ public class CurrentTicketFacade {
     private static final String INDENT = "\u3000\u3000";
     private static final String INDENT2 = "\u3000\u3000\u3000";
 
+    // ── 캐시 (Lambda 컨테이너 재사용 간 유지) ──────────────────────────────
+    // Lambda 컨테이너는 warm 상태에서 재사용되므로 static 필드로 캐시하면
+    // S3Client 생성(~300ms×2), 인증 키 로드(~600ms), 팀원 정보 로드(~100ms) 절약.
+    private static volatile S3Client cachedS3Client;
+    private static volatile GoogleCalendarClient cachedCalendarClient;
+    private static volatile Map<String, String> cachedTeamMemberMap;
+
     private final SlackClient slackClient;
     private final String jiraBaseUrl;
     private final String ticketCalendarId;
@@ -126,6 +134,24 @@ public class CurrentTicketFacade {
             String payload = CurrentTicketModalBuilder.build(triggerId, userId);
             slackClient.openView(payload);
             log.info("현재티켓 모달 열기 완료: userId={}", userId);
+
+            // ── 사전 초기화 ────────────────────────────────────────────────
+            // 사용자가 모달에서 기간을 선택하는 동안(1~3초) 캘린더 클라이언트를
+            // 미리 생성. handleCommand() return → Lambda freeze 후 다음
+            // invocation(modal submit)에서 thaw되면 초기화 완료 상태가 됨.
+            // 이를 통해 modal submit 시 Calendar API + DM 전송만 수행 (~2.5초).
+            if (cachedCalendarClient == null) {
+                Thread preWarm = new Thread(() -> {
+                    try {
+                        getOrCreateCalendarClient();
+                    } catch (Exception e) {
+                        log.debug("현재티켓 캘린더 사전 초기화 실패 (submit 시점에 재시도): {}", e.getMessage());
+                    }
+                }, "current-ticket-prewarm");
+                preWarm.setDaemon(true);
+                preWarm.start();
+            }
+
             return HttpResponse.ok("");
         } catch (AutomationException e) {
             log.error("현재티켓 커맨드 처리 실패 [{}]: userId={}, cause={}",
@@ -144,20 +170,21 @@ public class CurrentTicketFacade {
     /**
      * 기간 선택 모달 제출 처리.
      *
-     * <p><b>Lambda Thread 제약 해결:</b>
-     * Lambda Runtime은 handleRequest()가 return되는 순간 컨테이너를 freeze하므로
-     * setDaemon(false)로 선언한 Thread도 CPU를 받지 못하고 실행이 멈춘다.
+     * <p><b>Lambda 응답 타이밍:</b>
+     * Lambda Runtime은 handleRequest()가 return된 후에야 HTTP 응답을 전송한다.
+     * 따라서 Thread.join()으로 완료를 기다리면 그 시간만큼 Slack 응답이 지연된다.
      *
-     * <p><b>해결 방법 — Thread.join() + response_action:</b>
+     * <p><b>해결 방법 — 정적 캐시 + 사전 초기화 + join(timeout):</b>
      * <ol>
-     *   <li>Slack에는 {@code {"response_action":"clear"}} JSON으로 모달 즉시 닫기</li>
-     *   <li>Thread를 시작하되 {@code join()}으로 handleRequest 내에서 완료 대기</li>
-     *   <li>Lambda는 join()이 끝날 때까지 컨테이너를 유지 → Thread 정상 실행</li>
-     *   <li>Lambda timeout(15분) 이내이면 시간 제한 없음</li>
+     *   <li>S3Client, GoogleCalendarClient, team-members.json을 static 캐시하여
+     *       warm 상태에서 ~1,200ms 절약</li>
+     *   <li>handleCommand() 시점에 사전 초기화 스레드를 시작하여
+     *       사용자 모달 상호작용 시간(1~3초) 동안 캐시 준비</li>
+     *   <li>join(2500)으로 최대 2.5초 대기 → Slack 3초 제한 이내 응답 보장</li>
+     *   <li>타임아웃 발생 시 DM은 다음 Lambda invocation에서 스레드 재개 시 전송</li>
      * </ol>
      *
-     * <p>Slack 3초 응답 제한: response_action을 담은 응답은 즉시 전송되므로
-     * Slack이 모달을 닫는 시점은 join() 완료 여부와 무관하다.
+     * <p><b>warm 상태 예상 소요:</b> Calendar API(~2s) + DM(~0.5s) = ~2.5s
      */
     public APIGatewayProxyResponseEvent handleModalSubmit(String body) {
         CurrentTicketModalSubmit modal;
@@ -176,12 +203,11 @@ public class CurrentTicketFacade {
         final String period = modal.getPeriod();
         log.info("현재티켓 조회 요청 수신: userId={}, period={}", userId, period);
 
-        // ── Thread 시작 + join() ─────────────────────────────────────────────
-        // Lambda Runtime 특성:
-        //   handleRequest() return → 컨테이너 freeze → Thread 실행 불가
-        // 따라서 Thread를 시작하고 join()으로 완료를 기다린 후 return한다.
-        // Lambda는 join()이 끝날 때까지 컨테이너를 유지하므로 Thread가 정상 실행된다.
-        // Slack 모달은 response_action=clear JSON으로 즉시 닫히므로 3초 제한과 무관.
+        // ── Thread 시작 + join(timeout) ──────────────────────────────────────
+        // Lambda Runtime은 handleRequest() return 후에야 HTTP 응답을 전송하므로
+        // join(2500)으로 최대 대기 시간을 제한하여 Slack 3초 응답 제한을 준수.
+        // 사전 초기화 + 캐시로 대부분 2.5초 이내 완료됨.
+        // 타임아웃 시 스레드는 freeze 후 다음 invocation에서 재개(best-effort).
         Thread worker = new Thread(() -> {
             try {
                 log.info("현재티켓 DM 전송 시작: userId={}, period={}", userId, period);
@@ -193,7 +219,10 @@ public class CurrentTicketFacade {
         worker.start();
 
         try {
-            worker.join();
+            worker.join(2500);
+            if (worker.isAlive()) {
+                log.warn("현재티켓 worker 2.5초 초과 — Slack 응답 우선 반환: userId={}", userId);
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("현재티켓 worker Thread 인터럽트: userId={}", userId);
@@ -230,10 +259,10 @@ public class CurrentTicketFacade {
             return;
         }
 
-        // ── GoogleCalendarClient lazy 초기화 ─────────────────────────────────
+        // ── GoogleCalendarClient (캐시 또는 lazy 초기화) ─────────────────────
         GoogleCalendarClient calendarClient;
         try {
-            calendarClient = buildCalendarClient();
+            calendarClient = getOrCreateCalendarClient();
         } catch (Exception e) {
             log.error("GoogleCalendarClient 초기화 실패: userId={}, cause={}", userId, e.getMessage());
             sendErrorDm(userId, "⚠️ 캘린더 연결에 실패했습니다. 관리자에게 문의해 주세요.");
@@ -312,17 +341,38 @@ public class CurrentTicketFacade {
     }
 
     // =========================================================================
-    // 내부 — GoogleCalendarClient lazy 초기화
+    // 내부 — 캐시된 리소스 접근
     // =========================================================================
 
     /**
-     * GoogleCalendarClient를 S3에서 인증 키를 로드하여 생성한다.
+     * S3Client를 캐시에서 반환하거나, 없으면 생성 후 캐시한다.
      *
-     * <p>모달 오픈 시점이 아닌 실제 조회 시점에 호출된다 (lazy 초기화).
+     * <p>기존: 매 호출마다 {@code S3Client.builder().build()} (2회/요청, ~300ms×2)
+     * <br>개선: static 캐시로 Lambda 컨테이너 수명 동안 1회만 생성.
+     */
+    private static S3Client getOrCreateS3Client() {
+        S3Client s3 = cachedS3Client;
+        if (s3 == null) {
+            s3 = S3Client.builder().build();
+            cachedS3Client = s3;
+            log.info("[CurrentTicketFacade] S3Client 생성 완료 (캐시 저장)");
+        }
+        return s3;
+    }
+
+    /**
+     * GoogleCalendarClient를 캐시에서 반환하거나, S3에서 인증 키를 로드하여 생성 후 캐시한다.
+     *
+     * <p>기존: 매 호출마다 S3Client 생성 + S3 조회 + GoogleCalendarClient 생성 (~1,200ms)
+     * <br>개선: static 캐시로 Lambda 컨테이너 수명 동안 1회만 생성.
+     * handleCommand()의 사전 초기화 스레드에서 미리 호출되어 캐시 준비.
      *
      * @throws Exception 환경변수 미설정 또는 S3 로드 실패 시
      */
-    private GoogleCalendarClient buildCalendarClient() throws Exception {
+    private static GoogleCalendarClient getOrCreateCalendarClient() throws Exception {
+        GoogleCalendarClient client = cachedCalendarClient;
+        if (client != null) return client;
+
         String bucket = System.getenv("GOOGLE_CALENDAR_CREDENTIALS_BUCKET");
         String key = System.getenv("GOOGLE_CALENDAR_CREDENTIALS_KEY");
         if (key == null || key.isBlank()) key = "google-credentials.json";
@@ -331,39 +381,65 @@ public class CurrentTicketFacade {
             throw new IllegalStateException("GOOGLE_CALENDAR_CREDENTIALS_BUCKET 환경변수 미설정");
         }
 
-        S3Client s3 = S3Client.builder().build();
-        byte[] credBytes = s3.getObject(
+        byte[] credBytes = getOrCreateS3Client().getObject(
                 GetObjectRequest.builder().bucket(bucket).key(key).build()
         ).readAllBytes();
 
-        log.info("[CurrentTicketFacade] GoogleCalendarClient 초기화 완료");
-        return new GoogleCalendarClient(credBytes);
+        client = new GoogleCalendarClient(credBytes);
+        cachedCalendarClient = client;
+        log.info("[CurrentTicketFacade] GoogleCalendarClient 초기화 완료 (캐시 저장)");
+        return client;
     }
 
     // =========================================================================
-    // 내부 — team-members.json에서 이름 조회
+    // 내부 — team-members.json에서 이름 조회 (캐시)
     // =========================================================================
 
     /**
      * team-members.json에서 Slack User ID로 TeamMember.name(한글 이름)을 조회한다.
      *
+     * <p>기존: 매 호출마다 S3Client 생성 + S3 조회 + JSON 파싱 (~400ms)
+     * <br>개선: 첫 조회 시 전체 멤버 맵을 static 캐시. 이후 O(1) 조회.
+     *
      * <p>캘린더 이벤트 제목 "[Jira] CCE-123 (조주현)" 의 "(조주현)" 부분이
      * team-members.json의 name 필드와 동일하므로 정확한 매칭이 가능하다.
-     *
-     * <p>CONFIG_BUCKET 환경변수 미설정 시 null 반환 (오류 DM 전송으로 이어짐).
      *
      * @param slackUserId 요청자 Slack User ID
      * @return team-members.json의 name 값, 찾지 못하면 null
      */
     private String resolveAssigneeName(String slackUserId) {
-        if (configBucket == null || configBucket.isBlank()) {
+        // ── 캐시 히트 ─────────────────────────────────────────────────────
+        Map<String, String> memberMap = cachedTeamMemberMap;
+        if (memberMap == null) {
+            memberMap = loadTeamMemberMap(configBucket, teamMembersKey);
+        }
+        if (memberMap == null) return null;
+
+        String name = memberMap.get(slackUserId);
+        if (name != null) {
+            log.info("[CurrentTicketFacade] 팀원 이름 조회 완료: userId={}, name={}", slackUserId, name);
+        } else {
+            log.warn("[CurrentTicketFacade] slackUserId={}에 해당하는 팀원 없음", slackUserId);
+        }
+        return name;
+    }
+
+    /**
+     * team-members.json을 S3에서 로드하여 slackUserId → name 맵으로 캐시한다.
+     *
+     * @return 로드된 맵, 실패 시 null
+     */
+    private static Map<String, String> loadTeamMemberMap(String bucket, String key) {
+        Map<String, String> existing = cachedTeamMemberMap;
+        if (existing != null) return existing;
+
+        if (bucket == null || bucket.isBlank()) {
             log.warn("[CurrentTicketFacade] CONFIG_BUCKET 미설정 — team-members.json 조회 불가");
             return null;
         }
         try {
-            S3Client s3 = S3Client.builder().build();
-            byte[] bytes = s3.getObject(
-                    GetObjectRequest.builder().bucket(configBucket).key(teamMembersKey).build()
+            byte[] bytes = getOrCreateS3Client().getObject(
+                    GetObjectRequest.builder().bucket(bucket).key(key).build()
             ).readAllBytes();
 
             JsonNode root = OM.readTree(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
@@ -372,15 +448,18 @@ public class CurrentTicketFacade {
                 log.warn("[CurrentTicketFacade] team-members.json에 'members' 배열 없음");
                 return null;
             }
+
+            Map<String, String> map = new HashMap<>();
             for (JsonNode m : members) {
-                if (slackUserId.equals(m.path("slack_user_id").asText(""))) {
-                    String name = m.path("name").asText("").trim();
-                    log.info("[CurrentTicketFacade] 팀원 이름 조회 완료: userId={}, name={}", slackUserId, name);
-                    return name.isBlank() ? null : name;
+                String sid = m.path("slack_user_id").asText("");
+                String name = m.path("name").asText("").trim();
+                if (!sid.isEmpty() && !name.isEmpty()) {
+                    map.put(sid, name);
                 }
             }
-            log.warn("[CurrentTicketFacade] slackUserId={}에 해당하는 팀원 없음 (team-members.json)", slackUserId);
-            return null;
+            cachedTeamMemberMap = map;
+            log.info("[CurrentTicketFacade] team-members.json 캐시 완료: {}명", map.size());
+            return map;
         } catch (Exception e) {
             log.error("[CurrentTicketFacade] team-members.json 로드 실패: {}", e.getMessage());
             return null;

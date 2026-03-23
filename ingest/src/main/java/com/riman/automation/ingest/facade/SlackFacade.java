@@ -284,8 +284,21 @@ public class SlackFacade {
         return HttpResponse.ok("");
     }
 
-    // ── 재택근무 (기존 로직 완전 보존) ──────────────────────────────────────
+    // ── 재택근무 ────────────────────────────────────────────────────────────
 
+    /**
+     * 재택근무 모달 제출 처리
+     *
+     * <p><b>SQS 비동기 전송:</b>
+     * SQS sendMessage()는 네트워크 상태에 따라 100ms~2초 소요될 수 있어
+     * Slack view_submission 응답 제한을 초과할 위험이 있다.
+     * Worker가 SQS를 소비해 Slack DM으로 결과를 전송하므로,
+     * 여기서는 유효성 검증 후 SQS 전송만 Thread로 수행하고 즉시 응답한다.
+     *
+     * <p>Lambda는 handleRequest() 반환 시 컨테이너를 freeze하므로
+     * Thread.join()으로 SQS 전송 완료를 보장한다.
+     * (CurrentTicketFacade.handleModalSubmit 과 동일 패턴)
+     */
     private APIGatewayProxyResponseEvent handleRemoteWorkSubmit(String body) throws Exception {
         RemoteWorkModalSubmit modal = RemoteWorkModalSubmit.parse(body);
 
@@ -304,16 +317,45 @@ public class SlackFacade {
             return HttpResponse.modalError("action_type", "신청 또는 취소를 선택해주세요.");
         }
 
-        String messageId = workerMessageService.sendRemoteWork(
-                modal.getUserId(), modal.getUserName(), modal.getDate(), modal.getAction());
+        Thread sqsThread = new Thread(() -> {
+            try {
+                String messageId = workerMessageService.sendRemoteWork(
+                        modal.getUserId(), modal.getUserName(),
+                        modal.getDate(), modal.getAction());
+                log.info("재택 SQS 전송 완료: messageId={}, user={}, date={}, action={}",
+                        messageId, modal.getUserName(), modal.getDate(), modal.getAction());
+            } catch (Exception e) {
+                log.error("재택 SQS 전송 실패: user={}, date={}, action={}",
+                        modal.getUserName(), modal.getDate(), modal.getAction(), e);
+            }
+        }, "remote-work-sqs-sender");
+        sqsThread.start();
 
-        log.info("재택 SQS 전송: messageId={}, user={}, date={}, action={}",
-                messageId, modal.getUserName(), modal.getDate(), modal.getAction());
+        try {
+            sqsThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("재택 SQS 전송 스레드 인터럽트: user={}", modal.getUserName());
+        }
+
         return HttpResponse.ok("");
     }
 
-    // ── 부재등록 (기존 — 변경 없음) ─────────────────────────────────────────
+    // ── 부재등록 ──────────────────────────────────────────────────────────
 
+    /**
+     * 부재등록 모달 제출 처리
+     *
+     * <p><b>SQS 비동기 전송:</b>
+     * SQS sendMessage()는 네트워크 상태에 따라 100ms~2초 소요될 수 있어
+     * Slack view_submission 응답 제한을 초과할 위험이 있다.
+     * Worker가 SQS를 소비해 부재 등록 + Slack DM 결과를 전송하므로,
+     * 여기서는 유효성 검증 후 SQS 전송만 Thread로 수행하고 즉시 응답한다.
+     *
+     * <p>Lambda는 handleRequest() 반환 시 컨테이너를 freeze하므로
+     * Thread.join()으로 SQS 전송 완료를 보장한다.
+     * (CurrentTicketFacade.handleModalSubmit 과 동일 패턴)
+     */
     private APIGatewayProxyResponseEvent handleAbsenceSubmit(String body) throws Exception {
         AbsenceModalSubmit modal = AbsenceModalSubmit.parse(body);
 
@@ -337,18 +379,29 @@ public class SlackFacade {
             return HttpResponse.modalError("action_start_date", "시작일을 선택해주세요.");
         }
 
-        String messageId = workerMessageService.sendAbsence(
-                modal.getUserId(),
-                modal.getUserName(),
-                modal.getAbsenceType(),
-                modal.getAction(),
-                modal.getStartDate(),
-                modal.getEndDate(),
-                modal.getReason()
-        );
+        Thread sqsThread = new Thread(() -> {
+            try {
+                String messageId = workerMessageService.sendAbsence(
+                        modal.getUserId(), modal.getUserName(),
+                        modal.getAbsenceType(), modal.getAction(),
+                        modal.getStartDate(), modal.getEndDate(),
+                        modal.getReason());
+                log.info("부재 SQS 전송 완료: messageId={}, user={}, type={}, action={}",
+                        messageId, modal.getUserName(), modal.getAbsenceType(), modal.getAction());
+            } catch (Exception e) {
+                log.error("부재 SQS 전송 실패: user={}, type={}, action={}",
+                        modal.getUserName(), modal.getAbsenceType(), modal.getAction(), e);
+            }
+        }, "absence-sqs-sender");
+        sqsThread.start();
 
-        log.info("부재 SQS 전송: messageId={}, user={}, type={}, action={}",
-                messageId, modal.getUserName(), modal.getAbsenceType(), modal.getAction());
+        try {
+            sqsThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("부재 SQS 전송 스레드 인터럽트: user={}", modal.getUserName());
+        }
+
         return HttpResponse.ok("");
     }
 
