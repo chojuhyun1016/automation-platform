@@ -1,0 +1,37 @@
+# 빌드 산출물
+build/
+.gradle/
+*.jar
+*.class
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 민감 정보
+config/google-credentials.json
+*.pem
+*.key
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# 테스트 산출물
+test-results/
+coverage/
+jacoco/
+
+# Git
+.git/
