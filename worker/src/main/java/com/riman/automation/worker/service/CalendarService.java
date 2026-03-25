@@ -148,6 +148,9 @@ public class CalendarService {
             return;
         }
 
+        // startdate 방어 로직: null → 오늘, startdate > duedate → duedate
+        fields.setStartdate(normalizeStartDate(fields.getStartdate(), fields.getDuedate()));
+
         TeamMember teamAssignee = findTeamAssignee(fields);
         if (teamAssignee == null) {
             log.info("비팀원 담당 → CREATE 스킵: issueKey={}", issue.getKey());
@@ -207,6 +210,9 @@ public class CalendarService {
             deleteJiraEventById(calendarId, existing.eventId, issue.getKey());
             return;
         }
+
+        // startdate 방어 로직: null → 오늘, startdate > duedate → duedate
+        fields.setStartdate(normalizeStartDate(fields.getStartdate(), fields.getDuedate()));
 
         TeamMember currentAssignee = findTeamAssignee(fields);
 
@@ -551,6 +557,27 @@ public class CalendarService {
                 .setStart(new EventDateTime().setDate(new DateTime(dueDate.toString())))
                 .setEnd(new EventDateTime().setDate(new DateTime(dueDate.plusDays(1).toString())))
                 .setTransparency("transparent");
+    }
+
+    /**
+     * startdate 방어 로직.
+     * <ol>
+     *   <li>startdate가 null/blank → 오늘 날짜로 대체</li>
+     *   <li>startdate > duedate → duedate로 보정 (1번 적용 후에도 재검증)</li>
+     * </ol>
+     */
+    private String normalizeStartDate(String startdate, String duedate) {
+        if (startdate == null || startdate.isBlank()) {
+            startdate = LocalDate.now().toString();
+        }
+        if (duedate != null && !duedate.isBlank()) {
+            LocalDate start = LocalDate.parse(startdate, DateTimeFormatter.ISO_LOCAL_DATE);
+            LocalDate due = LocalDate.parse(duedate, DateTimeFormatter.ISO_LOCAL_DATE);
+            if (start.isAfter(due)) {
+                startdate = duedate;
+            }
+        }
+        return startdate;
     }
 
     private Event.ExtendedProperties buildExtendedProps(String issueKey, String assigneeName,

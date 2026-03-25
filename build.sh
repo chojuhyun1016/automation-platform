@@ -69,8 +69,12 @@ echo "════════════════════════�
 
 for MODULE in ingest worker scheduler groupware; do
     # groupware → riman-automation-groupware, 나머지는 automation-{module}
-    if [ "$MODULE" = "groupware" ]; then
+    if [ "$MODULE" = "ingest" ]; then
+        FUNCTION_NAME="AutomationWebhookIngest"
+    elif [ "$MODULE" = "groupware" ]; then
         FUNCTION_NAME="automation-groupware"
+    elif [ "$MODULE" = "worker" ]; then
+        FUNCTION_NAME="AutomationWebhookWorker"
     elif [ "$MODULE" = "scheduler" ]; then
         FUNCTION_NAME="AutomationScheduler"
     else

@@ -86,11 +86,14 @@ SQS 메시지 수신 (WorkerHandler)
 Jira 이슈 변경 이벤트
     ↓
 1. 팀원 관련 이벤트인지 판별
-2. Google Calendar 이벤트 동기화
+2. startdate 방어 로직 (CalendarService.normalizeStartDate)
+   ├─ startdate가 null → 오늘 날짜로 대체
+   └─ startdate > duedate → duedate로 보정
+3. Google Calendar 이벤트 동기화
    ├─ 매핑 조회 (DynamoDB → extendedProperties fallback)
    ├─ 이벤트 없으면 생성, 있으면 업데이트
    └─ DynamoDB 매핑 저장
-3. Slack DM 알림
+4. Slack DM 알림
    ├─ 담당자 변경: from + to 2명 모두
    ├─ 기타 변경: 현재 담당자 (팀원만)
    └─ 비팀원 티켓 변경: 알림 없음
