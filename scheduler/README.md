@@ -136,3 +136,203 @@ Claude가 다듬은 mrkdwn
 ※ AI 실패 시 자동으로 원본 포맷 폴백
 ※ 규칙: S3 rules/DAILY_REPORT_RULES.md (코드 배포 없이 수정 가능)
 ```
+
+## 리포트별 티켓 수집 조건
+
+### 공통 규칙
+
+#### 데이터 소스
+
+| 리포트 | 캘린더 | Jira API |
+|--------|:------:|:--------:|
+| 일일 | O | O |
+| 주간 | O | - |
+| 월간 | O | - |
+
+- 캘린더 이벤트 중 `extendedProperties["jiraIssueKey"]`가 존재하는 이벤트만 Jira 티켓으로 인식
+- 이벤트 제목의 담당자명이 팀원 목록에 포함된 이벤트만 수집
+
+#### 프로젝트/카테고리 분류
+
+| 프로젝트 키 | 카테고리 | 비고 |
+|------------|---------|------|
+| RBO | RBO | |
+| ABO | ABO | |
+| GADMIN | ABO | ABO로 통합 |
+| GER | 회원 | |
+| KEEN | 회원 | 회원으로 통합 |
+| CCE | summary 태그 기반 | `[주문]`, `[회원]`, `[수당]`, `[포인트]`, `[ABO]`, `[RBO]` |
+| CCE (태그 없음) | **제외** | 보고서에 미포함 |
+| 기타 프로젝트 | **제외** | 보고서에 미포함 |
+
+카테고리 표시 순서: 주문 → 회원 → 수당 → 포인트 → ABO → RBO
+
+#### DONE 판정 상태값
+
+| 프로젝트 | 완료 상태 |
+|---------|----------|
+| RBO | `done`, `answered`, `duplicated`, `grit 이관`, `listed`, `reject` |
+| ABO | `monitoring in progress` |
+| CCE | `완료`, `반려`, `취소` |
+
+#### 마감일 긴급도 (DueDateUrgencyCode)
+
+| 조건 | 코드 | 표시 |
+|------|------|------|
+| dueDate 지남 | OVERDUE | 🔴 기간만료 |
+| 3일 이내 | URGENT | 🔵 3일이내 |
+| 3일 초과 | NORMAL | ⚫ 정상 |
+| dueDate 없음 | NONE | ⬜ 없음 |
+
+#### startDate / dueDate 보정 (CalendarService.normalizeStartDate)
+
+티켓 생성/업데이트 시 자동 적용:
+- startDate가 null → 오늘 날짜로 대체
+- startDate > dueDate → dueDate로 보정
+
+---
+
+### 일일 보고서 (DailyReport)
+
+**전달 방식**: Slack 채널 메시지
+**트리거**: EventBridge (매일 오전)
+
+#### 수집 범위
+
+| 소스 | 범위 | 비고 |
+|------|------|------|
+| 캘린더 (금주 티켓) | 이번 주 월~일 | 금요일이면 차주 일요일까지 확장 |
+| 캘린더 (연체 티켓) | 과거 6개월 | 미완료 상태인 과거 티켓 포함 |
+| Jira API | 미완료 전체 | 아래 JQL 참조 |
+
+#### 캘린더 수집 조건
+
+| 조건 | 설명 |
+|------|------|
+| 팀원 이벤트만 | 이벤트 제목 `(담당자명)` 이 팀원 목록에 포함 |
+| Jira 상태 재검증 | `dueDate < 이번주 월요일 AND status == IN_PROGRESS` 인 티켓 → Jira API로 실제 상태 확인 |
+
+#### Jira API 수집 조건 (JQL)
+
+```
+project in (CCE, RBO, ABO, GADMIN, GER, KEEN)
+AND statusCategory in ('new', 'indeterminate')
+AND issuetype != Epic
+AND (duedate <= '{endDate}' OR duedate is EMPTY)
+ORDER BY priority ASC, duedate ASC
+```
+
+| 조건 | 설명 |
+|------|------|
+| statusCategory | 'new', 'indeterminate' (미완료만, Done 제외) |
+| issuetype != Epic | 에픽 제외 |
+| duedate <= endDate | 마감일이 조회 범위 이내이거나 마감일 없는 티켓 |
+
+#### 정렬 순서
+
+캘린더 티켓: 마감일 근접순 → 우선순위순
+Jira 티켓: 우선순위순 → 마감일 근접순
+
+---
+
+### 주간 보고서 (WeeklyReport)
+
+**전달 방식**: Confluence 페이지 + 엑셀 첨부 + Slack 알림
+**트리거**: EventBridge (매주 금요일)
+
+#### 날짜 범위
+
+| 범위 | 계산 | 예시 (baseDate = 2026-03-25) |
+|------|------|------|
+| weekStart | 지난주 월요일 | 2026-03-16 |
+| weekEnd | 지난주 일요일 | 2026-03-22 |
+| quarterStart | 해당 분기 1일 | 2026-01-01 |
+| quarterEnd | 해당 분기 마지막일 | 2026-03-31 |
+
+#### 완료 (Done) 티켓
+
+| 조건 | 설명 |
+|------|------|
+| 캘린더 조회 범위 | weekStart ~ weekEnd (지난주) |
+| status == DONE | 완료 상태만 |
+| Jira 상태 재검증 | IN_PROGRESS 티켓을 Jira API로 실제 상태 확인 후 DONE 여부 재판정 |
+
+#### 진행중 (In-Progress) 티켓
+
+| 조건 | 설명 |
+|------|------|
+| 캘린더 조회 범위 | quarterStart ~ quarterEnd (분기 전체) |
+| status != DONE | 미완료 상태 |
+| `[이슈]` 태그 없음 | summary에 `[이슈]` 미포함 |
+| startDate <= weekEnd | 시작일이 지난주 일요일 이전 (미래 예정 티켓 제외) |
+| startDate == null | **포함** (이전 이벤트 호환) |
+
+#### 이슈 (Issue) 티켓
+
+| 조건 | 설명 |
+|------|------|
+| 캘린더 조회 범위 | quarterStart ~ quarterEnd (분기 전체) |
+| status != DONE | 미완료 상태 |
+| `[이슈]` 태그 있음 | summary에 `[이슈]` 포함 |
+| startDate <= weekEnd | 시작일이 지난주 일요일 이전 (미래 예정 이슈 제외) |
+| startDate == null | **포함** (이전 이벤트 호환) |
+
+---
+
+### 월간 보고서 (MonthlyReport)
+
+**전달 방식**: Confluence 페이지 + 엑셀 첨부 + Slack 알림
+**트리거**: EventBridge (매월 초)
+
+#### 날짜 범위
+
+| 범위 | 계산 | 예시 (대상월 = 2026-02) |
+|------|------|------|
+| monthStart | 대상월 1일 | 2026-02-01 |
+| monthEnd | 대상월 마지막일 | 2026-02-28 |
+| quarterStart | 해당 분기 1일 | 2026-01-01 |
+| quarterEnd | 해당 분기 마지막일 | 2026-03-31 |
+
+대상월 미지정 시 이전 달 자동 선택.
+
+#### 완료 (Done) 티켓
+
+| 조건 | 설명 |
+|------|------|
+| 캘린더 조회 범위 | monthStart ~ monthEnd (대상월) |
+| status == DONE | 완료 상태만 |
+| Jira 상태 재검증 | IN_PROGRESS 티켓을 Jira API로 실제 상태 확인 후 DONE 여부 재판정 |
+
+#### 진행중 (In-Progress) 티켓
+
+| 조건 | 설명 |
+|------|------|
+| 캘린더 조회 범위 | quarterStart ~ quarterEnd (분기 전체) |
+| status != DONE | 미완료 상태 |
+| `[이슈]` 태그 없음 | summary에 `[이슈]` 미포함 |
+| startDate <= monthEnd | 시작일이 대상월 마지막일 이전 (미래 예정 티켓 제외) |
+| startDate == null | **포함** (이전 이벤트 호환) |
+
+#### 이슈 (Issue) 티켓
+
+| 조건 | 설명 |
+|------|------|
+| 캘린더 조회 범위 | quarterStart ~ quarterEnd (분기 전체) |
+| status != DONE | 미완료 상태 |
+| `[이슈]` 태그 있음 | summary에 `[이슈]` 포함 |
+| startDate <= monthEnd | 시작일이 대상월 마지막일 이전 (미래 예정 이슈 제외) |
+| startDate == null | **포함** (이전 이벤트 호환) |
+
+---
+
+### 리포트 간 비교 요약
+
+| 항목 | 일일 | 주간 | 월간 |
+|------|------|------|------|
+| 완료 범위 | - | 지난주 | 대상월 |
+| 진행중/이슈 범위 | 금주 + 과거 6개월 | 분기 전체 | 분기 전체 |
+| startDate 필터 | - | <= weekEnd | <= monthEnd |
+| Jira API 직접 조회 | O | - | - |
+| 상태 재검증 | O (과거 연체 티켓) | O (IN_PROGRESS) | O (IN_PROGRESS) |
+| `[이슈]` 분리 | - | O | O |
+| 전달 채널 | Slack | Confluence + Slack | Confluence + Slack |
