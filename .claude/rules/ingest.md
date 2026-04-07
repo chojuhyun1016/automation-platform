@@ -76,6 +76,14 @@ private static final SqsClient SQS_CLIENT = SqsClient.builder().build();
 ```
 - `getInstance()`로 접근, SQS 클라이언트는 Lambda 컨테이너 수명 동안 재사용
 
+## ScheduleMappingQueryService (일정 조회)
+
+- `/일정등록` 커맨드 수신 시 본인이 등록한 일정 목록 조회
+- DynamoDB `SCHEDULE_MAPPING_TABLE` (PK: slackUserId, SK: eventId)
+- 오늘 이후 일정만, 날짜 오름차순, 최대 10개
+- **Pre-warm**: Lambda INIT 단계에서 `DescribeTable`로 TCP+TLS 사전 수립 (1500~1800ms 절약)
+- `SCHEDULE_MAPPING_TABLE` 미설정 시 기능 비활성화 (예외 throw 안 함)
+
 ## HttpResponse 유틸리티
 
 - `modalError(blockId, message)`: `response_action: "errors"` — **block_id** 키를 사용할 것 (action_id 아님)

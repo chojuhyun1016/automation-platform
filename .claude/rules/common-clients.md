@@ -40,19 +40,32 @@ paths:
 - Enum에 새 값을 추가할 때 팩토리 메서드의 매핑도 함께 갱신할 것
 - `AbsenceTypeCode.isSingleDayOnly()`로 반차 등 단일일 유형 판별
 
-## SlackBlockBuilder (common/util/)
+## SlackBlockBuilder (common/slack/)
 
 Slack Block Kit JSON을 빌드하는 체이닝 API:
 ```java
 SlackBlockBuilder.builder()
+    .forChannel(channelId)  // 채널 메시지용
     .header("제목")
     .divider()
     .section("*mrkdwn 텍스트*")
     .context("부가 정보")
+    .rawBlock(customNode)   // 커스텀 JSON 블록
+    .richText(elements)     // rich_text 블록 (색상 지정 가능)
     .noUnfurl()
     .build();
 ```
-- `noUnfurl()`: URL 미리보기 비활성화
+
+| 메서드 | 용도 |
+|--------|------|
+| `forChannel(id)` / `forModal()` | 대상 설정 |
+| `header()`, `section()`, `divider()`, `context()` | 기본 블록 |
+| `rawBlock(ObjectNode)` | 커스텀 JSON 블록 추가 |
+| `richText(ArrayNode)` | rich_text 블록 (색상 지정) |
+| `blockCount()` | 블록 수 조회 (Slack 50개 한도 모니터링) |
+| `fallbackText()` | 알림 대체 텍스트 |
+| `noUnfurl()` | URL 미리보기 비활성화 |
+
 - 들여쓰기: 전각 공백 (U+3000) 사용
 
 ## DateTimeUtil (common/util/)
@@ -62,13 +75,31 @@ SlackBlockBuilder.builder()
 - ISO 형식 파싱/포맷 제공
 - 날짜 계산은 항상 KST 기준으로 할 것
 
-## BaseHttpClient (clients/)
+## HTTP 클라이언트 계층 (clients/http/)
 
+### SharedHttpClient
+- 모든 Client가 공유하는 HTTP 클라이언트 (static 싱글톤)
+- 타임아웃: connect 3초, response 10초
+- Lambda warm 상태에서 TCP 연결 재사용
+
+### BaseHttpClient
 모든 API 클라이언트의 기반 클래스:
 - `get(url, headers)` → `ApiResponse`
 - `post(url, headers, body)` → `ApiResponse`
 - PUT은 미제공 — ConfluenceClient에서 `HttpURLConnection` 직접 사용
 - `requireSuccess(response, context)`: 실패 시 `ExternalApiException` throw
+
+## TokenProvider 계층 (common/auth/)
+
+| 구현 | 인증 방식 | 용도 |
+|------|----------|------|
+| `EnvTokenProvider(envName)` | `System.getenv()` → Bearer | Slack, Confluence, Anthropic |
+| `BasicTokenProvider` | `JIRA_EMAIL` + `JIRA_API_TOKEN` → Basic Auth | Jira Cloud |
+
+- `getToken()`: 토큰 값만 반환 (prefix 없음)
+- `toBearerHeader()`: `"Bearer {token}"`
+- `toBasicHeader()`: `"Basic {base64}"`
+- 미설정 시 `ConfigException` throw
 
 ## API 클라이언트 인증 패턴
 

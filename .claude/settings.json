@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MODULE=$(echo \"$CLAUDE_FILE_PATH\" | grep -oE '(common|clients|ingest|worker|scheduler|groupware)' | head -1); if [ -n \"$MODULE\" ]; then ./gradlew :$MODULE:compileJava --no-daemon -q 2>&1 | tail -5; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q 'git push.*main'; then echo 'BLOCKED: main 직접 푸시 금지 — PR을 통해 merge' && exit 1; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

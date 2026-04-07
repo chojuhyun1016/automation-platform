@@ -55,6 +55,7 @@ Load (S3 설정, 팀원) → Collect (Calendar, Jira, DynamoDB) → Format (Slac
 | 컬렉터 | 데이터 소스 | 특이사항 |
 |--------|-----------|---------|
 | DailyCalendarTicketCollector | Calendar + Jira | 담당자명으로 팀원 매칭, Jira fallback |
+| DailyJiraTicketCollector | Jira JQL | 미완료 상태(To Do + In Progress), 금주 due date, 우선순위순 |
 | DailyAbsenceCollector | Calendar (2개 캘린더 병합) | 이벤트 ID 기반 중복 제거 |
 | DailyScheduleCollector | DynamoDB + Calendar | eventId 교차 매칭 |
 | WeeklyCalendarTicketCollector | Calendar (2회 쿼리) | done(주간) + in-progress(분기), Jira 상태 재검증 |

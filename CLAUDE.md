@@ -1,7 +1,11 @@
 # CLAUDE.md
 
-이 파일은 Claude Code가 프로젝트 작업 시 자동으로 참조하는 컨텍스트 파일입니다.
-모듈별 상세 규칙은 `.claude/rules/`에서 해당 파일 작업 시 자동 로딩된다.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+- **PRD**: `automation-platform-prd.md` — 제품 요구사항, 아키텍처, 보안, 데이터 모델
+- **SPEC**: `SPEC.md` — 구현 상태, Phase별 개선 계획, Bugfix 로그
+- **모듈별 CLAUDE.md**: 각 모듈 디렉토리에 `CLAUDE.md`가 있다 (패키지 구조, 핵심 패턴, API)
+- **상세 규칙**: `.claude/rules/`에서 해당 파일 작업 시 자동 로딩
 
 ## 프로젝트 개요
 
@@ -13,21 +17,37 @@
 
 ## 모듈 구조
 
+각 모듈 디렉토리에 `CLAUDE.md`가 있어 상세한 패키지 구조, 클래스 목록, 핵심 패턴을 설명한다.
+
 ```
 automation-platform/
-├── common/          # 공통 라이브러리 (예외, Enum, 유틸리티, SlackBlockBuilder)
-├── clients/         # 외부 API 클라이언트 (Jira, Slack, Calendar, Confluence, Anthropic)
-├── ingest/          # Lambda 진입점 (Slack 커맨드, Jira 웹훅 수신)
-├── worker/          # SQS 소비자 (Jira-Calendar 동기화, 재택/부재/일정 처리)
-├── scheduler/       # EventBridge 스케줄러 (일일/주간/월간 보고서)
-├── groupware/       # Lambda 오케스트레이터 (그룹웨어 부재 신청)
-├── groupware-bot/   # Python Playwright (브라우저 자동화, Gradle 미포함)
-└── config/          # S3 업로드용 런타임 설정 파일 (상세: config/README.md)
+├── common/          공통 라이브러리 (예외, Enum, 유틸리티, SlackBlockBuilder)    → common/CLAUDE.md
+├── clients/         외부 API 클라이언트 (Jira, Slack, Calendar, Confluence)      → clients/CLAUDE.md
+├── ingest/          Lambda 진입점 (Slack 커맨드, Jira 웹훅 수신)                → ingest/CLAUDE.md
+├── worker/          SQS 소비자 (Jira-Calendar 동기화, 재택/부재/일정 처리)      → worker/CLAUDE.md
+├── scheduler/       EventBridge 스케줄러 (일일/주간/월간 보고서)                → scheduler/CLAUDE.md
+├── groupware/       Lambda 오케스트레이터 (그룹웨어 부재 신청)                  → groupware/CLAUDE.md
+├── groupware-bot/   Python Playwright (브라우저 자동화, Gradle 미포함)           → groupware-bot/CLAUDE.md
+└── config/          S3 업로드용 런타임 설정 파일                                → config/CLAUDE.md
 ```
 
 **의존성**: `common ← clients ← ingest / worker / scheduler / groupware`
 - common, clients는 상위 모듈 코드를 참조하지 말 것
 - groupware-bot은 독립 Python 프로젝트 (Gradle 미포함)
+
+## 요청 흐름 아키텍처
+
+```
+Slack 커맨드 → API Gateway → ingest Lambda (SlackFacade) → SQS → worker Lambda (Facade별 처리)
+                                                             └→ groupware SQS → groupware Lambda → Fargate (groupware-bot)
+
+Jira 웹훅   → API Gateway → ingest Lambda (JiraWebhookFacade) → SQS → worker Lambda (JiraIssueFacade)
+
+EventBridge → scheduler Lambda → Slack DM / Confluence
+```
+
+- ingest는 3초 내 Slack 응답 후 SQS로 위임, worker가 실제 비즈니스 로직 수행
+- scheduler는 EventBridge cron으로 독립 실행
 
 ## Slack 슬래시 커맨드
 
@@ -39,21 +59,13 @@ automation-platform/
 | `/일정등록` | ingest → worker | ScheduleManageFacade | 일정 캘린더 CRUD + DynamoDB 매핑 |
 | `/현재티켓` | ingest | CurrentTicketFacade | 담당 Jira 티켓 현황 조회 |
 
-## Lambda 함수명 및 핸들러
-
-| 모듈 | Lambda 함수명 | 핸들러 클래스 |
-|------|--------------|--------------|
-| ingest | `AutomationWebhookIngest` | IngestHandler |
-| worker | `AutomationWebhookWorker` | WorkerHandler |
-| scheduler | `AutomationScheduler` | SchedulerHandler |
-| groupware | `automation-groupware` | GroupwareHandler |
-
 ## 빌드/배포
 
 ```bash
 make build                          # 전체 shadowJar 빌드
 make build-ingest                   # 모듈별 빌드 (build-worker, build-scheduler, build-groupware)
 make build-bot                      # groupware-bot Docker 빌드
+make clean                          # 빌드 아티팩트 정리
 make deploy-all                     # 전체 배포
 make deploy-ingest                  # 모듈별 배포 (deploy-worker, deploy-scheduler, deploy-groupware)
 make push-bot                       # ECR 푸시
@@ -64,14 +76,11 @@ make push-bot                       # ECR 푸시
 
 ### Java
 - **Java 17** 문법을 사용할 것 (record, sealed class, text block, pattern matching 등)
-- **Lombok** 사용: `@Slf4j`, `@Getter`, `@Builder`, `@RequiredArgsConstructor`
 - **패키지**: `com.riman.automation.<module>.<layer>.<class>`
   - layer: `handler`, `facade`, `service`, `dto`, `payload`, `security`, `util`
   - scheduler 추가: `collect`, `format`, `excel`, `load`, `report`, `tool`
 - **예외**: `common` 모듈의 4가지 예외 클래스만 사용할 것 (상세: `.claude/rules/common-clients.md`)
-- **로깅**: SLF4J (`@Slf4j`), `log.info/warn/error`
-- **JSON**: Jackson (`ObjectMapper`), `jackson-datatype-jsr310`으로 Java Time 지원
-- **날짜/시간**: `java.time` API (LocalDate, LocalDateTime, ZonedDateTime), KST 기준
+- **변수명**: camelCase로 작성할 것
 - **Null 처리**: 방어적 null 체크, Optional은 반환타입에만 제한적 사용
 
 ### Python (groupware-bot)
@@ -81,46 +90,36 @@ make push-bot                       # ECR 푸시
 - 커밋 메시지: 한국어 또는 영어, 간결하게
 - 환경변수명: `UPPER_SNAKE_CASE` / S3 설정 키: `kebab-case.json`
 
+## Lambda 핵심 제약사항
+
+- **Slack 응답은 항상 HTTP 200 반환** — 500은 Slack 재시도 루프 + `{reason}` 미치환 버그 유발
+- **Slack 3초 제한**: `view_submission` 등 인터랙션은 3초 내 응답 필수 → 무거운 작업은 SQS 위임
+- **`handleRequest()` 리턴 후에만 HTTP 응답 전송** — Thread.join() 없이 리턴하면 스레드가 freeze됨
+- **Static volatile 캐싱**: 생성 비용 300ms 이상인 객체 (S3Client, GoogleCalendarClient 등)는 `static volatile`로 캐싱
+- 상세 패턴은 `.claude/rules/lambda-patterns.md` 참조
+
 ## AWS 핵심 서비스
 
-- **Lambda**: ingest, worker, scheduler, groupware 실행
-- **API Gateway**: Slack 커맨드, Jira 웹훅 수신 (동기 프록시 통합)
-- **SQS**: ingest→worker, worker→groupware 비동기 전달
-- **S3**: 설정 파일, Lambda JAR, 스크린샷
-- **DynamoDB**: Jira-Calendar 매핑, 일정 매핑, 중복 방지
-- **Secrets Manager / KMS**: 토큰, 계정 정보, AES-256-GCM 암호화
-- **ECS Fargate / ECR**: groupware-bot Docker 실행
-- **EventBridge**: Scheduler Lambda 정기 트리거
-
-### SQS 큐
-
-| 환경변수 | 방향 | 메시지 타입 |
-|---------|------|------------|
-| `SQS_QUEUE_URL` | ingest → worker | AbsenceMessage, RemoteWorkMessage, ScheduleMessage, JiraWebhookEvent |
-| `GROUPWARE_SQS_QUEUE_URL` | worker → groupware | GroupwareAbsenceMessage |
-
-### DynamoDB 테이블
-
-| 환경변수 | 용도 | PK / SK |
-|---------|------|---------|
-| `CALENDAR_MAPPING_TABLE` | Jira issueKey ↔ Calendar eventId 매핑 | issueKey / calendarId |
-| `SCHEDULE_MAPPING_TABLE` | `/일정등록` 이벤트 매핑 | slackUserId / eventId |
-| `DYNAMODB_TABLE` | Jira 웹훅 중복 방지 (DedupeService) | webhookEventId |
+Lambda, API Gateway, SQS, S3, DynamoDB, Secrets Manager/KMS, ECS Fargate/ECR, EventBridge.
+SQS/DynamoDB 스키마 상세는 `.claude/rules/worker.md` 참조.
 
 ## 설정 파일 (config/)
 
 S3에 업로드되어 런타임에 사용됨. 상세 구조는 `config/README.md` 참조.
 
-| 파일 | 용도 | 사용 모듈 |
-|------|------|----------|
-| `config.json` | 프로젝트별 라우팅, 캘린더 ID, Slack 채널 | ingest, worker |
-| `scheduler-config.json` | 일일/주간/월간 보고서 설정 | scheduler |
-| `team-members.json` | 팀원 목록 (Slack/Jira/역할 매핑) | ingest, worker, scheduler |
-| `groupware-config.json` | 그룹웨어/EKP 부재 신청 규칙 | groupware |
-| `announcements.json` | 팀 공지사항 (날짜 범위 기반) | scheduler |
-| `google-credentials.json` | Google 서비스 계정 키 (**민감 정보**) | worker, scheduler |
-| `rules/DAILY_REPORT_RULES.md` | Claude 일일 보고서 프롬프트 | scheduler |
-| `rules/WEEKLY_REPORT_RULES.md` | Claude 주간 보고서 프롬프트 | scheduler |
+## .claude/rules/ 자동 로딩 규칙
+
+| 규칙 파일 | 적용 대상 | 주요 내용 |
+|-----------|----------|----------|
+| `common-clients.md` | common/**, clients/** | 예외 계층, Enum, SlackBlockBuilder, TokenProvider, API 클라이언트 |
+| `ingest.md` | ingest/** | SlackFacade 라우팅, 병렬 초기화, SQS 위임, ScheduleMappingQuery |
+| `worker.md` | worker/** | 메시지 디스패치, CalendarService, DynamoDB, SlackNotification |
+| `scheduler.md` | scheduler/** | 보고서 파이프라인, Collector 7개, Confluence 계층 |
+| `groupware.md` | groupware/**, groupware-bot/** | ECS 오케스트레이션, KMS 봉투 암호화, 자격증명 보안 |
+| `lambda-patterns.md` | handler/**, facade/** | 3초 제한, pre-warm, static volatile 캐싱 |
+| `calendar-model.md` | Calendar 관련 코드 | Google Calendar 이벤트 모델, extendedProperties |
+| `env-vars.md` | 전체 Lambda 모듈 | 모듈별 환경변수 참조 (필수/선택 분류) |
+| `agents.md` | — | 프로젝트 에이전트 7개, 사용 시점 |
 
 ## 테스트
 
@@ -131,8 +130,5 @@ S3에 업로드되어 런타임에 사용됨. 상세 구조는 `config/README.md
 - `config/google-credentials.json`은 **민감 정보** — 내용을 출력하거나 수정하지 말 것
 - `config/` 파일 구조 변경 시 관련 모듈 코드도 함께 수정할 것
 - Jira Cloud REST API: POST `/rest/api/3/search/jql` 사용할 것 (GET `/rest/api/3/search`는 HTTP 410)
-- Confluence Cloud: 인덱싱 지연으로 3단계 페이지 검색 전략 적용 중 — 검색 로직 변경 시 주의할 것
 - Lambda Shadow JAR: META-INF 서명 파일 제거 필수 (`mergeServiceFiles`)
 - build.sh의 Lambda 함수명은 참고용 — 실제 배포는 **Makefile이 정본**
-- Lambda는 `handleRequest()` 리턴 후에만 HTTP 응답을 전송함 — 비동기 처리가 필요하면 SQS 위임 또는 `join(timeout)` 패턴을 사용할 것
-- 생성 비용이 큰 클라이언트(S3Client ~300ms, GoogleCalendarClient ~1200ms)는 `static volatile`로 캐싱할 것

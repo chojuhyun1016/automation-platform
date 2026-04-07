@@ -61,16 +61,6 @@
       "active": true,
       "team": "CCE",
       "role": "Engineer"
-    },
-    {
-      "name": "김유경",
-      "name_en": "Yukyeong Kim",
-      "email": "yukyeong.kim@riman.com",
-      "jira_account_id": "712020:e2e57fa7-2f18-451e-93b9-84b745852492",
-      "slack_user_id": "U0AGKH4UG9J",
-      "active": true,
-      "team": "CCE",
-      "role": "Engineer"
     }
   ],
   "bot": {
@@ -88,9 +78,9 @@
     }
   },
   "metadata": {
-    "total_members": 7,
-    "active_members": 7,
+    "total_members": 6,
+    "active_members": 6,
     "teams": ["CCE"],
-    "last_sync_date": "2026-02-18"
+    "last_sync_date": "2026-04-01"
   }
 }

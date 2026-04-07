@@ -87,6 +87,22 @@ public WorkerHandler() {
 - **Jira 중복**: composite key (eventId + timestamp)
 - **기능별 중복**: prefix key (`REMOTE#`, `ABSENCE#`, `SCHEDULE#` + eventId)
 
+## SlackNotificationService
+
+Jira 웹훅 이벤트 → Slack 알림 전송:
+- 채널 전송: 시간 헤더 + 본문 메시지 순서로 전송
+- DM 발송: 담당자 변경(from/to 팀원) vs 기타 변경(현재 담당자만)
+- Secrets Manager에서 Bot 토큰 조회 (TTL 5분 캐시)
+
+## GroupwareMessageService (싱글톤)
+
+```java
+private static final GroupwareMessageService INSTANCE = new GroupwareMessageService();
+```
+- `getInstance()`로 접근, SQS 클라이언트는 static 캐싱
+- `GROUPWARE_SQS_QUEUE_URL` 미설정 시 경고 로그 후 null 반환 (비활성화)
+- 메시지에 ID/PW 절대 포함 금지 — Fargate가 Secrets Manager 직접 조회
+
 ## ConfigService 캘린더 ID Fallback 체인
 
 ```
