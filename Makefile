@@ -92,12 +92,12 @@ deploy-worker: build-worker
 	  s3://$(S3_BUCKET)/jar/automation-worker.jar \
 	  --profile $(PROFILE)
 	aws lambda update-function-code \
-	  --function-name automation-worker \
+	  --function-name AutomationWebhookWorker \
 	  --s3-bucket $(S3_BUCKET) \
 	  --s3-key jar/automation-worker.jar \
 	  --region $(REGION) \
 	  --profile $(PROFILE)
-	@echo "✅ worker Lambda 배포 완료"
+	@echo "✅ worker Lambda 배포 완료 (AutomationWebhookWorker)"
 
 .PHONY: deploy-scheduler
 deploy-scheduler: build-scheduler

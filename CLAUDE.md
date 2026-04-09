@@ -5,7 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **PRD**: `automation-platform-prd.md` — 제품 요구사항, 아키텍처, 보안, 데이터 모델
 - **SPEC**: `SPEC.md` — 구현 상태, Phase별 개선 계획, Bugfix 로그
 - **모듈별 CLAUDE.md**: 각 모듈 디렉토리에 `CLAUDE.md`가 있다 (패키지 구조, 핵심 패턴, API)
+- **워크플로우**: `WORKFLOW.md` — 개발 워크플로우 (feature-breakdown → create-issue → resolve-issue)
 - **상세 규칙**: `.claude/rules/`에서 해당 파일 작업 시 자동 로딩
+- **스킬**: `.claude/skills/` — lambda-deployment (배포 절차), slack-modal-patterns (Modal 구현 패턴)
 
 ## 프로젝트 개요
 
@@ -114,12 +116,12 @@ S3에 업로드되어 런타임에 사용됨. 상세 구조는 `config/README.md
 | `common-clients.md` | common/**, clients/** | 예외 계층, Enum, SlackBlockBuilder, TokenProvider, API 클라이언트 |
 | `ingest.md` | ingest/** | SlackFacade 라우팅, 병렬 초기화, SQS 위임, ScheduleMappingQuery |
 | `worker.md` | worker/** | 메시지 디스패치, CalendarService, DynamoDB, SlackNotification |
-| `scheduler.md` | scheduler/** | 보고서 파이프라인, Collector 7개, Confluence 계층 |
+| `scheduler.md` | scheduler/** | 보고서 파이프라인, Collector 6개, Confluence 계층 |
 | `groupware.md` | groupware/**, groupware-bot/** | ECS 오케스트레이션, KMS 봉투 암호화, 자격증명 보안 |
 | `lambda-patterns.md` | handler/**, facade/** | 3초 제한, pre-warm, static volatile 캐싱 |
 | `calendar-model.md` | Calendar 관련 코드 | Google Calendar 이벤트 모델, extendedProperties |
 | `env-vars.md` | 전체 Lambda 모듈 | 모듈별 환경변수 참조 (필수/선택 분류) |
-| `agents.md` | — | 프로젝트 에이전트 7개, 사용 시점 |
+| `agents.md` | — | 에이전트 사용 가이드 (전역 ECC 에이전트 참조) |
 
 ## 테스트
 

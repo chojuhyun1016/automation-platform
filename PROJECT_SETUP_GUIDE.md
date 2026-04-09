@@ -1,6 +1,6 @@
 # automation-platform — Claude Code 프로젝트 초기 설정 가이드
 
-> 최종 업데이트: 2026-04-07
+> 최종 업데이트: 2026-04-09
 > 대상 환경: macOS, Claude Code
 > 기술 스택: Java 17 (Gradle) + Python 3.11 (groupware-bot)
 
@@ -192,7 +192,7 @@ claude
 
 ```
 .claude/
-├── rules/                    ← 프로젝트 특화 규칙 (9개)
+├── rules/                    ← 프로젝트 특화 규칙 (9개, 파일 경로 매칭 시 자동 로딩)
 │   ├── common-clients.md     ← 예외, Enum, SlackBlockBuilder, TokenProvider, API 클라이언트
 │   ├── ingest.md             ← SlackFacade 라우팅, 병렬 초기화, SQS 위임
 │   ├── worker.md             ← 메시지 디스패치, CalendarService, DynamoDB
@@ -201,11 +201,10 @@ claude
 │   ├── lambda-patterns.md    ← 3초 제한, pre-warm, static volatile 캐싱
 │   ├── calendar-model.md     ← Google Calendar 이벤트 모델
 │   ├── env-vars.md           ← 모듈별 환경변수 참조 (필수/선택)
-│   └── agents.md             ← 프로젝트 에이전트 7개, 사용 시점
-├── agents/                   ← 프로젝트 맞춤 에이전트 (7개)
-├── commands/                 ← 프로젝트 커맨드 (5개)
-├── skills/                   ← 프로젝트 스킬 (java-coding-standards)
-├── settings.json             ← 팀 공유 Hooks
+│   └── agents.md             ← 에이전트 사용 가이드 (전역 ECC 참조)
+├── commands/                 ← 워크플로우 커맨드 (4개: resolve-issue, create-issue, feature-breakdown, resolve-conflict)
+├── skills/                   ← 프로젝트 특화 스킬 (2개: lambda-deployment, slack-modal-patterns)
+├── settings.json             ← 팀 공유 Hooks (컴파일, 린트, 푸시 차단, 민감 파일 보호)
 └── settings.local.json       ← 개인 오버라이드 (.gitignore)
 ```
 
@@ -274,7 +273,7 @@ claude mcp add playwright --scope project -- \
 # Sentry 계정이 있는 경우에만 설치
 claude mcp add sentry --scope user \
   --transport http https://mcp.sentry.dev/mcp
-
+# → 헤더 없이 추가 후, 첫 Sentry 도구 호출 시 브라우저에서 OAuth 인증이 트리거됨
 ```
 
 ---
@@ -333,15 +332,16 @@ bash scripts/setup.sh
 {
   "hooks": {
 
-    // ── 빌드 검증 (Java 컴파일) ────────────────────────────
-    // 편집된 파일의 모듈을 감지하여 컴파일 검증
+    // ── 빌드 검증 (Java 컴파일 + Python 구문 체크) ─────────
+    // Java: 모듈 감지 → gradlew compileJava
+    // Python: groupware-bot/*.py → py_compile
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "MODULE=$(echo \"$CLAUDE_FILE_PATH\" | grep -oE '(common|clients|ingest|worker|scheduler|groupware)' | head -1); if [ -n \"$MODULE\" ]; then ./gradlew :$MODULE:compileJava --no-daemon -q 2>&1 | tail -5; fi"
+            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -q 'groupware-bot/.*\\.py$'; then python3 -m py_compile \"$CLAUDE_FILE_PATH\" 2>&1; elif MODULE=... (모듈 감지 후 컴파일)"
           }
         ]
       }
@@ -351,17 +351,20 @@ bash scripts/setup.sh
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q 'git push.*main'; then echo 'BLOCKED: main 직접 푸시 금지 — PR을 통해 merge' && exit 1; fi"
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "git push main 감지 시 차단" }]
+      },
+
+      // ── 민감 파일 보호 (google-credentials.json) ─────────
+      {
+        "matcher": "Read|Edit|Write",
+        "hooks": [{ "type": "command", "command": "google-credentials.json 접근 시 차단" }]
       }
     ]
   }
 }
 ```
+
+> 실제 커맨드는 `.claude/settings.json` 파일을 직접 참조하세요 (위는 구조 설명용 요약).
 
 > **macOS 알림 (Stop 훅)**은 OS 의존적이므로 `settings.local.json`(개인용)에 배치:
 > ```jsonc
@@ -383,12 +386,17 @@ bash scripts/setup.sh
 > 파일: 프로젝트 루트 /CLAUDE.md
 > git 커밋 대상 → 팀 전원 동일 규칙 적용
 
-이 프로젝트는 이미 CLAUDE.md와 `.claude/rules/` (9개 프로젝트 특화 규칙)이 구성되어 있습니다.
+이 프로젝트는 이미 CLAUDE.md, `.claude/rules/`, `.claude/commands/`, WORKFLOW.md 등이 구성되어 있습니다.
 프로젝트를 클론하면 자동 적용됩니다.
 
 ```
 CLAUDE.md                        ← 프로젝트 전체 개요, 빌드, 코딩 컨벤션
-.claude/rules/
+WORKFLOW.md                      ← 개발 워크플로우 (feature-breakdown → create-issue → resolve-issue)
+SPEC.md                          ← 구현 상태, Phase별 개선 계획
+automation-platform-prd.md       ← 제품 요구사항 문서
+scripts/create-worktree.sh       ← git worktree 생성 + Claude 실행
+
+.claude/rules/ (9개, 파일 경로 매칭 시 자동 로딩)
 ├── common-clients.md            ← 예외, Enum, SlackBlockBuilder, TokenProvider, API 클라이언트
 ├── ingest.md                    ← SlackFacade 라우팅, 병렬 초기화, SQS 위임
 ├── worker.md                    ← 메시지 디스패치, CalendarService, DynamoDB
@@ -397,7 +405,17 @@ CLAUDE.md                        ← 프로젝트 전체 개요, 빌드, 코딩 
 ├── lambda-patterns.md           ← Lambda 아키텍처 패턴 (3초 제한, static volatile)
 ├── calendar-model.md            ← Google Calendar 이벤트 모델
 ├── env-vars.md                  ← 모듈별 환경변수 참조 (필수/선택 40개+)
-└── agents.md                    ← 프로젝트 에이전트 7개, 사용 시점
+└── agents.md                    ← 에이전트 사용 가이드 (전역 ECC 참조)
+
+.claude/commands/ (4개, 사용자가 /커맨드로 호출)
+├── feature-breakdown.md         ← 기능 → Phase 분해 → SPEC.md
+├── create-issue.md              ← Phase → GitHub 이슈 생성
+├── resolve-issue.md             ← 이슈 분석 → 구현 → PR
+└── resolve-conflict.md          ← rebase + 충돌 자동 해결
+
+.claude/skills/ (2개, Claude가 맥락 관련 시 자동 참조)
+├── lambda-deployment/           ← Lambda 배포 절차 가이드
+└── slack-modal-patterns/        ← Slack Modal 구현 패턴 가이드
 ```
 
 > **ECC 범용 rules (coding-style, testing, security 등)는 여기에 없습니다.**
@@ -417,9 +435,8 @@ automation-platform/                  ← 프로젝트 루트
 │   ├── settings.json                 ← 🟢 git 커밋 (팀 공유 Hooks)
 │   ├── settings.local.json           ← 🟡 .gitignore (개인 오버라이드)
 │   ├── rules/*.md                    ← 🟢 git 커밋 (프로젝트 특화 규칙 9개)
-│   ├── commands/*.md                 ← 🟢 git 커밋 (프로젝트 커맨드)
-│   ├── skills/                       ← 🟢 git 커밋 (프로젝트 특화 스킬)
-│   └── agents/*.md                   ← 🟢 git 커밋 (프로젝트 맞춤 에이전트)
+│   ├── commands/*.md                 ← 🟢 git 커밋 (워크플로우 커맨드 3개)
+│   └── skills/                       ← 🟢 git 커밋 (프로젝트 특화 스킬 2개)
 ├── common/                           ← 공통 라이브러리
 ├── clients/                          ← 외부 API 클라이언트
 ├── ingest/                           ← Lambda 진입점
@@ -428,7 +445,8 @@ automation-platform/                  ← 프로젝트 루트
 ├── groupware/                        ← Lambda 오케스트레이터
 ├── groupware-bot/                    ← Python Playwright (Gradle 미포함)
 ├── config/                           ← S3 업로드용 런타임 설정
-└── .gitignore                        ← .claude/settings.local.json 추가
+├── scripts/                          ← 개발 스크립트 (create-worktree.sh)
+└── .gitignore                        ← .claude/settings.local.json + .claude/plans/ 추가
 
 ~/.claude/                            ← 🔵 개인 환경 (git 대상 아님)
 ├── rules/                            ← ECC install.sh 전체 rules (전 언어)
@@ -443,7 +461,7 @@ automation-platform/                  ← 프로젝트 루트
 ~/.claude.json                        ← 🔵 개인 전역 MCP (Sentry 등)
 ```
 
-`.gitignore`에 이미 `.claude/settings.local.json`이 등록되어 있습니다.
+`.gitignore`에 이미 `.claude/settings.local.json`과 `.claude/plans/`가 등록되어 있습니다.
 
 ---
 
@@ -464,6 +482,13 @@ automation-platform/                  ← 프로젝트 루트
 │ /config              │ 출력 스타일 설정                              │ 초기 설정  │
 │ /install-github-app  │ Claude PR 자동 리뷰 활성화                   │ 최초 1회   │
 │ /skills              │ 사용 가능한 스킬 목록 확인                    │ 수시       │
+├──────────────────────┼──────────────────────────────────────────────┼────────────┤
+│ 프로젝트 커맨드 (WORKFLOW.md 참조)                                                │
+├──────────────────────┼──────────────────────────────────────────────┼────────────┤
+│ /feature-breakdown   │ 기능 → Phase 분해 → SPEC.md                  │ 기능 계획  │
+│ /create-issue        │ Phase → GitHub 이슈 생성                     │ 이슈 생성  │
+│ /resolve-issue       │ 이슈 분석 → 구현 → PR 생성                   │ 기능 구현  │
+│ /resolve-conflict    │ rebase + 충돌 자동 해결                      │ 충돌 발생  │
 ├──────────────────────┼──────────────────────────────────────────────┼────────────┤
 │ Esc + Esc            │ 체크포인트 되감기 (코드/대화 별도 복원)      │ 실험 실패  │
 │ !명령어              │ 즉시 쉘 실행 (!git status, !make build)      │ 수시       │
@@ -503,7 +528,7 @@ automation-platform/                  ← 프로젝트 루트
 ├─────────────────────┼───────────┼─────────────────────────────────────┤
 │ gh CLI              │ 🔵 brew   │ 커밋 author + GitHub 인증 = 개인    │
 │ ECC (install.sh)    │ 🔵 user   │ ~/.claude/ 에 전체 설치 (개인 머신) │
-│ 프로젝트 .claude/   │ 🟢 project│ 프로젝트 특화 rules/agents만 (git)  │
+│ 프로젝트 .claude/   │ 🟢 project│ 프로젝트 특화 rules/commands/skills  │
 │ Context7            │ 🟢 project│ 인증 불필요, 팀 전원 자동 적용      │
 │ Sequential Thinking │ 🟢 project│ 인증 불필요, 팀 전원 자동 적용      │
 │ Playwright          │ 🟢 project│ 인증 불필요, 팀 전원 자동 적용      │
@@ -639,6 +664,7 @@ claude mcp list
 /skills
 gh auth status
 make build   # Java 빌드 확인
+# 개발 워크플로우: WORKFLOW.md 참조
 
 # ── Step 7. PR 자동 리뷰 활성화 (최초 1회) ───────────────
 /install-github-app
