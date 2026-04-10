@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "ISSUE=$(git branch --show-current 2>/dev/null | sed 's/issue-//'); if [ -n \"$ISSUE\" ] && [ \"$ISSUE\" != \"main\" ]; then echo \"현재 이슈: #$ISSUE\"; gh issue view \"$ISSUE\" --json title,state -q '.title + \" (\" + .state + \")\"' 2>/dev/null || true; fi"
+            "command": "BRANCH=$(git branch --show-current 2>/dev/null); ISSUE=$(echo \"$BRANCH\" | grep -oE '/([0-9]+)-' | grep -oE '[0-9]+' | head -1); if [ -z \"$ISSUE\" ]; then ISSUE=$(echo \"$BRANCH\" | sed 's/issue-//'); fi; if [ -n \"$ISSUE\" ] && [ \"$ISSUE\" != \"main\" ]; then echo \"브랜치: $BRANCH | 이슈: #$ISSUE\"; gh issue view \"$ISSUE\" --json title,state -q '.title + \" (\" + .state + \")\"' 2>/dev/null || true; fi"
           }
         ]
       }

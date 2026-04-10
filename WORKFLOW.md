@@ -9,14 +9,38 @@
 /create-issue Phase N1
   │  GitHub 이슈 #12 생성 → SPEC.md에 (#12) 역기록
   ▼
-source scripts/create-worktree.sh 12
-  │  git worktree + branch issue-12 생성 → Claude 자동 실행
+source scripts/create-worktree.sh feat 12 add-schedule-repeat
+  │  git worktree + branch feat/12-add-schedule-repeat 생성 → Claude 자동 실행
   ▼
 /resolve-issue 12
   │  이슈 분석 → 구현 → 리뷰 → PR 생성
   ▼
-PR merge → 워크트리 정리
+PR merge → bash scripts/cleanup-worktrees.sh
 ```
+
+## 브랜치 네이밍
+
+### 형식
+
+```
+{타입}/{이슈번호}-{간략설명}
+```
+
+### 타입
+
+| 타입 | 용도 | 예시 |
+|------|------|------|
+| `feat` | 새 기능 | `feat/12-add-schedule-repeat` |
+| `fix` | 버그 수정 | `fix/15-calendar-sync-error` |
+| `refactor` | 리팩터링 | `refactor/18-extract-config-service` |
+| `chore` | 설정/문서/빌드 | `chore/20-update-env-vars` |
+| `hotfix` | 긴급 수정 | `hotfix/22-slack-timeout` |
+
+### 규칙
+
+- 설명은 **영어 소문자 + 하이픈** (kebab-case)
+- 간결하게 (3~5단어)
+- 이슈 번호는 GitHub 이슈 번호 (Phase 번호 아님)
 
 ## 번호 체계
 
@@ -26,7 +50,7 @@ PR merge → 워크트리 정리
 |------|------|------|
 | `/feature-breakdown` | Phase 번호 (내부 계획) | Phase N1, N2, N3 |
 | `/create-issue Phase N1` | GitHub 이슈 번호 (자동 부여) | #12 |
-| `create-worktree.sh` | GitHub 이슈 번호 사용 | `12` |
+| `create-worktree.sh` | 타입 + 이슈번호 + 설명 | `feat 12 add-schedule-repeat` |
 | `/resolve-issue` | GitHub 이슈 번호 사용 | `12` |
 
 `/create-issue`가 Phase → GitHub 이슈로 변환하며, SPEC.md에 매핑을 기록한다:
@@ -38,11 +62,11 @@ PR merge → 워크트리 정리
 
 ```bash
 # 터미널 1
-source scripts/create-worktree.sh 12
+source scripts/create-worktree.sh feat 12 add-schedule-repeat
 # Claude: /resolve-issue 12
 
 # 터미널 2
-source scripts/create-worktree.sh 13
+source scripts/create-worktree.sh feat 13 add-absence-type
 # Claude: /resolve-issue 13
 ```
 
@@ -69,7 +93,6 @@ GOOD: Phase N1 → AbsenceFacade + AbsenceService
 ### PR 생성 전 rebase 필수
 
 ```bash
-# 워크트리에서 PR 생성 전
 git fetch origin
 git rebase origin/main
 ```
@@ -102,7 +125,7 @@ bash scripts/cleanup-worktrees.sh
 ### 개별 정리
 
 ```bash
-git worktree remove ../worktree/issue-12
+git worktree remove ../worktree/feat-12-add-schedule-repeat
 git worktree prune
 ```
 

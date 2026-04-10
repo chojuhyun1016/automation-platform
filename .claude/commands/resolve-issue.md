@@ -24,15 +24,15 @@ GitHub 이슈를 가져와 분석하고 해결한다.
 /resolve-issue 37      ← GitHub 이슈 #37
 ```
 
-**전제**: `source scripts/create-worktree.sh 이슈번호` 로 생성된 워크트리에서 실행.
+**전제**: `source scripts/create-worktree.sh {타입} {이슈번호} {설명}` 로 생성된 워크트리에서 실행.
 워크트리가 이미 별도 브랜치이므로 브랜치를 생성하지 않는다.
 
 **전체 흐름 (번호 변환 과정)**:
 ```
-/feature-breakdown         → SPEC.md에 Phase N1, N2 기록 (내부 계획 번호)
-/create-issue Phase N1     → GitHub 이슈 #12 생성 + SPEC.md에 (#12) 역기록
-source scripts/create-worktree.sh 12   → 브랜치 issue-12 + 워크트리 생성
-/resolve-issue 12          → GitHub #12 조회 → SPEC.md Phase 매칭 → 구현
+/feature-breakdown                            → SPEC.md에 Phase N1, N2 기록
+/create-issue Phase N1                        → GitHub 이슈 #12 생성 + SPEC.md 역기록
+source scripts/create-worktree.sh feat 12 desc → 브랜치 feat/12-desc + 워크트리 생성
+/resolve-issue 12                              → GitHub #12 조회 → SPEC.md Phase 매칭 → 구현
 ```
 
 ---
@@ -87,7 +87,11 @@ SPEC.md에서 #$ARGUMENTS에 해당하는 Phase가 있는지 확인해라.
 
 ### 7. 구현
 
-- **테스트 먼저 작성** — 새 기능/버그 수정 시 TDD 절차 따를 것 (skills/tdd-workflow 참조)
+- **TDD 적용 기준** (브랜치 타입 확인):
+  - `feat` 브랜치: **테스트 먼저 작성 (TDD 필수)** — skills/tdd-workflow 참조
+  - `fix` 브랜치: 버그 재현 테스트 작성 **권장** (강제 아님)
+  - `refactor` 브랜치: 기본 불필요. **단, 로직 변경 포함 또는 10개+ 파일 수정 시 TDD 권장**
+  - `chore`/`hotfix` 브랜치: TDD 불필요
 - **이슈 범위만 수정** — 요청하지 않은 리팩터링, 정리, 개선을 포함하지 말 것
 - CLAUDE.md 컨벤션을 따라라
 - 커밋은 작은 단위로 나눠라
@@ -120,8 +124,8 @@ critical/high 이슈 → 수정 후 재검증.
 
 ```
 1. 메인 프로젝트로: cd <프로젝트 루트>
-2. 워크트리 정리 (PR merge 후): git worktree remove ../worktree/issue-$ARGUMENTS
-3. 다음 이슈: source scripts/create-worktree.sh <다음 번호>
+2. 워크트리 일괄 정리: bash scripts/cleanup-worktrees.sh
+3. 다음 이슈: source scripts/create-worktree.sh {타입} {번호} {설명}
 ```
 
 ---

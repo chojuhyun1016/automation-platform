@@ -242,6 +242,29 @@ PR 생성/업데이트 시 GitHub Actions에서 전체 테스트를 자동 실�
 
 ---
 
+## 실행 가이드
+
+Phase 작업을 시작하려면:
+1. `/create-issue Phase N1` 실행 → GitHub 이슈 생성 + 아래 표에 자동 역기록
+2. 표에서 실행 커맨드 복사
+3. 터미널에서 실행
+
+| Phase | 이슈 | 타입 | 실행 커맨드 |
+|-------|------|------|-----------|
+| N1 | 미생성 | feat | `/create-issue Phase N1` 먼저 실행 |
+| N2 | 미생성 | feat | N1 완료 후 실행 |
+| N2.5 | 미생성 | chore | N2 완료 후 실행 |
+| N3 | 미생성 | fix | 독립 실행 가능 |
+| N4 | 미생성 | feat | 독립 실행 가능 |
+| N5 | 미생성 | feat | 독립 실행 가능 |
+| N6 | 미생성 | feat | N2 완료 후 실행 |
+| N7 | 미생성 | chore | N1 완료 후 실행 |
+
+> `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
+> 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`
+
+---
+
 ## Bugfix Log
 
 ### BF-1: Slack 재시도 감지 강화

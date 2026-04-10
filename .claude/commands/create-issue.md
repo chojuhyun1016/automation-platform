@@ -23,7 +23,7 @@
 /create-issue 월간 보고서 프로젝트별 분리 기능
 ```
 
-완료 후 → `source scripts/create-worktree.sh 이슈번호` → `/resolve-issue 이슈번호`
+완료 후 → `source scripts/create-worktree.sh {타입} {이슈번호} {설명}` → `/resolve-issue {이슈번호}`
 
 > **번호 변환**: `/create-issue Phase N1` 실행 → GitHub이 이슈 번호(#12)를 자동 부여.
 > 이후 워크트리/resolve-issue에서는 Phase 번호가 아닌 **GitHub 이슈 번호**를 사용한다.
@@ -96,17 +96,33 @@ $ARGUMENTS가 "Phase N" 형식이면:
 
 ### 5. SPEC.md 역기록 (Phase 기반)
 
-이슈 생성 후 SPEC.md Phase 제목에 **GitHub 이슈 번호**를 추가:
-  예: `## Phase N1: 유닛 테스트` → `## Phase N1: 유닛 테스트 (#12)`
+이슈 생성 후 **2곳**을 업데이트해라:
 
-이 매핑이 있어야 `/resolve-issue 12` 실행 시 SPEC.md에서 해당 Phase를 찾을 수 있다.
+**A. Phase 제목에 이슈 번호 추가:**
+  `## Phase N1: 유닛 테스트` → `## Phase N1: 유닛 테스트 (#12)`
+
+**B. 실행 가이드 표에 실행 커맨드 기록:**
+  `| N1 | 미생성 | feat | ... |` → `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`
+
+이 매핑이 있어야 `/resolve-issue 12` 실행 시 SPEC.md에서 해당 Phase를 찾을 수 있고,
+사용자가 SPEC.md만 열어도 실행 커맨드를 바로 복사할 수 있다.
 
 ### 6. 후속 안내
 
+이슈 라벨에서 브랜치 타입을 매핑하여 실행 커맨드를 안내해라:
+
+| 이슈 라벨 | 브랜치 타입 |
+|----------|-----------|
+| feature / enhancement | `feat` |
+| bug | `fix` |
+| refactor | `refactor` |
+| chore | `chore` |
+
 ```
 다음 단계:
-  source scripts/create-worktree.sh 이슈번호
-  → Claude에서: /resolve-issue 이슈번호
+  source scripts/create-worktree.sh {타입} {이슈번호} {설명}
+  예: source scripts/create-worktree.sh feat 12 add-schedule-repeat
+  → Claude에서: /resolve-issue {이슈번호}
 
 다른 Phase: /create-issue Phase N+1
 ```

@@ -3,8 +3,11 @@
 #-----------------------------------------------------------------------
 # merge 완료된 워크트리 일괄 정리
 #
-# 모든 issue-N 워크트리를 조회하여, PR이 merged인 것만 자동 정리한다.
+# 모든 워크트리를 조회하여, PR이 merged인 것만 자동 정리한다.
 # 미merge 워크트리는 스킵하고 목록을 표시한다.
+#
+# 브랜치 네이밍: {타입}/{이슈번호}-{설명}
+# 예: feat/12-add-schedule-repeat, fix/15-calendar-sync-error
 #
 # 사용법:
 #   bash scripts/cleanup-worktrees.sh
@@ -22,41 +25,48 @@ fi
 echo "🔍 워크트리 조회 중..."
 echo ""
 
-CLEANED=0
-SKIPPED=0
-SKIP_LIST=""
-
 # 모든 워크트리 순회
 git worktree list --porcelain | grep "^worktree " | while read -r LINE; do
     WT_PATH=$(echo "$LINE" | sed 's/^worktree //')
 
-    # issue-N 패턴만 처리
-    ISSUE_NUM=$(basename "$WT_PATH" | grep -oE '^issue-([0-9]+)$' | sed 's/issue-//')
+    # 프로젝트 루트(main)는 스킵
+    if [ "$WT_PATH" = "$(pwd)" ]; then
+        continue
+    fi
+
+    # 브랜치명 추출
+    BRANCH=$(git -C "$WT_PATH" branch --show-current 2>/dev/null)
+    if [ -z "$BRANCH" ]; then
+        continue
+    fi
+
+    # 이슈 번호 추출 ({타입}/{번호}-{설명} 또는 issue-{번호})
+    ISSUE_NUM=$(echo "$BRANCH" | grep -oE '/([0-9]+)-' | grep -oE '[0-9]+' | head -1)
+    if [ -z "$ISSUE_NUM" ]; then
+        # 레거시 issue-N 패턴 지원
+        ISSUE_NUM=$(echo "$BRANCH" | grep -oE '^issue-([0-9]+)$' | sed 's/issue-//')
+    fi
     if [ -z "$ISSUE_NUM" ]; then
         continue
     fi
 
     # PR 상태 확인
-    PR_STATE=$(gh pr list --head "issue-${ISSUE_NUM}" --state merged --json number -q '.[0].number' 2>/dev/null)
+    PR_STATE=$(gh pr list --head "$BRANCH" --state merged --json number -q '.[0].number' 2>/dev/null)
 
     if [ -n "$PR_STATE" ]; then
-        echo "✅ issue-${ISSUE_NUM} — PR #${PR_STATE} merged → 정리"
+        echo "✅ $BRANCH — PR #${PR_STATE} merged → 정리"
         git worktree remove "$WT_PATH" --force 2>/dev/null
-        git branch -d "issue-${ISSUE_NUM}" 2>/dev/null
-        CLEANED=$((CLEANED + 1))
+        git branch -d "$BRANCH" 2>/dev/null || git branch -D "$BRANCH" 2>/dev/null
     else
-        # merge 안 된 상태 확인
-        PR_OPEN=$(gh pr list --head "issue-${ISSUE_NUM}" --state open --json number -q '.[0].number' 2>/dev/null)
+        PR_OPEN=$(gh pr list --head "$BRANCH" --state open --json number -q '.[0].number' 2>/dev/null)
         if [ -n "$PR_OPEN" ]; then
-            echo "⏳ issue-${ISSUE_NUM} — PR #${PR_OPEN} 열림 (미merge) → 스킵"
+            echo "⏳ $BRANCH — PR #${PR_OPEN} 열림 (미merge) → 스킵"
         else
-            echo "⚠️  issue-${ISSUE_NUM} — PR 없음 → 스킵"
+            echo "⚠️  $BRANCH — PR 없음 → 스킵"
         fi
-        SKIPPED=$((SKIPPED + 1))
     fi
 done
 
-# git worktree prune
 git worktree prune 2>/dev/null
 
 echo ""

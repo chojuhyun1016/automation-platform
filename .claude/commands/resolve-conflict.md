@@ -27,8 +27,8 @@
 
 ### 시점 2: 다른 워크트리에서 독립 실행
 ```
-터미널 1: issue-12 PR merge 완료
-터미널 2: issue-13 작업 중 → /resolve-conflict 실행하여 main 최신화
+터미널 1: feat/12-add-schedule PR merge 완료
+터미널 2: feat/13-add-absence 작업 중 → /resolve-conflict 실행하여 main 최신화
 ```
 다른 PR이 먼저 merge되어 현재 브랜치가 outdated일 때 사용.
 
@@ -104,7 +104,7 @@ git push --force-with-lease
 ```
 
 > `--force-with-lease`는 다른 사람이 같은 브랜치에 push하지 않았을 때만 force push.
-> 워크트리 브랜치(issue-N)는 개인용이므로 안전.
+> 워크트리 브랜치(feat/12-desc 등)는 개인용이므로 안전.
 
 ---
 

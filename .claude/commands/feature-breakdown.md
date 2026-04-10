@@ -19,7 +19,7 @@
 /feature-breakdown Sprint 변경 이벤트 웹훅 처리
 ```
 
-완료 후 → `/create-issue Phase N` → GitHub 이슈 #번호 생성 → `source scripts/create-worktree.sh #번호` → `/resolve-issue #번호`
+완료 후 → `/create-issue Phase N` → GitHub 이슈 #번호 생성 → `source scripts/create-worktree.sh {타입} {번호} {설명}` → `/resolve-issue {번호}`
 
 > **번호 체계**: Phase 번호(N1, N2)와 GitHub 이슈 번호(#12, #13)는 다르다.
 > `/create-issue`가 Phase → GitHub 이슈로 변환하며, SPEC.md에 `Phase N1 (#12)` 형태로 매핑을 기록한다.
@@ -118,18 +118,18 @@ SPEC.md 기록 완료 후, 사용자에게 물어라:
 - 모든 Phase 완료 후 아래 형식의 표를 보여줘라:
 
 ```
-| 이슈 | Phase | 병렬 | 실행 커맨드 |
-|------|-------|------|-----------|
-| #12 | Phase N1: 제목 | — | source scripts/create-worktree.sh 12 |
-| #13 | Phase N2: 제목 | N1 후 | source scripts/create-worktree.sh 13 |
-| #14 | Phase N3: 제목 | N2와 병렬 | source scripts/create-worktree.sh 14 |
+| 이슈 | Phase | 라벨 | 병렬 | 실행 커맨드 |
+|------|-------|------|------|-----------|
+| #12 | Phase N1: 제목 | feat | — | source scripts/create-worktree.sh feat 12 간략설명 |
+| #13 | Phase N2: 제목 | fix | N1 후 | source scripts/create-worktree.sh fix 13 간략설명 |
+| #14 | Phase N3: 제목 | feat | N2와 병렬 | source scripts/create-worktree.sh feat 14 간략설명 |
 ```
 
 **거부 시**: 후속 안내만 표시.
 
 ### 7. 후속 안내
 
-- `source scripts/create-worktree.sh 이슈번호` 로 워크트리 생성 + Claude 실행
+- `source scripts/create-worktree.sh {타입} {이슈번호} {설명}` 으로 워크트리 생성 + Claude 실행
 - 워크트리 Claude에서 `/resolve-issue 이슈번호` 로 구현
 - 병렬 가능 Phase는 동시 진행 가능
 - **컨텍스트가 쌓였으면 `/compact` 권장**
