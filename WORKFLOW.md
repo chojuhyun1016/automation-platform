@@ -87,10 +87,21 @@ git push --force-with-lease
 
 ## 워크트리 정리
 
-PR merge 후:
+### 일괄 정리 (권장)
+
+merge 완료된 워크트리를 한 번에 정리:
 
 ```bash
 cd /Users/r00365/Work/workspace/automation-platform
+bash scripts/cleanup-worktrees.sh
+```
+
+- merged PR의 워크트리 + 브랜치 자동 삭제
+- 미merge 워크트리는 스킵 + 목록 표시
+
+### 개별 정리
+
+```bash
 git worktree remove ../worktree/issue-12
 git worktree prune
 ```

@@ -115,7 +115,15 @@ SPEC.md 기록 완료 후, 사용자에게 물어라:
 - Phase 메타(라벨, 우선순위) → 이슈 라벨
 - Phase 내용 → 이슈 본문
 - 생성 후 SPEC.md에 이슈 번호 역기록 (`Phase N1 (#12)`)
-- 모든 Phase 완료 후 생성된 이슈 목록을 표로 보여줘라
+- 모든 Phase 완료 후 아래 형식의 표를 보여줘라:
+
+```
+| 이슈 | Phase | 병렬 | 실행 커맨드 |
+|------|-------|------|-----------|
+| #12 | Phase N1: 제목 | — | source scripts/create-worktree.sh 12 |
+| #13 | Phase N2: 제목 | N1 후 | source scripts/create-worktree.sh 13 |
+| #14 | Phase N3: 제목 | N2와 병렬 | source scripts/create-worktree.sh 14 |
+```
 
 **거부 시**: 후속 안내만 표시.
 
