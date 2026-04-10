@@ -127,6 +127,15 @@ S3에 업로드되어 런타임에 사용됨. 상세 구조는 `config/README.md
 
 유닛 테스트 미구성. 변경사항은 `make build`로 컴파일 검증할 것.
 
+## 문서 동기화
+
+코드 변경 시 관련 문서도 함께 업데이트할 것:
+- Java 클래스 추가/삭제 → 해당 모듈 `CLAUDE.md` 업데이트
+- 환경변수 추가 → `.claude/rules/env-vars.md` 업데이트
+- 새 Facade/Service 추가 → 해당 모듈 `CLAUDE.md` + `.claude/rules/` 업데이트
+- Slack 커맨드 추가 → 루트 `CLAUDE.md` 커맨드 테이블 + `ingest/CLAUDE.md` 업데이트
+- 대규모 변경 후 → `/update-docs` 커맨드로 일괄 갱신
+
 ## 주의사항
 
 - `config/google-credentials.json`은 **민감 정보** — 내용을 출력하거나 수정하지 말 것
