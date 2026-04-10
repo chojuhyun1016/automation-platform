@@ -102,9 +102,25 @@
 
 기존 Phase 번호 다음부터 이어서 추가.
 
-### 6. 후속 안내
+### 6. 자동 이슈 생성
 
-- `/create-issue Phase N` 으로 이슈 생성
+SPEC.md 기록 완료 후, 사용자에게 물어라:
+
+```
+분해된 Phase N개를 GitHub 이슈로 일괄 생성할까요? (y/n)
+```
+
+**승인 시**: 각 Phase에 대해 `/create-issue Phase N` 프로세스를 순차 실행해라.
+- Phase 제목 → 이슈 제목
+- Phase 메타(라벨, 우선순위) → 이슈 라벨
+- Phase 내용 → 이슈 본문
+- 생성 후 SPEC.md에 이슈 번호 역기록 (`Phase N1 (#12)`)
+- 모든 Phase 완료 후 생성된 이슈 목록을 표로 보여줘라
+
+**거부 시**: 후속 안내만 표시.
+
+### 7. 후속 안내
+
 - `source scripts/create-worktree.sh 이슈번호` 로 워크트리 생성 + Claude 실행
 - 워크트리 Claude에서 `/resolve-issue 이슈번호` 로 구현
 - 병렬 가능 Phase는 동시 진행 가능
