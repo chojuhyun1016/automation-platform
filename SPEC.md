@@ -186,6 +186,62 @@ ConfluenceClient 3단계 검색의 인덱싱 지연 대응을 강화하고, 중�
 
 ---
 
+## Phase N6: scheduler/groupware 테스트 확장
+
+- [ ] Phase N6 시작
+
+### 전제조건
+
+- [ ] Phase N2 완료
+
+### 오버뷰
+
+N2에서 커버하지 못한 scheduler, groupware 모듈의 유닛 테스트를 추가한다.
+
+### 수정/개선
+
+- [ ] scheduler/build.gradle — testImplementation 추가 (JUnit 5, Mockito)
+- [ ] CalendarTicketParser — 이슈키 추출, 담당자 파싱, 상태 감지 테스트
+- [ ] DailyCalendarTicketCollector — 수집 로직 Mock 테스트
+- [ ] DailyAbsenceCollector — 2개 캘린더 병합 + 중복 제거 테스트
+- [ ] ReportRulesService — S3 규칙 파일 로드 + 캐시 테스트
+- [ ] groupware/build.gradle — testImplementation 추가
+- [ ] GroupwareAbsenceFacade — apply/cancel 분기, 결재자 resolve 테스트
+
+### 검증
+
+- [ ] `./gradlew :scheduler:test` 통과
+- [ ] `./gradlew :groupware:test` 통과
+
+---
+
+## Phase N7: CI 자동 테스트 (GitHub Actions)
+
+- [ ] Phase N7 시작
+
+### 전제조건
+
+- [ ] Phase N1 완료 (최소 1개 모듈에 테스트 존재)
+
+### 오버뷰
+
+PR 생성/업데이트 시 GitHub Actions에서 전체 테스트를 자동 실행한다.
+테스트 실패 시 PR merge 차단.
+
+### 수정/개선
+
+- [ ] `.github/workflows/test.yml` — PR 시 `./gradlew test` 자동 실행
+- [ ] Java 17 + Gradle 캐시 설정
+- [ ] 테스트 실패 시 PR에 실패 코멘트 자동 생성
+- [ ] branch protection rule: 테스트 통과 필수 (선택)
+
+### 검증
+
+- [ ] PR 생성 시 GitHub Actions에서 테스트 실행 확인
+- [ ] 테스트 실패 PR에 경고 표시 확인
+
+---
+
 ## Bugfix Log
 
 ### BF-1: Slack 재시도 감지 강화

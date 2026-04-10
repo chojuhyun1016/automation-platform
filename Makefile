@@ -43,6 +43,11 @@ build-scheduler:
 build-groupware:
 	./gradlew :groupware:shadowJar --no-daemon
 
+.PHONY: build-all
+build-all: build build-bot
+	@echo ""
+	@echo "✅ 전체 빌드 완료 (Java shadowJar + Docker)"
+
 .PHONY: clean
 clean:
 	./gradlew --stop 2>/dev/null || true
@@ -144,6 +149,7 @@ help:
 	@echo "사용법: make [target]"
 	@echo ""
 	@echo "  [빌드]"
+	@echo "  build-all          전체 빌드 (Java shadowJar + Docker)"
 	@echo "  build              전체 Java shadowJar 빌드"
 	@echo "  build-ingest       ingest Lambda 빌드"
 	@echo "  build-worker       worker Lambda 빌드"

@@ -148,4 +148,4 @@ S3에 업로드되어 런타임에 사용됨. 상세 구조는 `config/README.md
 - `config/` 파일 구조 변경 시 관련 모듈 코드도 함께 수정할 것
 - Jira Cloud REST API: POST `/rest/api/3/search/jql` 사용할 것 (GET `/rest/api/3/search`는 HTTP 410)
 - Lambda Shadow JAR: META-INF 서명 파일 제거 필수 (`mergeServiceFiles`)
-- build.sh의 Lambda 함수명은 참고용 — 실제 배포는 **Makefile이 정본**
+- 빌드/배포는 **Makefile이 정본** (`make help`로 전체 타겟 확인)

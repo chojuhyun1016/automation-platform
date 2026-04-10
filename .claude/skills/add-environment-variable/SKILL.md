@@ -42,7 +42,7 @@ AWS 콘솔 → Lambda → 함수 선택 → 구성 → 환경변수:
 - 키: `NEW_VAR`
 - 값: 실제 값
 
-## Step 5. Makefile/build.sh 확인
+## Step 5. Makefile 확인
 
 환경변수가 빌드/배포 시 필요하면 Makefile에도 반영. 런타임 전용이면 불필요.
 
