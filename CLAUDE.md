@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **모듈별 CLAUDE.md**: 각 모듈 디렉토리에 `CLAUDE.md`가 있다 (패키지 구조, 핵심 패턴, API)
 - **워크플로우**: `WORKFLOW.md` — 개발 워크플로우 (feature-breakdown → create-issue → resolve-issue)
 - **상세 규칙**: `.claude/rules/`에서 해당 파일 작업 시 자동 로딩
-- **스킬**: `.claude/skills/` — 6개 절차 가이드 (add-slack-command, add-scheduler-report, debug-lambda-timeout, add-dynamodb-table, add-environment-variable, add-api-client)
+- **스킬**: `.claude/skills/` — 7개 절차 가이드 (add-slack-command, add-scheduler-report, debug-lambda-timeout, add-dynamodb-table, add-environment-variable, add-api-client, tdd-workflow)
 
 ## 프로젝트 개요
 
@@ -64,7 +64,8 @@ EventBridge → scheduler Lambda → Slack DM / Confluence
 ## 빌드/배포
 
 ```bash
-make build                          # 전체 shadowJar 빌드
+make build-all                      # 전체 빌드 (Java shadowJar + Docker)
+make build                          # 전체 shadowJar 빌드 (Java만)
 make build-ingest                   # 모듈별 빌드 (build-worker, build-scheduler, build-groupware)
 make build-bot                      # groupware-bot Docker 빌드
 make clean                          # 빌드 아티팩트 정리

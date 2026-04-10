@@ -122,5 +122,7 @@ git worktree prune
 | `SPEC.md` | Phase 기록, 진행 상태 추적 |
 | `CLAUDE.md` | 빌드/코딩 컨벤션 (커맨드가 참조) |
 | `scripts/create-worktree.sh` | 워크트리 생성 + Claude 실행 |
+| `scripts/cleanup-worktrees.sh` | merge 완료된 워크트리 일괄 정리 |
+| `scripts/check-docs-update.sh` | 세션 종료 시 문서 갱신 안내 (Stop Hook) |
 | `.claude/commands/` | 커맨드 정의 (4개) |
 | `.claude/rules/` | 파일 경로 매칭 시 자동 로딩 규칙 (9개) |
