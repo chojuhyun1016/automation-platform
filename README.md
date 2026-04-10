@@ -21,6 +21,8 @@ automation-platform/
 ├── groupware/        # Lambda - SQS 소비, 그룹웨어 부재 신청 오케스트레이션
 ├── groupware-bot/    # Python Docker (Fargate) - Playwright 기반 그룹웨어 브라우저 자동화
 ├── config/           # S3 업로드용 설정 파일 (팀 정보, 스케줄러 설정, AI 규칙 등)
+├── scripts/          # 개발 스크립트 (create-worktree.sh, cleanup-worktrees.sh)
+├── .claude/          # 하네스 설정 (rules 9개, commands 4개, skills 7개, hooks)
 └── img/              # 문서용 이미지
 ```
 

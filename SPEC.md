@@ -63,11 +63,14 @@ PRD: `automation-platform-prd.md` 참조.
 
 ---
 
-## Phase N1: 유닛 테스트 도입
+## Phase N1: 테스트 기반 구축 + 순수 함수 유닛 테스트
 
 - [ ] Phase N1 시작
 
 ### 오버뷰
+
+Gradle 테스트 환경 구축 + 외부 의존성 없는 순수 함수부터 유닛 테스트 작성.
+이후 모든 새 기능은 TDD(skills/tdd-workflow)로 개발.
 
 common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito.
 
@@ -88,7 +91,7 @@ common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito
 
 ---
 
-## Phase N2: worker 서비스 테스트
+## Phase N2: worker/ingest 서비스 Mock 테스트
 
 - [ ] Phase N2 시작
 
@@ -96,16 +99,45 @@ common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito
 
 - [ ] Phase N1 완료
 
+### 오버뷰
+
+외부 의존성(S3, DynamoDB, Google Calendar, Slack)을 Mockito로 mock하여 비즈니스 로직 테스트.
+
 ### 수정/개선
 
 - [ ] CalendarService — processJiraEvent() CREATE/UPDATE/DELETE 분기 테스트
 - [ ] ConfigService — TTL 캐시 만료/갱신 테스트
 - [ ] DedupeService — 중복 감지 + prefix 키 테스트
 - [ ] TeamMemberService — findByAccountId/findBySlackUserId 테스트
+- [ ] SlackNotificationService — DM/채널 분기 테스트
+- [ ] AbsenceFacade — 파이프라인 테스트 (날짜 보정, 중복 확인, 캘린더 처리)
 
 ### 검증
 
 - [ ] `./gradlew :worker:test` 통과
+- [ ] `./gradlew :ingest:test` 통과
+
+## Phase N2.5: TDD 프로세스 정착
+
+- [ ] Phase N2.5 시작
+
+### 전제조건
+
+- [ ] Phase N2 완료
+
+### 오버뷰
+
+이후 모든 새 기능/버그 수정에 TDD 적용. resolve-issue 워크플로우에 테스트 검증 단계 강화.
+
+### 수정/개선
+
+- [ ] resolve-issue.md 7단계(구현)에 "테스트 먼저 작성" 지시 추가
+- [ ] PostToolUse Hook에 `./gradlew :모듈:test` 자동 실행 추가 (컴파일 + 테스트)
+- [ ] Stop Hook에 전체 테스트 실행 추가 (`./gradlew test`)
+
+### 검증
+
+- [ ] 새 기능 PR에 테스트 파일 포함 확인
 
 ---
 

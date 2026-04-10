@@ -203,7 +203,7 @@ claude
 │   ├── env-vars.md           ← 모듈별 환경변수 참조 (필수/선택)
 │   └── agents.md             ← 에이전트 사용 가이드 (전역 ECC 참조)
 ├── commands/                 ← 워크플로우 커맨드 (4개: resolve-issue, create-issue, feature-breakdown, resolve-conflict)
-├── skills/                   ← 프로젝트 특화 스킬 (2개: lambda-deployment, slack-modal-patterns)
+├── skills/                   ← 프로젝트 절차 가이드 (7개: add-slack-command, add-scheduler-report 등)
 ├── settings.json             ← 팀 공유 Hooks (컴파일, 린트, 푸시 차단, 민감 파일 보호)
 └── settings.local.json       ← 개인 오버라이드 (.gitignore)
 ```
@@ -413,9 +413,14 @@ scripts/create-worktree.sh       ← git worktree 생성 + Claude 실행
 ├── resolve-issue.md             ← 이슈 분석 → 구현 → PR
 └── resolve-conflict.md          ← rebase + 충돌 자동 해결
 
-.claude/skills/ (2개, Claude가 맥락 관련 시 자동 참조)
-├── lambda-deployment/           ← Lambda 배포 절차 가이드
-└── slack-modal-patterns/        ← Slack Modal 구현 패턴 가이드
+.claude/skills/ (7개, Claude가 맥락 관련 시 자동 참조하는 절차 가이드)
+├── add-slack-command/           ← 새 슬래시 커맨드 추가 절차
+├── add-scheduler-report/        ← 새 보고서 추가 절차
+├── debug-lambda-timeout/        ← Lambda 성능 문제 진단 절차
+├── add-dynamodb-table/          ← DynamoDB 테이블 추가 절차
+├── add-environment-variable/    ← 환경변수 추가 절차
+├── add-api-client/              ← 외부 API 클라이언트 추가 절차
+└── tdd-workflow/                ← TDD 개발 절차
 ```
 
 > **ECC 범용 rules (coding-style, testing, security 등)는 여기에 없습니다.**
@@ -436,7 +441,7 @@ automation-platform/                  ← 프로젝트 루트
 │   ├── settings.local.json           ← 🟡 .gitignore (개인 오버라이드)
 │   ├── rules/*.md                    ← 🟢 git 커밋 (프로젝트 특화 규칙 9개)
 │   ├── commands/*.md                 ← 🟢 git 커밋 (워크플로우 커맨드 3개)
-│   └── skills/                       ← 🟢 git 커밋 (프로젝트 특화 스킬 2개)
+│   └── skills/                       ← 🟢 git 커밋 (절차 가이드 7개)
 ├── common/                           ← 공통 라이브러리
 ├── clients/                          ← 외부 API 클라이언트
 ├── ingest/                           ← Lambda 진입점
