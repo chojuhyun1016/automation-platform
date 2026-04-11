@@ -93,6 +93,15 @@ public class SlackNotificationService {
         log.info("SlackNotificationService 초기화 완료");
     }
 
+    /**
+     * 테스트용 생성자 — Mock 주입.
+     */
+    SlackNotificationService(SecretsManagerClient secretsManagerClient,
+                             TeamMemberService teamMemberService) {
+        this.secretsManagerClient = secretsManagerClient;
+        this.teamMemberService = teamMemberService;
+    }
+
     // =========================================================================
     // 공개 API
     // =========================================================================
@@ -333,7 +342,8 @@ public class SlackNotificationService {
      * @param token Slack Bot 토큰
      * @return 생성된 SlackClient
      */
-    private SlackClient buildSlackClient(String token) {
+    // package-private for testing (spy 가능)
+    SlackClient buildSlackClient(String token) {
         // TokenProvider는 함수형 인터페이스 — 람다로 구현
         TokenProvider tokenProvider = () -> token;
         return new SlackClient(tokenProvider);
