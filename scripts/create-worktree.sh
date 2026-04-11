@@ -95,7 +95,7 @@ if [ -d "$WORKTREE_PATH" ]; then
     echo ""
     echo "🚀 Claude 실행 중... /resolve-issue $ISSUE_NUMBER 로 시작하세요."
     echo ""
-    claude --dangerously-skip-permissions
+    claude --dangerously-skip-permissions -c
     return 0
 fi
 
