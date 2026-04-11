@@ -66,7 +66,7 @@ class SlackNotificationServiceTest {
             service.sendNotification(event, routing);
 
             // 시간 헤더 + 본문 = 2회 postMessage
-            verify(slackClient, atLeast(2)).postMessage(anyString());
+            verify(slackClient, times(2)).postMessage(anyString());
         }
 
         @Test
@@ -83,7 +83,7 @@ class SlackNotificationServiceTest {
             service.sendNotification(event, routing);
 
             // DM 1회
-            verify(slackClient, atLeast(1)).postMessage(anyString());
+            verify(slackClient, times(1)).postMessage(anyString());
         }
 
         @Test

@@ -115,6 +115,7 @@ class CalendarServiceTest {
             // INSERT가 아닌 UPDATE가 호출되어야 한다
             verify(calendarClient, never()).insertEvent(anyString(), any(Event.class));
             verify(calendarClient).updateEvent(eq("cal-1"), eq("evt-existing"), any(Event.class));
+            verify(mappingService).saveMapping(eq("CCE-100"), eq("cal-1"), eq("evt-existing"), eq("홍길동"));
         }
 
         @Test
