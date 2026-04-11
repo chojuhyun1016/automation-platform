@@ -126,7 +126,18 @@ S3에 업로드되어 런타임에 사용됨. 상세 구조는 `config/README.md
 
 ## 테스트
 
-유닛 테스트 미구성. 변경사항은 `make build`로 컴파일 검증할 것.
+JUnit 5 + Mockito + AssertJ 기반 유닛 테스트 구성 완료.
+
+- `common` — 예외, Enum, 유틸리티, SlackBlockBuilder 테스트 (14개)
+- `clients` — BaseHttpClient, ApiResponse 테스트 (2개)
+- `worker` — CalendarService, ConfigService, DedupeService, TeamMemberService, SlackNotificationService, AbsenceFacade 테스트 (6개 파일)
+- CI: PR 생성/업데이트 시 `./gradlew build` 자동 실행 (`.github/workflows/ci-test.yml`)
+
+```bash
+./gradlew test                       # 전체 테스트
+./gradlew :common:test               # 모듈별 테스트
+./gradlew :worker:test               # worker 모듈 테스트
+```
 
 ## 문서 동기화
 

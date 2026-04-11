@@ -13,7 +13,7 @@ PRD: `automation-platform-prd.md` 참조.
 - **Jira 동기화**: CREATE/UPDATE/DELETE → Calendar 자동 반영
 - **보고서**: Daily(Slack DM), Weekly/Monthly(Confluence + Excel)
 - **그룹웨어**: Playwright 브라우저 자동화 (EKP 부재 신청)
-- **테스트**: 유닛 테스트 미구성, `make build` 컴파일 검증만
+- **테스트**: JUnit 5 + Mockito (common, clients, worker 유닛 테스트), CI 자동 실행
 
 ---
 
@@ -123,7 +123,7 @@ common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito
 
 ### 전제조건
 
-- [ ] Phase N2 완료
+- [x] Phase N2 완료
 
 ### 오버뷰
 
@@ -192,7 +192,7 @@ ConfluenceClient 3단계 검색의 인덱싱 지연 대응을 강화하고, 중�
 
 ### 전제조건
 
-- [ ] Phase N2 완료
+- [x] Phase N2 완료
 
 ### 오버뷰
 
@@ -217,11 +217,11 @@ N2에서 커버하지 못한 scheduler, groupware 모듈의 유닛 테스트를 
 
 ## Phase N7: CI 자동 테스트 (GitHub Actions)
 
-- [ ] Phase N7 시작
+- [x] Phase N7 부분 완료 (기본 CI 구성됨)
 
 ### 전제조건
 
-- [ ] Phase N1 완료 (최소 1개 모듈에 테스트 존재)
+- [x] Phase N1 완료 (최소 1개 모듈에 테스트 존재)
 
 ### 오버뷰
 
@@ -230,14 +230,14 @@ PR 생성/업데이트 시 GitHub Actions에서 전체 테스트를 자동 실�
 
 ### 수정/개선
 
-- [ ] `.github/workflows/test.yml` — PR 시 `./gradlew test` 자동 실행
-- [ ] Java 17 + Gradle 캐시 설정
+- [x] `.github/workflows/ci-test.yml` — PR 시 `./gradlew build` 자동 실행
+- [x] Java 17 + Gradle 캐시 설정 (setup-java + setup-gradle)
 - [ ] 테스트 실패 시 PR에 실패 코멘트 자동 생성
 - [ ] branch protection rule: 테스트 통과 필수 (선택)
 
 ### 검증
 
-- [ ] PR 생성 시 GitHub Actions에서 테스트 실행 확인
+- [x] PR 생성 시 GitHub Actions에서 테스트 실행 확인
 - [ ] 테스트 실패 PR에 경고 표시 확인
 
 ---
