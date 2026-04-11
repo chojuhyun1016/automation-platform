@@ -65,7 +65,7 @@ PRD: `automation-platform-prd.md` 참조.
 
 ## Phase N1: 테스트 기반 구축 + 순수 함수 유닛 테스트
 
-- [ ] Phase N1 시작
+- [x] Phase N1 완료 (PR #2)
 
 ### 오버뷰
 
@@ -76,18 +76,18 @@ common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito
 
 ### 수정/개선
 
-- [ ] `build.gradle` (root) — JUnit 5, Mockito 의존성 추가
-- [ ] `common/build.gradle` — testImplementation 추가
-- [ ] common/exception — 예외 생성, errorCode 검증 테스트
-- [ ] common/code — Enum 팩토리 메서드 테스트 (경계값, null 처리)
-- [ ] common/util — DateTimeUtil KST 변환 테스트
-- [ ] common/slack — SlackBlockBuilder 체이닝 테스트
-- [ ] clients/http — BaseHttpClient.requireSuccess() 테스트
+- [x] `build.gradle` (root) — JUnit 5, Mockito, AssertJ 의존성 추가
+- [x] `common/build.gradle` — 루트 subprojects에서 공통 처리
+- [x] common/exception — 예외 생성, errorCode 검증 테스트
+- [x] common/code — Enum 팩토리 메서드 테스트 (경계값, null 처리)
+- [x] common/util — DateTimeUtil KST 변환 테스트
+- [x] common/slack — SlackBlockBuilder 체이닝 테스트
+- [x] clients/http — BaseHttpClient.requireSuccess() + ApiResponse 테스트
 
 ### 검증
 
-- [ ] `./gradlew :common:test` 통과
-- [ ] `./gradlew :clients:test` 통과
+- [x] `./gradlew :common:test` 통과
+- [x] `./gradlew :clients:test` 통과
 
 ---
 

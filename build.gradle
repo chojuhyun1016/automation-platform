@@ -25,6 +25,12 @@ subprojects {
         // Lombok (공통)
         compileOnly 'org.projectlombok:lombok:1.18.30'
         annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+        // 테스트 프레임워크 (공통)
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+        testImplementation 'org.assertj:assertj-core:3.25.3'
+        testImplementation 'org.mockito:mockito-core:5.11.0'
+        testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
     }
 
     tasks.named('test') {
