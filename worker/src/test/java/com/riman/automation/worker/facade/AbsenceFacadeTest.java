@@ -2,18 +2,17 @@ package com.riman.automation.worker.facade;
 
 import com.riman.automation.worker.dto.s3.TeamMember;
 import com.riman.automation.worker.service.*;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class AbsenceFacadeTest {
 
     @Mock
@@ -32,12 +31,19 @@ class AbsenceFacadeTest {
     private GroupwareMessageService groupwareMessageService;
 
     private AbsenceFacade facade;
+    private AutoCloseable mocks;
 
     @BeforeEach
     void setUp() {
+        mocks = MockitoAnnotations.openMocks(this);
         facade = new AbsenceFacade(
                 configService, calendarService, teamMemberService,
                 dedupeService, groupwareMessageService);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (mocks != null) mocks.close();
     }
 
     // =========================================================================

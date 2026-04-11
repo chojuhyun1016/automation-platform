@@ -1,13 +1,13 @@
 package com.riman.automation.worker.service;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class DedupeServiceTest {
 
     private static final String TABLE_NAME = "test-dedupe-table";
@@ -26,10 +25,17 @@ class DedupeServiceTest {
     private DynamoDbClient dynamoDbClient;
 
     private DedupeService dedupeService;
+    private AutoCloseable mocks;
 
     @BeforeEach
     void setUp() {
+        mocks = MockitoAnnotations.openMocks(this);
         dedupeService = new DedupeService(dynamoDbClient, TABLE_NAME);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (mocks != null) mocks.close();
     }
 
     // =========================================================================

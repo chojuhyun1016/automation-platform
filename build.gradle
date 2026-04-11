@@ -35,13 +35,5 @@ subprojects {
 
     tasks.named('test') {
         useJUnitPlatform()
-
-        // Mockito 5.x + JDK 17: ByteBuddy가 JVM 내부 클래스에 접근할 수 있도록 허용
-        // CI(Ubuntu/Temurin)에서 UnfinishedMockingSessionException 방지
-        jvmArgs(
-            '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
-            '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
-            '--add-opens', 'java.base/java.util=ALL-UNNAMED'
-        )
     }
 }

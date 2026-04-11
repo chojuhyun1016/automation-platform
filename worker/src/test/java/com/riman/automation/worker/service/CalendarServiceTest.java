@@ -6,14 +6,14 @@ import com.riman.automation.worker.dto.jira.JiraWebhookEvent;
 import com.riman.automation.worker.dto.s3.TeamMember;
 import com.riman.automation.worker.service.ConfigService.ProjectRouting;
 import com.riman.automation.worker.service.JiraCalendarMappingService.MappingEntry;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class CalendarServiceTest {
 
     @Mock
@@ -34,10 +33,17 @@ class CalendarServiceTest {
     private JiraCalendarMappingService mappingService;
 
     private CalendarService calendarService;
+    private AutoCloseable mocks;
 
     @BeforeEach
     void setUp() {
+        mocks = MockitoAnnotations.openMocks(this);
         calendarService = new CalendarService(calendarClient, teamMemberService, mappingService);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (mocks != null) mocks.close();
     }
 
     // =========================================================================

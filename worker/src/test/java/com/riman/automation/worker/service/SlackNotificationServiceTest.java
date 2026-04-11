@@ -4,13 +4,13 @@ import com.riman.automation.clients.slack.SlackClient;
 import com.riman.automation.worker.dto.jira.JiraWebhookEvent;
 import com.riman.automation.worker.dto.s3.TeamMember;
 import com.riman.automation.worker.service.ConfigService.ProjectRouting;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class SlackNotificationServiceTest {
 
     @Mock
@@ -34,9 +33,12 @@ class SlackNotificationServiceTest {
     private SlackClient slackClient;
 
     private SlackNotificationService service;
+    private AutoCloseable mocks;
 
     @BeforeEach
     void setUp() {
+        mocks = MockitoAnnotations.openMocks(this);
+
         // spy로 buildSlackClient를 mock SlackClient 반환하도록 설정
         service = spy(new SlackNotificationService(secretsManagerClient, teamMemberService));
         doReturn(slackClient).when(service).buildSlackClient(anyString());
@@ -47,6 +49,11 @@ class SlackNotificationServiceTest {
                 .build();
         lenient().when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class)))
                 .thenReturn(tokenResponse);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (mocks != null) mocks.close();
     }
 
     // =========================================================================

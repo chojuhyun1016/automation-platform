@@ -1,13 +1,13 @@
 package com.riman.automation.worker.service;
 
 import com.riman.automation.worker.dto.s3.TeamMember;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class TeamMemberServiceTest {
 
     private static final String BUCKET = "test-bucket";
@@ -69,11 +68,18 @@ class TeamMemberServiceTest {
     private S3Client s3Client;
 
     private TeamMemberService teamMemberService;
+    private AutoCloseable mocks;
 
     @BeforeEach
     void setUp() {
+        mocks = MockitoAnnotations.openMocks(this);
         teamMemberService = new TeamMemberService(s3Client, BUCKET, KEY);
         stubS3Response(MEMBERS_JSON);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (mocks != null) mocks.close();
     }
 
     private void stubS3Response(String json) {

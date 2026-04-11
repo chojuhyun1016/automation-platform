@@ -1,13 +1,13 @@
 package com.riman.automation.worker.service;
 
 import com.riman.automation.common.exception.ConfigException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class ConfigServiceTest {
 
     private static final String BUCKET = "test-bucket";
@@ -29,6 +28,18 @@ class ConfigServiceTest {
 
     @Mock
     private S3Client s3Client;
+
+    private AutoCloseable mocks;
+
+    @BeforeEach
+    void initMocks() {
+        mocks = MockitoAnnotations.openMocks(this);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (mocks != null) mocks.close();
+    }
 
     private void stubS3Config(String json) {
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
