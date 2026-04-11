@@ -37,6 +37,15 @@ public class TeamMemberService {
         log.info("TeamMemberService initialized");
     }
 
+    /**
+     * 테스트용 생성자 — Mock 주입.
+     */
+    TeamMemberService(S3Client s3Client, String bucket, String membersKey) {
+        this.s3Client = s3Client;
+        this.bucket = bucket;
+        this.membersKey = membersKey;
+    }
+
     public TeamMember findByAccountId(String accountId) {
         if (accountId == null) return null;
         return loadMembers().stream()

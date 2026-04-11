@@ -59,6 +59,16 @@ public class ConfigService {
         loadConfig();
     }
 
+    /**
+     * 테스트용 생성자 — Mock 주입. 생성 시 loadConfig()를 자동 호출한다.
+     */
+    ConfigService(S3Client s3Client, String bucketName, String configKey) {
+        this.s3Client = s3Client;
+        this.bucketName = bucketName;
+        this.configKey = configKey;
+        loadConfig();
+    }
+
     // =========================================================================
     // Jira 라우팅
     // =========================================================================

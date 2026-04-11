@@ -27,6 +27,14 @@ public class DedupeService {
         log.info("DedupeService initialized: table={}", tableName);
     }
 
+    /**
+     * 테스트용 생성자 — Mock 주입.
+     */
+    DedupeService(DynamoDbClient dynamoDbClient, String tableName) {
+        this.dynamoDbClient = dynamoDbClient;
+        this.tableName = tableName;
+    }
+
     // =========================================================================
     // Jira 이벤트 중복 체크 (기존 방식: eventId + timestamp)
     // =========================================================================

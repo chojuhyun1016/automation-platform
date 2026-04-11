@@ -32,9 +32,16 @@ public class GroupwareMessageService {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new JavaTimeModule());
 
-    private static final SqsClient SQS_CLIENT = SqsClient.builder().build();
+    private static volatile SqsClient sqsClient;
 
     private static final GroupwareMessageService INSTANCE = new GroupwareMessageService();
+
+    private static SqsClient getSqsClient() {
+        if (sqsClient == null) {
+            sqsClient = SqsClient.builder().build();
+        }
+        return sqsClient;
+    }
 
     public static GroupwareMessageService getInstance() {
         return INSTANCE;
@@ -103,7 +110,7 @@ public class GroupwareMessageService {
                     ))
                     .build();
 
-            SendMessageResponse response = SQS_CLIENT.sendMessage(request);
+            SendMessageResponse response = getSqsClient().sendMessage(request);
             log.info("[GroupwareMessageService] SQS 전송 완료: messageId={}, user={}, type={}, action={}",
                     response.messageId(), memberName, absenceType, action);
             return response.messageId();

@@ -82,6 +82,17 @@ public class CalendarService {
         this(null);
     }
 
+    /**
+     * 테스트용 생성자 — Mock 주입.
+     */
+    CalendarService(GoogleCalendarClient calendarClient,
+                    TeamMemberService teamMemberService,
+                    JiraCalendarMappingService mappingService) {
+        this.calendarClient = calendarClient;
+        this.teamMemberService = teamMemberService;
+        this.mappingService = mappingService;
+    }
+
     public CalendarService(ConfigService configService) {
         try {
             byte[] credBytes = loadCredentialsFromS3();
