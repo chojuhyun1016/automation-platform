@@ -91,13 +91,13 @@ common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito
 
 ---
 
-## Phase N2: worker/ingest 서비스 Mock 테스트
+## Phase N2: worker/ingest 서비스 Mock 테스트 (#3)
 
-- [ ] Phase N2 시작
+- [x] Phase N2 시작
 
 ### 전제조건
 
-- [ ] Phase N1 완료
+- [x] Phase N1 완료
 
 ### 오버뷰
 
@@ -105,17 +105,17 @@ common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito
 
 ### 수정/개선
 
-- [ ] CalendarService — processJiraEvent() CREATE/UPDATE/DELETE 분기 테스트
-- [ ] ConfigService — TTL 캐시 만료/갱신 테스트
-- [ ] DedupeService — 중복 감지 + prefix 키 테스트
-- [ ] TeamMemberService — findByAccountId/findBySlackUserId 테스트
-- [ ] SlackNotificationService — DM/채널 분기 테스트
-- [ ] AbsenceFacade — 파이프라인 테스트 (날짜 보정, 중복 확인, 캘린더 처리)
+- [x] CalendarService — processJiraEvent() CREATE/UPDATE/DELETE 분기 테스트
+- [x] ConfigService — TTL 캐시 만료/갱신 테스트
+- [x] DedupeService — 중복 감지 + prefix 키 테스트
+- [x] TeamMemberService — findByAccountId/findBySlackUserId 테스트
+- [x] SlackNotificationService — DM/채널 분기 테스트
+- [x] AbsenceFacade — 파이프라인 테스트 (날짜 보정, 중복 확인, 캘린더 처리)
 
 ### 검증
 
-- [ ] `./gradlew :worker:test` 통과
-- [ ] `./gradlew :ingest:test` 통과
+- [x] `./gradlew :worker:test` 통과 (67 tests)
+- [x] `./gradlew :ingest:test` 통과
 
 ## Phase N2.5: TDD 프로세스 정착
 
@@ -252,7 +252,7 @@ Phase 작업을 시작하려면:
 | Phase | 이슈 | 타입 | 실행 커맨드 |
 |-------|------|------|-----------|
 | N1 | #1 | feat | `source scripts/create-worktree.sh feat 1 unit-test-setup` |
-| N2 | 미생성 | feat | N1 완료 후 실행 |
+| N2 | #3 | feat | `source scripts/create-worktree.sh feat 3 worker-ingest-mock-test` |
 | N2.5 | 미생성 | chore | N2 완료 후 실행 |
 | N3 | 미생성 | fix | 독립 실행 가능 |
 | N4 | 미생성 | feat | 독립 실행 가능 |
