@@ -12,25 +12,27 @@
 # 사용법:
 #   bash scripts/cleanup-worktrees.sh
 #
-# 프로젝트 루트에서 실행할 것.
+# 메인 워크트리, 서브 워크트리 어디서든 실행 가능.
 #-----------------------------------------------------------------------
 
-# 프로젝트 루트 확인
-if [ ! -f "CLAUDE.md" ]; then
-    echo "❌ 프로젝트 루트에서 실행하세요."
-    echo "   cd /Users/r00365/Work/workspace/automation-platform"
+# git 리포지토리 확인
+if ! git rev-parse --git-dir &>/dev/null; then
+    echo "❌ git 리포지토리가 아닙니다."
     exit 1
 fi
 
-echo "🔍 워크트리 조회 중..."
+# 메인 워크트리 경로 자동 감지 (어디서든 실행 가능)
+MAIN_PATH=$(git worktree list --porcelain | head -1 | sed 's/^worktree //')
+
+echo "🔍 워크트리 조회 중... (메인: $MAIN_PATH)"
 echo ""
 
 # 모든 워크트리 순회
 git worktree list --porcelain | grep "^worktree " | while read -r LINE; do
     WT_PATH=$(echo "$LINE" | sed 's/^worktree //')
 
-    # 프로젝트 루트(main)는 스킵
-    if [ "$WT_PATH" = "$(pwd)" ]; then
+    # 메인 워크트리는 스킵
+    if [ "$WT_PATH" = "$MAIN_PATH" ]; then
         continue
     fi
 
