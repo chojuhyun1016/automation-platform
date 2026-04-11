@@ -58,8 +58,12 @@ SPEC.md에서 #$ARGUMENTS에 해당하는 Phase가 있는지 확인해라.
 
 ### 4. 코드 탐색
 
-**Explore 서브에이전트를 context fork로 실행** (메인 컨텍스트 절약).
+**Explore 서브에이전트를 병렬로 실행** (메인 컨텍스트 절약):
+- 영향 범위가 **1개 모듈**: Explore 1개
+- 영향 범위가 **2개+ 모듈**: Explore 2~3개 병렬 (모듈별 분담)
+  - 예: Explore A → ingest, Explore B → worker, Explore C → common/clients
 
+각 Explore에서:
 - 관련 파일, 모듈, 패턴 파악
 - CLAUDE.md 컨벤션 확인
 
@@ -100,10 +104,9 @@ SPEC.md에서 #$ARGUMENTS에 해당하는 Phase가 있는지 확인해라.
 
 ### 8. 자체 리뷰
 
-구현 완료 후 ECC 서브에이전트로 리뷰:
-- **code-reviewer** — 전체 리뷰
-- 언어별 리뷰어가 있으면 추가 실행 (java-reviewer, typescript-reviewer 등)
-- 보안 관련 변경 시 **security-reviewer** 추가
+구현 완료 후 ECC 서브에이전트 **병렬 실행**:
+- **code-reviewer** + **java-reviewer** → 동시 실행
+- 보안 관련 변경 시 **security-reviewer** 도 동시 추가 (최대 3개 병렬)
 
 critical/high 이슈 → 수정 후 재검증.
 
