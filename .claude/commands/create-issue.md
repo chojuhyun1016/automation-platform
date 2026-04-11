@@ -87,7 +87,15 @@ $ARGUMENTS가 "Phase N" 형식이면:
 [Phase 기반이면: `SPEC.md Phase N 참조`]
 ```
 
-**라벨**: CLAUDE.md 라벨 체계가 있으면 따르고, 없으면 유형 + 우선순위.
+**라벨**: GitHub 리포에 존재하는 라벨만 사용. `gh label list`로 확인 후 매핑:
+
+| 유형 | GitHub 라벨 |
+|------|-----------|
+| feature / enhancement | `enhancement` |
+| bug | `bug` |
+| refactor / chore | 라벨 없이 생성 (존재하지 않는 라벨 사용 금지) |
+
+라벨이 리포에 없으면 **라벨 없이 생성**해라. `--label` 옵션을 생략.
 
 ### 4. 사용자 확인 후 생성
 
@@ -107,22 +115,29 @@ $ARGUMENTS가 "Phase N" 형식이면:
 이 매핑이 있어야 `/resolve-issue 12` 실행 시 SPEC.md에서 해당 Phase를 찾을 수 있고,
 사용자가 SPEC.md만 열어도 실행 커맨드를 바로 복사할 수 있다.
 
-### 6. 후속 안내
+### 6. 워크트리 생성 제안
 
-이슈 라벨에서 브랜치 타입을 매핑하여 실행 커맨드를 안내해라:
+이슈 생성 직후, 사용자에게 **워크트리 생성 여부를 질문**해라:
 
-| 이슈 라벨 | 브랜치 타입 |
-|----------|-----------|
+유형에서 브랜치 타입을 매핑:
+
+| 유형 | 브랜치 타입 |
+|------|-----------|
 | feature / enhancement | `feat` |
 | bug | `fix` |
 | refactor | `refactor` |
 | chore | `chore` |
 
+**질문 형식**:
 ```
-다음 단계:
-  source scripts/create-worktree.sh {타입} {이슈번호} {설명}
-  예: source scripts/create-worktree.sh feat 12 add-schedule-repeat
-  → Claude에서: /resolve-issue {이슈번호}
+워크트리를 생성하시겠습니까? 아래 커맨드를 터미널에서 실행하세요:
 
-다른 Phase: /create-issue Phase N+1
+  source scripts/create-worktree.sh {타입} {이슈번호} {설명}
+
+워크트리에서 Claude가 자동 실행되며, /resolve-issue {이슈번호} 로 작업을 시작할 수 있습니다.
 ```
+
+> `source`는 현재 셸에서 실행해야 하므로 Claude Bash 도구로 실행 불가.
+> 사용자에게 커맨드를 제시하고 직접 실행하도록 안내해라.
+
+사용자가 "다른 Phase"를 원하면 `/create-issue Phase N+1`을 안내.

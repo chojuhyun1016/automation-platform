@@ -63,7 +63,7 @@ PRD: `automation-platform-prd.md` 참조.
 
 ---
 
-## Phase N1: 테스트 기반 구축 + 순수 함수 유닛 테스트
+## Phase N1: 테스트 기반 구축 + 순수 함수 유닛 테스트 (#1)
 
 - [x] Phase N1 완료 (PR #2)
 
@@ -251,7 +251,7 @@ Phase 작업을 시작하려면:
 
 | Phase | 이슈 | 타입 | 실행 커맨드 |
 |-------|------|------|-----------|
-| N1 | 미생성 | feat | `/create-issue Phase N1` 먼저 실행 |
+| N1 | #1 | feat | `source scripts/create-worktree.sh feat 1 unit-test-setup` |
 | N2 | 미생성 | feat | N1 완료 후 실행 |
 | N2.5 | 미생성 | chore | N2 완료 후 실행 |
 | N3 | 미생성 | fix | 독립 실행 가능 |
