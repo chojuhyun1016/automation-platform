@@ -229,10 +229,11 @@ class TeamMemberServiceTest {
         @Test
         @DisplayName("S3 실패 시 빈 리스트 반환 (예외 삼킴)")
         void loadMembers_s3Failure_returnsEmpty() {
-            S3Client failS3 = mock(S3Client.class);
-            when(failS3.getObject(any(GetObjectRequest.class)))
+            // 새 서비스 인스턴스 (cachedMembers=null, lazy loading)
+            TeamMemberService failService = new TeamMemberService(s3Client, BUCKET, KEY);
+            // 기존 lenient stub을 예외로 재설정 — 이 테스트에서만 적용
+            when(s3Client.getObject(any(GetObjectRequest.class)))
                     .thenThrow(S3Exception.builder().message("access denied").build());
-            TeamMemberService failService = new TeamMemberService(failS3, BUCKET, KEY);
 
             TeamMember result = failService.findByAccountId("jira-001");
 
