@@ -6,7 +6,7 @@ Daemon will be stopped at the end of the build
     public static final ZoneId KST = ZoneId.of("Asia/Seoul")
                                                             ^
 1 error
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/error-1775987732406.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/error-1775988381374.json
 
 FAILURE: Build failed with an exception.
 
@@ -18,5 +18,5 @@ Execution failed for task ':common:compileJava'.
 > Run with --info option to get more log output.
 > Run with --scan to get full insights.
 
-BUILD FAILED in 6s
+BUILD FAILED in 8s
 1 actionable task: 1 executed
