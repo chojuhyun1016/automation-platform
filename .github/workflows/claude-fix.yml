@@ -1,12 +1,80 @@
 name: Claude Auto-Fix
 
 on:
+  workflow_run:
+    workflows: ["CI Test"]
+    types: [completed]
   issue_comment:
     types: [created]
 
 jobs:
-  claude-fix:
-    if: |
+  # CI 실패 시 자동 트리거
+  auto-fix:
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Get PR info
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prs = context.payload.workflow_run.pull_requests;
+            if (!prs || prs.length === 0) {
+              core.setFailed('No PR found for this workflow run');
+              return;
+            }
+            core.setOutput('number', prs[0].number);
+            core.setOutput('branch', context.payload.workflow_run.head_branch);
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          fetch-depth: 1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Capture build error
+        id: error
+        run: ./gradlew build --no-daemon 2>&1 | tail -80 > build-error.txt || true
+
+      - name: Post error and trigger Claude
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const error = fs.readFileSync('build-error.txt', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.pr.outputs.number }},
+              body: `## CI Build Failed\n\`\`\`\n${error}\n\`\`\`\n\n빌드 에러를 분석하고 수정해주세요.`
+            });
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          trigger_phrase: ""
+          prompt: |
+            CI 빌드가 실패했습니다. build-error.txt 파일을 읽고 에러를 분석한 후 코드를 수정해주세요.
+            수정 후 ./gradlew build --no-daemon 으로 빌드가 통과하는지 확인해주세요.
+
+  # PR 코멘트에서 수동 @claude 트리거
+  manual-fix:
+    if: >
+      github.event_name == 'issue_comment' &&
       contains(github.event.comment.body, '@claude') &&
       github.event.issue.pull_request
     runs-on: ubuntu-latest
