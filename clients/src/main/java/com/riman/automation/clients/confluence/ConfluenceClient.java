@@ -239,6 +239,8 @@ public class ConfluenceClient extends BaseHttpClient {
             log.warn("[ConfluenceClient] findPageByTitleAndParent: 중복 {} 개 발견 title={} — CQL 자식 확인 후 선택",
                     candidates.size(), title);
 
+            // 자식 유무 확인 결과를 캐싱 (API 중복 호출 방지)
+            Map<String, Boolean> childMap = new java.util.HashMap<>();
             String best = null;
             boolean bestHasChild = false;
             long bestIdNum = Long.MAX_VALUE;
@@ -258,6 +260,7 @@ public class ConfluenceClient extends BaseHttpClient {
                 } catch (Exception ignored) {
                     // CQL 실패 시 자식 없음으로 처리
                 }
+                childMap.put(candidateId, hasChild);
 
                 long idNum = Long.MAX_VALUE;
                 try {
@@ -279,23 +282,11 @@ public class ConfluenceClient extends BaseHttpClient {
             log.info("[ConfluenceClient] findPageByTitleAndParent: 중복 중 선택 title={}, id={}, hasChild={}",
                     title, best, bestHasChild);
 
-            // 자식 없는 중복 페이지 자동 삭제
+            // 자식 없는 중복 페이지 자동 삭제 (캐싱된 결과 사용)
             for (String candidateId : candidates) {
                 if (!candidateId.equals(best)) {
-                    // 자식 유무 재확인 (best 선택 루프에서 이미 확인했으나, 안전하게 재확인)
-                    boolean hasChild = false;
-                    try {
-                        String cql = "parent=" + candidateId;
-                        String cqlEncoded = URLEncoder.encode(cql, StandardCharsets.UTF_8);
-                        String cqlUrl = wikiBase + "/rest/api/content/search?cql=" + cqlEncoded + "&limit=1";
-                        ApiResponse cqlResp = get(cqlUrl, defaultHeaders());
-                        requireSuccess(cqlResp, "duplicateCheck-cqlChild");
-                        JsonNode cqlResults = parse(cqlResp.getBody()).path("results");
-                        hasChild = cqlResults.isArray() && !cqlResults.isEmpty();
-                    } catch (Exception ignored) {
-                        // CQL 실패 시 삭제하지 않음 (안전 우선)
-                        hasChild = true;
-                    }
+                    // CQL 실패로 캐시에 없는 경우 삭제하지 않음 (안전 우선)
+                    boolean hasChild = childMap.getOrDefault(candidateId, true);
 
                     if (!hasChild) {
                         log.info("[ConfluenceClient] 자식 없는 중복 페이지 삭제: title={}, id={}", title, candidateId);
@@ -518,9 +509,10 @@ public class ConfluenceClient extends BaseHttpClient {
      */
     public boolean deletePage(String pageId) {
         String urlStr = wikiBase + "/rest/api/content/" + pageId;
+        HttpURLConnection conn = null;
         try {
             URL url = new URL(urlStr);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("DELETE");
             conn.setConnectTimeout(5_000);
             conn.setReadTimeout(10_000);
@@ -528,6 +520,13 @@ public class ConfluenceClient extends BaseHttpClient {
             conn.setRequestProperty("Accept", "application/json");
 
             int status = conn.getResponseCode();
+            // 응답 스트림 drain — 커넥션 풀 반환을 위해 필수
+            try {
+                java.io.InputStream is = (status < 300) ? conn.getInputStream() : conn.getErrorStream();
+                if (is != null) is.readAllBytes();
+            } catch (Exception ignored) {
+            }
+
             if (status >= 200 && status < 300) {
                 log.info("[ConfluenceClient] 페이지 삭제 완료: id={}", pageId);
                 return true;
@@ -537,6 +536,8 @@ public class ConfluenceClient extends BaseHttpClient {
         } catch (Exception e) {
             log.warn("[ConfluenceClient] 페이지 삭제 실패: id={}, err={}", pageId, e.getMessage());
             return false;
+        } finally {
+            if (conn != null) conn.disconnect();
         }
     }
 
@@ -573,7 +574,7 @@ public class ConfluenceClient extends BaseHttpClient {
 
                 doMultipartUpload(urlStr, pageId, fileName, content);
 
-            } catch (ExternalApiClientException e) {
+            } catch (ExternalApiClientException | ExternalApiException e) {
                 throw e;
             } catch (Exception e) {
                 throw new ExternalApiClientException(apiName,
@@ -762,7 +763,8 @@ public class ConfluenceClient extends BaseHttpClient {
                     Thread.currentThread().interrupt();
                     throw lastException;
                 }
-                delay = Math.min(delay * 2, MAX_DELAY_MS);
+                long jitter = (long) (Math.random() * delay * 0.3);
+                delay = Math.min(delay * 2 + jitter, MAX_DELAY_MS);
             }
         }
         throw lastException;
