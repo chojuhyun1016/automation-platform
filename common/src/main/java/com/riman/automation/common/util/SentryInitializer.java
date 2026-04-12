@@ -44,8 +44,8 @@ public final class SentryInitializer {
             options.setTag("module", moduleName);
             options.setTag("runtime", "aws-lambda");
             options.setTag("region", getEnvOrDefault("AWS_REGION", "ap-northeast-2"));
-            // Lambda 환경에서는 shutdown hook이 동작하지 않으므로 즉시 전송
-            options.setFlushTimeoutMillis(2000);
+            // Lambda 환경: Slack 3초 응답 제한을 고려하여 flush 타임아웃을 짧게 설정
+            options.setFlushTimeoutMillis(500);
         });
 
         log.info("[SentryInitializer] Sentry 초기화 완료: module={}", moduleName);
@@ -80,7 +80,7 @@ public final class SentryInitializer {
      */
     public static void flush() {
         if (!Sentry.isEnabled()) return;
-        Sentry.flush(2000);
+        Sentry.flush(500);
     }
 
     private static String getEnvOrDefault(String name, String defaultValue) {

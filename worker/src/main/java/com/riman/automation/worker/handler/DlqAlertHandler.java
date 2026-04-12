@@ -27,8 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DlqAlertHandler implements RequestHandler<SQSEvent, Void> {
 
-    private static final int BODY_PREVIEW_MAX_LENGTH = 500;
-
     private static final SlackClient slackClient;
     private static final String monitoringChannel;
 
@@ -65,10 +63,10 @@ public class DlqAlertHandler implements RequestHandler<SQSEvent, Void> {
 
     private void sendAlert(SQSMessage message, Context context) {
         String messageType = extractMessageType(message);
-        String bodyPreview = truncate(message.getBody(), BODY_PREVIEW_MAX_LENGTH);
         String sourceArn = message.getEventSourceArn() != null
                 ? message.getEventSourceArn() : "unknown";
         String timestamp = DateTimeUtil.nowKst().toString();
+        int bodyLength = message.getBody() != null ? message.getBody().length() : 0;
 
         String payload = SlackBlockBuilder.forChannel(monitoringChannel)
                 .fallbackText("[DLQ] 처리 실패 메시지 감지: " + messageType)
@@ -77,11 +75,11 @@ public class DlqAlertHandler implements RequestHandler<SQSEvent, Void> {
                         "*메시지 타입:* `" + messageType + "`",
                         "*메시지 ID:* `" + message.getMessageId() + "`",
                         "*소스 큐:* `" + extractQueueName(sourceArn) + "`",
+                        "*본문 크기:* " + bodyLength + " bytes",
                         "*감지 시각:* " + timestamp
                 ))
-                .divider()
-                .section("*메시지 본문 (미리보기):*\n```" + bodyPreview + "```")
-                .context("Lambda requestId: " + context.getAwsRequestId())
+                .context("CloudWatch Logs에서 messageId로 상세 내용을 확인하세요. requestId: "
+                        + context.getAwsRequestId())
                 .build();
 
         slackClient.postMessage(payload);
@@ -105,8 +103,4 @@ public class DlqAlertHandler implements RequestHandler<SQSEvent, Void> {
         return lastColon < arn.length() - 1 ? arn.substring(lastColon + 1) : arn;
     }
 
-    private static String truncate(String text, int maxLength) {
-        if (text == null) return "(empty)";
-        return text.length() <= maxLength ? text : text.substring(0, maxLength) + "...";
-    }
 }

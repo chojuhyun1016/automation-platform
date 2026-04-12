@@ -44,6 +44,10 @@ public class WorkerHandler implements RequestHandler<SQSEvent, Void> {
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule());
 
+    static {
+        SentryInitializer.init("worker");
+    }
+
     private final JiraIssueFacade jiraFacade;
     private final RemoteWorkFacade remoteWorkFacade;
     private final AbsenceFacade absenceFacade;
@@ -64,7 +68,6 @@ public class WorkerHandler implements RequestHandler<SQSEvent, Void> {
         this.scheduleFacade = new ScheduleFacade(              // ← 추가
                 configService, calendarService, dedupeService, scheduleMappingService);
 
-        SentryInitializer.init("worker");
         log.info("WorkerHandler 초기화 완료 (Jira + RemoteWork + Absence + Schedule)");
     }
 
