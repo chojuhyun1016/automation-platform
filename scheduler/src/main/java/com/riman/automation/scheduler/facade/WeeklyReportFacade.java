@@ -2,7 +2,9 @@ package com.riman.automation.scheduler.facade;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.riman.automation.clients.slack.SlackClient;
 import com.riman.automation.common.exception.ConfigException;
+import com.riman.automation.common.slack.SlackBlockBuilder;
 import com.riman.automation.scheduler.dto.report.WeeklyReportData;
 import com.riman.automation.scheduler.dto.s3.TeamMember;
 import com.riman.automation.scheduler.dto.s3.WeeklyReportConfig;
@@ -61,6 +63,7 @@ public class WeeklyReportFacade {
     private final WeeklyCalendarTicketCollector ticketCollector;
     private final WeeklyReportFormatter formatter;
     private final WeeklyReportService weeklyReportService;
+    private final SlackClient slackClient;
 
     public WeeklyReportFacade(
             S3Client s3Client,
@@ -69,7 +72,8 @@ public class WeeklyReportFacade {
             TeamMemberService teamMemberService,
             WeeklyCalendarTicketCollector ticketCollector,
             WeeklyReportFormatter formatter,
-            WeeklyReportService weeklyReportService) {
+            WeeklyReportService weeklyReportService,
+            SlackClient slackClient) {
         this.s3Client = s3Client;
         this.configBucket = configBucket;
         this.configKey = configKey;
@@ -77,6 +81,7 @@ public class WeeklyReportFacade {
         this.ticketCollector = ticketCollector;
         this.formatter = formatter;
         this.weeklyReportService = weeklyReportService;
+        this.slackClient = slackClient;
     }
 
     // =========================================================================
@@ -131,19 +136,57 @@ public class WeeklyReportFacade {
         String pageHtml = formatter.format(data);
 
         // ── 6) Confluence 페이지 생성/업데이트 ──────────────────────────────
-        String pageId = weeklyReportService.publishWeeklyPage(
-                data, pageHtml,
-                config.getConfluenceParentPageId(),
-                config.getTeamName());
+        try {
+            String pageId = weeklyReportService.publishWeeklyPage(
+                    data, pageHtml,
+                    config.getConfluenceParentPageId(),
+                    config.getTeamName());
 
-        String pageUrl = weeklyReportService.buildPageUrl(pageId);
-        log.info("[WeeklyReportFacade] 주간보고 완료: url={}", pageUrl);
+            String pageUrl = weeklyReportService.buildPageUrl(pageId);
+            log.info("[WeeklyReportFacade] 주간보고 완료: url={}", pageUrl);
 
-        // 7) 엑셀 생성 + 페이지 첨부
-        String pageTitle = weeklyReportService.buildWeeklyTitle(data, config.getTeamName());
-        weeklyReportService.attachExcel(pageId, pageTitle, data);
+            // 7) 엑셀 생성 + 페이지 첨부
+            String pageTitle = weeklyReportService.buildWeeklyTitle(data, config.getTeamName());
+            weeklyReportService.attachExcel(pageId, pageTitle, data);
 
-        // TODO: 8) Slack DM 발송  weeklyReportService.notifySlack(pageUrl, ...)
+            // TODO: 8) Slack DM 발송  weeklyReportService.notifySlack(pageUrl, ...)
+        } catch (Exception e) {
+            String weeklyTitle = weeklyReportService.buildWeeklyTitle(data, config.getTeamName());
+            notifyConfluenceError("주간보고", weeklyTitle, e, config.getErrorNotifySlackUserId());
+            throw e;
+        }
+    }
+
+    // =========================================================================
+    // Confluence 실패 Slack 알림
+    // =========================================================================
+
+    private void notifyConfluenceError(String reportType, String pageTitle,
+                                       Exception error, String slackUserId) {
+        if (slackUserId == null || slackUserId.isBlank()) {
+            log.warn("[WeeklyReportFacade] {} Confluence 실패 알림 스킵 — error_notify_slack_user_id 미설정",
+                    reportType);
+            return;
+        }
+        try {
+            String dmChannelId = slackClient.openDm(slackUserId);
+            String errorMsg = error.getMessage();
+            if (errorMsg != null && errorMsg.length() > 200) {
+                errorMsg = errorMsg.substring(0, 200) + "...";
+            }
+            String payload = SlackBlockBuilder.forChannel(dmChannelId)
+                    .header(reportType + " Confluence 페이지 생성 실패")
+                    .section("*페이지:* " + pageTitle)
+                    .section("*오류:* " + errorMsg)
+                    .context("CloudWatch 로그를 확인해 주세요.")
+                    .fallbackText(reportType + " Confluence 실패: " + pageTitle)
+                    .build();
+            slackClient.postMessage(payload);
+            log.info("[WeeklyReportFacade] {} 실패 Slack 알림 발송 완료: userId={}", reportType, slackUserId);
+        } catch (Exception slackError) {
+            log.error("[WeeklyReportFacade] {} 실패 Slack 알림 발송 실패: {}",
+                    reportType, slackError.getMessage());
+        }
     }
 
     // =========================================================================

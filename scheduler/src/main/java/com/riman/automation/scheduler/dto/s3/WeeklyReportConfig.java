@@ -87,4 +87,11 @@ public class WeeklyReportConfig {
      */
     @JsonProperty("confluence_parent_page_id")
     private String confluenceParentPageId;
+
+    /**
+     * 보고서 생성 실패 시 Slack 알림을 받을 사용자 ID.
+     * <br>미설정 시 실패 알림은 로그에만 남김.
+     */
+    @JsonProperty("error_notify_slack_user_id")
+    private String errorNotifySlackUserId;
 }

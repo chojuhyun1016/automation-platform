@@ -188,14 +188,14 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
         weeklyOrchestrator = buildWeeklyOrchestrator(
                 s3, configBucket, schedulerConfigKey,
                 calendarClient, jiraClient, jiraBaseUrl,
-                teamMemberService, sharedConfluenceClient);
+                teamMemberService, sharedConfluenceClient, slackClient);
 
         // ── 월간 보고 오케스트레이터 ─────────────────────────────────────────
         // CONFLUENCE_BASE_URL / CONFLUENCE_SPACE_KEY 미설정 시 null
         monthlyOrchestrator = buildMonthlyOrchestrator(
                 s3, configBucket, schedulerConfigKey,
                 calendarClient, jiraClient, jiraBaseUrl,
-                teamMemberService, sharedConfluenceClient);
+                teamMemberService, sharedConfluenceClient, slackClient);
 
         log.info("[SchedulerHandler] 초기화 완료 (AI={}, schedule={}, weekly={}, monthly={}, configKey={})",
                 aiRefiner != null ? "활성" : "비활성",
@@ -458,7 +458,8 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
             GoogleCalendarClient calendarClient,
             JiraClient jiraClient, String jiraBaseUrl,
             TeamMemberService teamMemberService,
-            ConfluenceClient confluenceClient) {
+            ConfluenceClient confluenceClient,
+            SlackClient slackClient) {
 
         if (confluenceClient == null) {
             log.info("[SchedulerHandler] CONFLUENCE 미설정 → 주간보고 비활성");
@@ -476,7 +477,7 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
         return new WeeklyReportFacade(
                 s3, configBucket, schedulerConfigKey,
                 teamMemberService, weeklyTicketCollector,
-                weeklyFormatter, weeklyReportService);
+                weeklyFormatter, weeklyReportService, slackClient);
     }
 
     /**
@@ -497,7 +498,8 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
             GoogleCalendarClient calendarClient,
             JiraClient jiraClient, String jiraBaseUrl,
             TeamMemberService teamMemberService,
-            ConfluenceClient confluenceClient) {
+            ConfluenceClient confluenceClient,
+            SlackClient slackClient) {
 
         if (confluenceClient == null) {
             log.info("[SchedulerHandler] CONFLUENCE 미설정 → 월간보고 비활성");
@@ -515,7 +517,7 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
         return new MonthlyReportFacade(
                 s3, configBucket, schedulerConfigKey,
                 teamMemberService, monthlyTicketCollector,
-                monthlyFormatter, monthlyReportService);
+                monthlyFormatter, monthlyReportService, slackClient);
     }
 
     // =========================================================================
