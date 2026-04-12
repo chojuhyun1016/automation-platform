@@ -22,4 +22,30 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build & Test
+        id: build-test
         run: ./gradlew build --no-daemon
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/'
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Comment on PR if tests failed
+        if: failure() && steps.build-test.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "## ❌ CI 테스트 실패
+
+          **Branch**: \`${{ github.head_ref }}\`
+          **Commit**: \`${{ github.sha }}\`
+
+          테스트가 실패했습니다. [Actions 로그](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})를 확인하고 수정해 주세요.
+
+          > 테스트 리포트는 Artifacts에서 다운로드할 수 있습니다."
