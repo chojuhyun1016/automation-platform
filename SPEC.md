@@ -141,9 +141,9 @@ common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito
 
 ---
 
-## Phase N3: Confluence 페이지 계층 안정화
+## Phase N3: Confluence 페이지 계층 안정화 (#7)
 
-- [ ] Phase N3 시작
+- [x] Phase N3 완료
 
 ### 오버뷰
 
@@ -151,13 +151,13 @@ ConfluenceClient 3단계 검색의 인덱싱 지연 대응을 강화하고, 중�
 
 ### 수정/개선
 
-- [ ] ConfluenceClient — retry + 지수 백오프 추가
-- [ ] 중복 페이지 자동 정리 (자식 없는 중복 삭제)
-- [ ] 주간/월간 보고서 페이지 생성 실패 시 Slack 알림
+- [x] ConfluenceClient — retry + 지수 백오프 추가
+- [x] 중복 페이지 자동 정리 (자식 없는 중복 삭제)
+- [x] 주간/월간 보고서 페이지 생성 실패 시 Slack 알림
 
 ### 검증
 
-- [ ] Weekly/Monthly 보고서 Confluence 정상 생성
+- [x] Weekly/Monthly 보고서 Confluence 정상 생성
 
 ---
 
@@ -254,7 +254,7 @@ Phase 작업을 시작하려면:
 | N1 | #1 | feat | `source scripts/create-worktree.sh feat 1 unit-test-setup` |
 | N2 | #3 | feat | `source scripts/create-worktree.sh feat 3 worker-ingest-mock-test` |
 | N2.5 | #5 | chore | `source scripts/create-worktree.sh chore 5 tdd-process-setup` |
-| N3 | 미생성 | fix | 독립 실행 가능 |
+| N3 | #7 | fix | `source scripts/create-worktree.sh fix 7 confluence-hierarchy-stabilize` |
 | N4 | 미생성 | feat | 독립 실행 가능 |
 | N5 | 미생성 | feat | 독립 실행 가능 |
 | N6 | 미생성 | feat | N2 완료 후 실행 |
