@@ -39,6 +39,8 @@ jobs:
         with:
           ref: ${{ steps.pr.outputs.branch }}
           fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
       - uses: actions/setup-java@v4
         with:
