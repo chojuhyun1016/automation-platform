@@ -12,6 +12,7 @@ import com.riman.automation.common.auth.EnvTokenProvider;
 import com.riman.automation.common.exception.AutomationException;
 import com.riman.automation.common.exception.ConfigException;
 import com.riman.automation.common.util.DateTimeUtil;
+import com.riman.automation.common.util.SentryInitializer;
 import com.riman.automation.scheduler.facade.DailyReportFacade;
 import com.riman.automation.scheduler.facade.MonthlyReportFacade;
 import com.riman.automation.scheduler.facade.WeeklyReportFacade;
@@ -197,6 +198,7 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
                 calendarClient, jiraClient, jiraBaseUrl,
                 teamMemberService, sharedConfluenceClient, slackClient);
 
+        SentryInitializer.init("scheduler");
         log.info("[SchedulerHandler] 초기화 완료 (AI={}, schedule={}, weekly={}, monthly={}, configKey={})",
                 aiRefiner != null ? "활성" : "비활성",
                 scheduleCollector != null ? "활성" : "비활성",
@@ -232,12 +234,18 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
 
         } catch (ConfigException e) {
             log.error("[SchedulerHandler] 설정 오류: {}", e.getMessage(), e);
+            SentryInitializer.captureException(e, "handleRequest");
+            SentryInitializer.flush();
             return "CONFIG_ERROR: " + e.getMessage();
         } catch (AutomationException e) {
             log.error("[SchedulerHandler] 자동화 오류: {} {}", e.getErrorCode(), e.getMessage());
+            SentryInitializer.captureException(e, "handleRequest");
+            SentryInitializer.flush();
             return "ERROR: " + e.getErrorCode() + " " + e.getMessage();
         } catch (Exception e) {
             log.error("[SchedulerHandler] 예상치 못한 오류", e);
+            SentryInitializer.captureException(e, "handleRequest");
+            SentryInitializer.flush();
             return "UNEXPECTED_ERROR: " + e.getMessage();
         }
     }
