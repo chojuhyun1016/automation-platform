@@ -217,7 +217,7 @@ N2에서 커버하지 못한 scheduler, groupware 모듈의 유닛 테스트를 
 
 ## Phase N7: CI 자동 테스트 (GitHub Actions)
 
-- [x] Phase N7 부분 완료 (기본 CI 구성됨)
+- [x] Phase N7 완료 (#15)
 
 ### 전제조건
 
@@ -232,13 +232,14 @@ PR 생성/업데이트 시 GitHub Actions에서 전체 테스트를 자동 실�
 
 - [x] `.github/workflows/ci-test.yml` — PR 시 `./gradlew build` 자동 실행
 - [x] Java 17 + Gradle 캐시 설정 (setup-java + setup-gradle)
-- [ ] 테스트 실패 시 PR에 실패 코멘트 자동 생성
-- [ ] branch protection rule: 테스트 통과 필수 (선택)
+- [x] 테스트 실패 시 PR에 실패 코멘트 자동 생성
+- [x] 테스트 리포트 Artifact 업로드 (7일 보관)
+- [ ] branch protection rule: 테스트 통과 필수 (GitHub Settings에서 수동 설정)
 
 ### 검증
 
 - [x] PR 생성 시 GitHub Actions에서 테스트 실행 확인
-- [ ] 테스트 실패 PR에 경고 표시 확인
+- [x] 테스트 실패 PR에 경고 코멘트 자동 생성 확인
 
 ---
 
@@ -258,7 +259,7 @@ Phase 작업을 시작하려면:
 | N4 | #10 | feat | `source scripts/create-worktree.sh feat 10 monitoring-alert` |
 | N5 | #11 | feat | `source scripts/create-worktree.sh feat 11 report-customization` |
 | N6 | 미생성 | feat | N2 완료 후 실행 |
-| N7 | 미생성 | chore | N1 완료 후 실행 |
+| N7 | #15 | chore | `source scripts/create-worktree.sh chore 15 ci-test-enhancement` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
 > 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`
