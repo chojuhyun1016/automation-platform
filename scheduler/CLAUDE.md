@@ -9,7 +9,9 @@ com.riman.automation.scheduler
 ├── handler/      SchedulerHandler (Map<String, Object> → String)
 ├── facade/       DailyReportFacade, WeeklyReportFacade, MonthlyReportFacade
 ├── dto/
-│   ├── report/   TicketItem, AbsenceItem, ScheduleItem
+│   ├── report/   DailyReportData (AbsenceItem, TicketItem, PageLinkItem, ScheduleItem),
+│   │             WeeklyReportData (WeeklyTicketItem),
+│   │             MonthlyReportData (MonthlyTicketItem)
 │   └── s3/       DailyReportConfig, WeeklyReportConfig, MonthlyReportConfig,
 │                 TeamMember, AnnouncementItem, MemberReportPreference,
 │                 ProjectGroup, ArchiveConfig

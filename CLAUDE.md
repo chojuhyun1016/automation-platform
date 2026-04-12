@@ -128,9 +128,11 @@ S3에 업로드되어 런타임에 사용됨. 상세 구조는 `config/README.md
 
 JUnit 5 + Mockito + AssertJ 기반 유닛 테스트 구성 완료.
 
-- `common` — 예외, Enum, 유틸리티, SlackBlockBuilder 테스트 (14개)
-- `clients` — BaseHttpClient, ApiResponse 테스트 (2개)
+- `common` — 예외 4종, Enum 6종, SlackBlockBuilder, DateTimeUtil 테스트 (12개 파일)
+- `clients` — BaseHttpClient, ApiResponse, ConfluenceClientRetry 테스트 (3개 파일)
 - `worker` — CalendarService, ConfigService, DedupeService, TeamMemberService, SlackNotificationService, AbsenceFacade 테스트 (6개 파일)
+- `scheduler` — DailyReportConfig, WeeklyReportConfig, ArchiveConfig, DailyAbsenceCollector, DailyCalendarTicketCollector, CalendarTicketParser, ReportRulesService, ReportArchiveService 테스트 (8개 파일)
+- `groupware` — GroupwareAbsenceFacade 테스트 (1개 파일)
 - CI: PR 생성/업데이트 시 `./gradlew build` 자동 실행 (`.github/workflows/ci-test.yml`)
 
 ```bash
