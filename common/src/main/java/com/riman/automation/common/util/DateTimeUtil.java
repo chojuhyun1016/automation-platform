@@ -12,9 +12,7 @@ import java.util.Locale;
  */
 public final class DateTimeUtil {
 
-    public static final ZoneId KST = ZoneId.of("Asia/Seoul")
-
-    // CI auto-fix 테스트용 의도적 컴파일 에러 (세미콜론 누락)
+    public static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     public static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
