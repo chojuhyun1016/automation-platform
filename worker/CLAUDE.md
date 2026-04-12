@@ -6,7 +6,7 @@ SQS 소비자. Jira-Calendar 동기화, 부재/재택/일정 처리를 담당한
 
 ```
 com.riman.automation.worker
-├── handler/    WorkerHandler (SQSEvent → Void)
+├── handler/    WorkerHandler (SQSEvent → Void), DlqAlertHandler (DLQ → Slack 알림)
 ├── facade/     AbsenceFacade, RemoteWorkFacade, ScheduleFacade, JiraIssueFacade
 ├── dto/
 │   ├── sqs/    RemoteWorkMessage, AbsenceMessage, ScheduleMessage
@@ -16,7 +16,7 @@ com.riman.automation.worker
 └── service/    CalendarService, ConfigService, DedupeService, TeamMemberService,
                 JiraCalendarMappingService, ScheduleEventMappingService,
                 SlackNotificationService, GroupwareMessageService,
-                AbsenceService, RemoteWorkService
+                MonitoringAlertService, AbsenceService, RemoteWorkService
 ```
 
 ## 메시지 디스패치

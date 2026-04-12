@@ -69,6 +69,15 @@ paths:
 | `GROUPWARE_CREDENTIALS_SECRET` | 필수 | Secrets Manager 시크릿명 |
 | `SLACK_BOT_TOKEN_SECRET_NAME` | 필수 | Slack Bot 토큰 Secrets Manager 시크릿명 |
 
+## 모니터링
+
+| 환경변수 | 모듈 | 필수 | 용도 |
+|---------|------|------|------|
+| `SENTRY_DSN` | 전체 | 선택 | Sentry 에러 모니터링 DSN (미설정 시 비활성) |
+| `SENTRY_ENVIRONMENT` | 전체 | 선택 | Sentry 환경 태그 (기본: production) |
+| `SENTRY_RELEASE` | 전체 | 선택 | Sentry 릴리스 태그 (기본: automation-platform@1.0.0) |
+| `MONITORING_SLACK_CHANNEL` | worker (DLQ) | 필수* | DLQ 알림 / 쿼타 경고 대상 Slack 채널 ID (*DlqAlertHandler에서 필수) |
+
 ## 규칙
 
 - 선택적 환경변수 미설정 시: 로그 남기고 해당 기능 비활성화 (예외 throw 금지)

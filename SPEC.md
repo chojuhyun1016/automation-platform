@@ -161,16 +161,16 @@ ConfluenceClient 3단계 검색의 인덱싱 지연 대응을 강화하고, 중�
 
 ---
 
-## Phase N4: 모니터링 & 알림 강화
+## Phase N4: 모니터링 & 알림 강화 (#10)
 
-- [ ] Phase N4 시작
+- [x] Phase N4 완료
 
 ### 수정/개선
 
-- [ ] Lambda 에러 → Sentry 연동
-- [ ] SQS DLQ 메시지 → Slack 알림
-- [ ] Calendar API 쿼타 초과 → 경고 DM
-- [ ] groupware-bot 실패 → S3 스크린샷 + Slack DM (현재 구현) 검증
+- [x] Lambda 에러 → Sentry 연동
+- [x] SQS DLQ 메시지 → Slack 알림
+- [x] Calendar API 쿼타 초과 → 경고 DM
+- [x] groupware-bot 실패 → S3 스크린샷 + Slack DM (현재 구현) 검증
 
 ---
 
@@ -255,7 +255,7 @@ Phase 작업을 시작하려면:
 | N2 | #3 | feat | `source scripts/create-worktree.sh feat 3 worker-ingest-mock-test` |
 | N2.5 | #5 | chore | `source scripts/create-worktree.sh chore 5 tdd-process-setup` |
 | N3 | #7 | fix | `source scripts/create-worktree.sh fix 7 confluence-hierarchy-stabilize` |
-| N4 | 미생성 | feat | 독립 실행 가능 |
+| N4 | #10 | feat | `source scripts/create-worktree.sh feat 10 monitoring-alert` |
 | N5 | 미생성 | feat | 독립 실행 가능 |
 | N6 | 미생성 | feat | N2 완료 후 실행 |
 | N7 | 미생성 | chore | N1 완료 후 실행 |
