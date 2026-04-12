@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 일일 보고서 설정
@@ -95,6 +96,68 @@ public class DailyReportConfig {
      * 주요 페이지 링크
      */
     private List<PageLink> links;
+
+    /**
+     * 보고서 기본 섹션 목록.
+     *
+     * <p>member_overrides 에 해당 팀원의 sections 가 없으면 이 목록을 사용한다.
+     * null 이면 모든 섹션 포함 (기존 동작과 동일).
+     *
+     * <p>유효 값: announcements, absences, tickets, overdue_tickets,
+     * team_tickets, today_schedules, links
+     */
+    @JsonProperty("default_sections")
+    private List<String> defaultSections;
+
+    /**
+     * 팀원별 보고서 커스터마이징 설정 맵.
+     * key: 팀원 한글 이름 (team-members.json 의 name 필드와 일치)
+     *
+     * <p>미설정(null) 시 모든 팀원이 default_sections 사용.
+     */
+    @JsonProperty("member_overrides")
+    private Map<String, MemberReportPreference> memberOverrides;
+
+    /**
+     * 해당 팀원의 섹션 포함 여부를 확인한다.
+     *
+     * <p>우선순위: member_overrides[name].sections → default_sections → 전체 포함
+     *
+     * @param memberName 팀원 한글 이름
+     * @param sectionName 섹션 이름
+     * @return 섹션 포함 여부
+     */
+    public boolean isSectionEnabled(String memberName, String sectionName) {
+        if (memberOverrides != null && memberName != null) {
+            MemberReportPreference pref = memberOverrides.get(memberName);
+            if (pref != null && pref.getSections() != null) {
+                return pref.getSections().contains(sectionName);
+            }
+        }
+        if (defaultSections != null) {
+            return defaultSections.contains(sectionName);
+        }
+        return true;
+    }
+
+    /**
+     * 해당 팀원의 Jira 프로젝트 키 목록을 반환한다.
+     *
+     * <p>우선순위: member_overrides[name].jira_project_keys → dailyReport.jira_project_keys
+     *
+     * @param memberName 팀원 한글 이름
+     * @return Jira 프로젝트 키 목록
+     */
+    public List<String> getEffectiveJiraProjectKeys(String memberName) {
+        if (memberOverrides != null && memberName != null) {
+            MemberReportPreference pref = memberOverrides.get(memberName);
+            if (pref != null && pref.getJiraProjectKeys() != null
+                    && !pref.getJiraProjectKeys().isEmpty()) {
+                return pref.getJiraProjectKeys();
+            }
+        }
+        return jiraProjectKeys;
+    }
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)

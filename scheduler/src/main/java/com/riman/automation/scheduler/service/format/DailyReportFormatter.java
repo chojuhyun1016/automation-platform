@@ -88,6 +88,7 @@ public class DailyReportFormatter {
 
     public String format(String channelId, DailyReportData data, DailyReportConfig config) {
         LocalDate baseDate = data.getBaseDate();
+        String memberName = data.getMemberName();
         ReportWeekCode weekCode = ReportWeekCode.from(baseDate);
 
         SlackBlockBuilder builder = SlackBlockBuilder
@@ -98,36 +99,50 @@ public class DailyReportFormatter {
         builder.header("📊 일일 팀 보고서  |  " + DateTimeUtil.formatDisplay(baseDate)
                 + "   " + weekCode.getDisplayName());
 
-        appendAnnouncements(builder, data.getAnnouncements());
-        appendLinks(builder, config.getLinks());
+        if (config.isSectionEnabled(memberName, "announcements")) {
+            appendAnnouncements(builder, data.getAnnouncements());
+        }
+        if (config.isSectionEnabled(memberName, "links")) {
+            appendLinks(builder, config.getLinks());
+        }
 
-        builder.divider();
-        builder.section(buildAbsenceText(data.getAbsences(), baseDate));
+        if (config.isSectionEnabled(memberName, "absences")) {
+            builder.divider();
+            builder.section(buildAbsenceText(data.getAbsences(), baseDate));
+        }
 
-        builder.divider();
-        appendTicketSection(builder, data.getTickets(), baseDate);
+        if (config.isSectionEnabled(memberName, "tickets")) {
+            builder.divider();
+            appendTicketSection(builder, data.getTickets(), baseDate);
+        }
 
-        // Manager 전용: 팀원 티켓 현황 — 티켓 현황 바로 아래
-        if (data.getTeamTickets() != null && !data.getTeamTickets().isEmpty()) {
+        // Manager 전용: 팀원 티켓 현황
+        if (config.isSectionEnabled(memberName, "team_tickets")
+                && data.getTeamTickets() != null && !data.getTeamTickets().isEmpty()) {
             builder.divider();
             appendTeamTicketSection(builder, data.getTeamTickets(), baseDate);
         }
 
-        builder.divider();
-        appendOverdueTicketSection(builder, data.getTickets(), baseDate);
+        if (config.isSectionEnabled(memberName, "overdue_tickets")) {
+            builder.divider();
+            appendOverdueTicketSection(builder, data.getTickets(), baseDate);
+        }
 
-        // Manager 전용: 팀원 미완료 티켓 현황 — 미완료 티켓 현황 바로 아래
-        if (data.getTeamTickets() != null && !data.getTeamTickets().isEmpty()) {
+        // Manager 전용: 팀원 미완료 티켓 현황
+        if (config.isSectionEnabled(memberName, "team_tickets")
+                && data.getTeamTickets() != null && !data.getTeamTickets().isEmpty()) {
             builder.divider();
             appendTeamOverdueSection(builder, data.getTeamTickets(), baseDate);
         }
 
-        // [추가] 오늘 일정 — 팀원 미완료 티켓 현황 다음
-        appendTodayScheduleSection(builder, data.getTodaySchedules());
+        if (config.isSectionEnabled(memberName, "today_schedules")) {
+            appendTodayScheduleSection(builder, data.getTodaySchedules());
+        }
 
         builder.context("_발송: " + DateTimeUtil.formatDateTime(DateTimeUtil.nowKst()) + " KST_");
 
-        log.info("[DailyReportFormatter] 포맷 완료: channel={}, date={}", channelId, baseDate);
+        log.info("[DailyReportFormatter] 포맷 완료: channel={}, member={}, date={}",
+                channelId, memberName, baseDate);
         return builder.build();
     }
 

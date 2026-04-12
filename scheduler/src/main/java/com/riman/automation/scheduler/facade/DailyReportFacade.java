@@ -16,6 +16,7 @@ import com.riman.automation.scheduler.service.load.TeamMemberService;
 import com.riman.automation.scheduler.service.collect.DailyAbsenceCollector;
 import com.riman.automation.scheduler.service.report.DailyReportService;
 import com.riman.automation.scheduler.service.format.DailyReportFormatter;
+import com.riman.automation.scheduler.service.ReportArchiveService;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -75,9 +76,11 @@ public class DailyReportFacade {
     private final DailyReportFormatter formatter;
     private final DailyReportService aiRefiner;
     private final SlackClient slackClient;
+    private final ReportArchiveService archiveService;
 
     /**
      * scheduleCollector 가 null 이면 오늘 일정 섹션 미출력 (기존 동작과 동일).
+     * archiveService 가 null 이면 아카이빙 미수행.
      */
     public DailyReportFacade(
             S3Client s3Client, String configBucket, String configKey,
@@ -87,7 +90,8 @@ public class DailyReportFacade {
             DailyScheduleCollector scheduleCollector,
             DailyReportFormatter formatter,
             DailyReportService aiRefiner,
-            SlackClient slackClient) {
+            SlackClient slackClient,
+            ReportArchiveService archiveService) {
 
         this.s3Client = s3Client;
         this.configBucket = configBucket;
@@ -99,6 +103,7 @@ public class DailyReportFacade {
         this.formatter = formatter;
         this.aiRefiner = aiRefiner;
         this.slackClient = slackClient;
+        this.archiveService = archiveService;
     }
 
     // =========================================================================
@@ -197,6 +202,7 @@ public class DailyReportFacade {
         List<AnnouncementItem> activeAnnouncements = loadAnnouncements(config, today);
 
         DailyReportData data = DailyReportData.builder()
+                .memberName(member.getName())
                 .baseDate(today)
                 .period(ReportPeriodCode.DAILY)
                 .announcements(activeAnnouncements)
@@ -218,6 +224,16 @@ public class DailyReportFacade {
         String ts = slackClient.postMessage(payload);
         log.info("[DailyReportFacade] DM 전송 완료: member={}, ts={}, tickets={}건, schedules={}건",
                 member.getName(), ts, memberTickets.size(), todaySchedules.size());
+
+        // 아카이빙
+        if (archiveService != null) {
+            try {
+                archiveService.archiveDaily(today, member.getName(), payload);
+            } catch (Exception e) {
+                log.warn("[DailyReportFacade] daily 아카이빙 실패 (무시): member={}, err={}",
+                        member.getName(), e.getMessage());
+            }
+        }
     }
 
     private Map<String, List<ScheduleItem>> collectTodaySchedules(
