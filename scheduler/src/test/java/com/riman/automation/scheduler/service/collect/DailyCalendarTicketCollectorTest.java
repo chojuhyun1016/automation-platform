@@ -127,12 +127,13 @@ class DailyCalendarTicketCollectorTest {
         }
 
         @Test
-        @DisplayName("due date 순 → priority 순 정렬")
-        void sorting() {
+        @DisplayName("1차 정렬: due date 가까운 순")
+        void sortByDueDate() {
             TeamMember member = createMember("조주현");
 
-            Event nearEvent = createEvent("evt-1", "🟢 [Jira] CCE-100 (조주현)", "2026-04-13");
-            Event farEvent = createEvent("evt-2", "🔴 [Jira] CCE-200 (조주현)", "2026-04-15");
+            // 동일 priority(MEDIUM), due date만 다름
+            Event nearEvent = createEvent("evt-1", "[Jira] CCE-100 (조주현)", "2026-04-13");
+            Event farEvent = createEvent("evt-2", "[Jira] CCE-200 (조주현)", "2026-04-15");
 
             when(calendarClient.listEvents(eq(CALENDAR_ID), anyString(), anyString(), eq("조주현")))
                     .thenReturn(List.of(farEvent, nearEvent));
@@ -140,8 +141,27 @@ class DailyCalendarTicketCollectorTest {
             List<TicketItem> result = collector.collectForMember(CALENDAR_ID, member, LocalDate.of(2026, 4, 13));
 
             assertThat(result).hasSize(2);
-            assertThat(result.get(0).getIssueKey()).isEqualTo("CCE-100"); // due 4/13 (가까움)
-            assertThat(result.get(1).getIssueKey()).isEqualTo("CCE-200"); // due 4/15 (먼)
+            assertThat(result.get(0).getIssueKey()).isEqualTo("CCE-100"); // due 4/13
+            assertThat(result.get(1).getIssueKey()).isEqualTo("CCE-200"); // due 4/15
+        }
+
+        @Test
+        @DisplayName("2차 정렬: 동일 due date에서 priority 높은 순")
+        void sortByPriorityWhenSameDueDate() {
+            TeamMember member = createMember("조주현");
+
+            // 동일 due date, priority만 다름: LOW(🟢) vs HIGHEST(🔴)
+            Event lowPriority = createEvent("evt-1", "🟢 [Jira] CCE-100 (조주현)", "2026-04-13");
+            Event highPriority = createEvent("evt-2", "🔴 [Jira] CCE-200 (조주현)", "2026-04-13");
+
+            when(calendarClient.listEvents(eq(CALENDAR_ID), anyString(), anyString(), eq("조주현")))
+                    .thenReturn(List.of(lowPriority, highPriority));
+
+            List<TicketItem> result = collector.collectForMember(CALENDAR_ID, member, LocalDate.of(2026, 4, 13));
+
+            assertThat(result).hasSize(2);
+            assertThat(result.get(0).getPriority()).isEqualTo(JiraPriorityCode.HIGHEST); // CCE-200
+            assertThat(result.get(1).getPriority()).isEqualTo(JiraPriorityCode.LOW);     // CCE-100
         }
     }
 
