@@ -188,7 +188,7 @@ ConfluenceClient 3단계 검색의 인덱싱 지연 대응을 강화하고, 중�
 
 ## Phase N6: scheduler/groupware 테스트 확장
 
-- [ ] Phase N6 시작
+- [x] Phase N6 완료
 
 ### 전제조건
 
@@ -200,18 +200,18 @@ N2에서 커버하지 못한 scheduler, groupware 모듈의 유닛 테스트를 
 
 ### 수정/개선
 
-- [ ] scheduler/build.gradle — testImplementation 추가 (JUnit 5, Mockito)
-- [ ] CalendarTicketParser — 이슈키 추출, 담당자 파싱, 상태 감지 테스트
-- [ ] DailyCalendarTicketCollector — 수집 로직 Mock 테스트
-- [ ] DailyAbsenceCollector — 2개 캘린더 병합 + 중복 제거 테스트
-- [ ] ReportRulesService — S3 규칙 파일 로드 + 캐시 테스트
-- [ ] groupware/build.gradle — testImplementation 추가
-- [ ] GroupwareAbsenceFacade — apply/cancel 분기, 결재자 resolve 테스트
+- [x] scheduler/build.gradle — testImplementation 불필요 (root build.gradle 공통 제공)
+- [x] CalendarTicketParser — 이슈키 추출, 담당자 파싱, 상태 감지 테스트
+- [x] DailyCalendarTicketCollector — 수집 로직 Mock 테스트
+- [x] DailyAbsenceCollector — 2개 캘린더 병합 + 중복 제거 테스트
+- [x] ReportRulesService — S3 규칙 파일 로드 + 캐시 테스트
+- [x] groupware/build.gradle — testImplementation 불필요 (root build.gradle 공통 제공)
+- [x] GroupwareAbsenceFacade — apply/cancel 분기, 결재자 resolve 테스트
 
 ### 검증
 
-- [ ] `./gradlew :scheduler:test` 통과
-- [ ] `./gradlew :groupware:test` 통과
+- [x] `./gradlew :scheduler:test` 통과
+- [x] `./gradlew :groupware:test` 통과
 
 ---
 
@@ -258,7 +258,7 @@ Phase 작업을 시작하려면:
 | N3 | #7 | fix | `source scripts/create-worktree.sh fix 7 confluence-hierarchy-stabilize` |
 | N4 | #10 | feat | `source scripts/create-worktree.sh feat 10 monitoring-alert` |
 | N5 | #11 | feat | `source scripts/create-worktree.sh feat 11 report-customization` |
-| N6 | 미생성 | feat | N2 완료 후 실행 |
+| N6 | #14 | feat | `source scripts/create-worktree.sh feat 14 scheduler-groupware-test` |
 | N7 | #15 | chore | `source scripts/create-worktree.sh chore 15 ci-test-enhancement` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.

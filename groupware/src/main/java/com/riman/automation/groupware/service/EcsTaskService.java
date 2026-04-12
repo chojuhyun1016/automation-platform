@@ -29,7 +29,18 @@ import java.util.stream.Collectors;
 @Slf4j
 public class EcsTaskService {
 
-    private static final EcsClient ECS = EcsClient.builder().build();
+    private static volatile EcsClient ecsClient;
+
+    private static EcsClient ecs() {
+        if (ecsClient == null) {
+            synchronized (EcsTaskService.class) {
+                if (ecsClient == null) {
+                    ecsClient = EcsClient.builder().build();
+                }
+            }
+        }
+        return ecsClient;
+    }
 
     /**
      * 컨테이너 이름 — Task Definition containerDefinitions[0].name 과 일치해야 함
@@ -83,7 +94,7 @@ public class EcsTaskService {
                         .build())
                 .build();
 
-        RunTaskResponse response = ECS.runTask(request);
+        RunTaskResponse response = ecs().runTask(request);
 
         if (!response.failures().isEmpty()) {
             Failure f = response.failures().get(0);
