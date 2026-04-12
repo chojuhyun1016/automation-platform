@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -q 'groupware-bot/.*\\.py$'; then python3 -m py_compile \"$CLAUDE_FILE_PATH\" 2>&1; elif MODULE=$(echo \"$CLAUDE_FILE_PATH\" | grep -oE '(common|clients|ingest|worker|scheduler|groupware)' | head -1) && [ -n \"$MODULE\" ]; then ./gradlew :$MODULE:compileJava --no-daemon -q 2>&1 | tail -5; fi"
+            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -q 'groupware-bot/.*\\.py$'; then python3 -m py_compile \"$CLAUDE_FILE_PATH\" 2>&1; elif MODULE=$(echo \"$CLAUDE_FILE_PATH\" | grep -oE '(common|clients|ingest|worker|scheduler|groupware)' | head -1) && [ -n \"$MODULE\" ]; then ./gradlew :$MODULE:test --no-daemon -q 2>&1 | tail -5; fi"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '❌ 컴파일 실패 — ./gradlew :모듈:compileJava --info 로 상세 확인'"
+            "command": "echo '❌ 컴파일/테스트 실패 — ./gradlew :모듈:test --info 로 상세 확인'"
           }
         ]
       }
@@ -65,6 +65,11 @@
     "Stop": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "./gradlew test --no-daemon -q 2>&1 | tail -10",
+            "timeout": 120
+          },
           {
             "type": "command",
             "command": "./gradlew build --no-daemon -q 2>&1 | tail -10",

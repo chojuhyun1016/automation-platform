@@ -117,9 +117,9 @@ common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito
 - [x] `./gradlew :worker:test` 통과 (67 tests)
 - [x] `./gradlew :ingest:test` 통과
 
-## Phase N2.5: TDD 프로세스 정착
+## Phase N2.5: TDD 프로세스 정착 (#5)
 
-- [ ] Phase N2.5 시작
+- [x] Phase N2.5 완료
 
 ### 전제조건
 
@@ -131,9 +131,9 @@ common, clients 모듈부터 유닛 테스트를 도입한다. JUnit 5 + Mockito
 
 ### 수정/개선
 
-- [ ] resolve-issue.md 7단계(구현)에 "테스트 먼저 작성" 지시 추가
-- [ ] PostToolUse Hook에 `./gradlew :모듈:test` 자동 실행 추가 (컴파일 + 테스트)
-- [ ] Stop Hook에 전체 테스트 실행 추가 (`./gradlew test`)
+- [x] resolve-issue.md 7단계(구현)에 "테스트 먼저 작성" 지시 추가 (TDD 적용 기준 이미 반영됨)
+- [x] PostToolUse Hook에 `./gradlew :모듈:test` 자동 실행 추가 (컴파일 + 테스트)
+- [x] Stop Hook에 전체 테스트 실행 추가 (`./gradlew test`)
 
 ### 검증
 
@@ -253,7 +253,7 @@ Phase 작업을 시작하려면:
 |-------|------|------|-----------|
 | N1 | #1 | feat | `source scripts/create-worktree.sh feat 1 unit-test-setup` |
 | N2 | #3 | feat | `source scripts/create-worktree.sh feat 3 worker-ingest-mock-test` |
-| N2.5 | 미생성 | chore | N2 완료 후 실행 |
+| N2.5 | #5 | chore | `source scripts/create-worktree.sh chore 5 tdd-process-setup` |
 | N3 | 미생성 | fix | 독립 실행 가능 |
 | N4 | 미생성 | feat | 독립 실행 가능 |
 | N5 | 미생성 | feat | 독립 실행 가능 |
