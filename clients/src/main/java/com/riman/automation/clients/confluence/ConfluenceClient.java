@@ -278,6 +278,34 @@ public class ConfluenceClient extends BaseHttpClient {
 
             log.info("[ConfluenceClient] findPageByTitleAndParent: 중복 중 선택 title={}, id={}, hasChild={}",
                     title, best, bestHasChild);
+
+            // 자식 없는 중복 페이지 자동 삭제
+            for (String candidateId : candidates) {
+                if (!candidateId.equals(best)) {
+                    // 자식 유무 재확인 (best 선택 루프에서 이미 확인했으나, 안전하게 재확인)
+                    boolean hasChild = false;
+                    try {
+                        String cql = "parent=" + candidateId;
+                        String cqlEncoded = URLEncoder.encode(cql, StandardCharsets.UTF_8);
+                        String cqlUrl = wikiBase + "/rest/api/content/search?cql=" + cqlEncoded + "&limit=1";
+                        ApiResponse cqlResp = get(cqlUrl, defaultHeaders());
+                        requireSuccess(cqlResp, "duplicateCheck-cqlChild");
+                        JsonNode cqlResults = parse(cqlResp.getBody()).path("results");
+                        hasChild = cqlResults.isArray() && !cqlResults.isEmpty();
+                    } catch (Exception ignored) {
+                        // CQL 실패 시 삭제하지 않음 (안전 우선)
+                        hasChild = true;
+                    }
+
+                    if (!hasChild) {
+                        log.info("[ConfluenceClient] 자식 없는 중복 페이지 삭제: title={}, id={}", title, candidateId);
+                        deletePage(candidateId);
+                    } else {
+                        log.warn("[ConfluenceClient] 자식 있는 중복 페이지 보존: title={}, id={}", title, candidateId);
+                    }
+                }
+            }
+
             return best;
 
         } catch (Exception e) {
@@ -474,6 +502,42 @@ public class ConfluenceClient extends BaseHttpClient {
             return existing;
         }
         return createPage(parentPageId, title, storageHtml);
+    }
+
+    // =========================================================================
+    // 페이지 삭제
+    // =========================================================================
+
+    /**
+     * 페이지 삭제 (DELETE /rest/api/content/{id}).
+     *
+     * <p>중복 페이지 정리용. 삭제 실패 시 warn 로그만 남기고 예외를 전파하지 않는다.
+     *
+     * @param pageId 삭제할 페이지 ID
+     * @return 삭제 성공 여부
+     */
+    public boolean deletePage(String pageId) {
+        String urlStr = wikiBase + "/rest/api/content/" + pageId;
+        try {
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("DELETE");
+            conn.setConnectTimeout(5_000);
+            conn.setReadTimeout(10_000);
+            conn.setRequestProperty("Authorization", token.toBasicHeader());
+            conn.setRequestProperty("Accept", "application/json");
+
+            int status = conn.getResponseCode();
+            if (status >= 200 && status < 300) {
+                log.info("[ConfluenceClient] 페이지 삭제 완료: id={}", pageId);
+                return true;
+            }
+            log.warn("[ConfluenceClient] 페이지 삭제 실패: id={}, status={}", pageId, status);
+            return false;
+        } catch (Exception e) {
+            log.warn("[ConfluenceClient] 페이지 삭제 실패: id={}, err={}", pageId, e.getMessage());
+            return false;
+        }
     }
 
     // =========================================================================
