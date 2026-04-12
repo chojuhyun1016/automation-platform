@@ -54,6 +54,19 @@ public class GroupwareAbsenceFacade {
                 configBucket, groupwareConfigKey);
     }
 
+    /** 테스트용 생성자 — 의존성 주입 */
+    GroupwareAbsenceFacade(EcsTaskService ecsTaskService, SlackClient slackClient,
+                           S3Client s3Client, String configBucket, String groupwareConfigKey,
+                           String credentialsSecretName, String slackTokenSecretName) {
+        this.ecsTaskService = ecsTaskService;
+        this.slackClient = slackClient;
+        this.s3Client = s3Client;
+        this.configBucket = configBucket;
+        this.groupwareConfigKey = groupwareConfigKey;
+        this.credentialsSecretName = credentialsSecretName;
+        this.slackTokenSecretName = slackTokenSecretName;
+    }
+
     public void handle(GroupwareAbsenceMessage msg) {
         // cancel은 그룹웨어 자동 취소 불가 → Slack 수동 처리 안내
         if (!msg.isApply()) {
