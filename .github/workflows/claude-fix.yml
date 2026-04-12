@@ -50,43 +50,30 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Capture build error
-        id: error
         run: ./gradlew build --no-daemon 2>&1 | tail -80 > build-error.txt || true
 
-      - name: Post error and trigger Claude
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const error = fs.readFileSync('build-error.txt', 'utf8');
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ steps.pr.outputs.number }},
-              body: `## CI Build Failed\n\`\`\`\n${error}\n\`\`\`\n\n빌드 에러를 분석하고 수정해주세요.`
-            });
-
-      - uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          trigger_phrase: ""
-          show_full_output: true
-          prompt: |
-            CI 빌드가 실패했습니다. build-error.txt 파일을 읽고 에러를 분석한 후 코드를 수정해주세요.
-            수정 후 ./gradlew build --no-daemon 으로 빌드가 통과하는지 확인해주세요.
-
-      - name: Commit and push fix
+      - name: Setup git for push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
-          git add -A
-          if ! git diff --staged --quiet; then
-            git commit -m "fix: CI 빌드 에러 자동 수정 (Claude)"
-            git push
-          fi
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          trigger_phrase: ""
+          prompt: |
+            CI 빌드가 실패했습니다. build-error.txt 파일을 읽고 에러를 분석해주세요.
+
+            중요: 코드를 수정한 후 반드시 다음 순서로 실행해주세요:
+            1. 코드 수정 (Edit 도구 사용)
+            2. ./gradlew build --no-daemon 으로 빌드 통과 확인
+            3. Bash 도구로 다음 명령 실행:
+               git add -A
+               git diff --staged --quiet || git commit -m "fix: CI 빌드 에러 자동 수정 (Claude)"
+               git push
 
   # PR 코멘트에서 수동 @claude 트리거
   manual-fix:
