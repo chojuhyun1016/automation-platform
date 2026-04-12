@@ -1,6 +1,7 @@
 package com.riman.automation.clients.calendar;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.Calendar;
@@ -126,8 +127,7 @@ public class GoogleCalendarClient {
         } catch (ExternalApiException | ExternalApiClientException e) {
             throw e;
         } catch (Exception e) {
-            throw new ExternalApiClientException("GoogleCalendar",
-                    "listEvents 실패: calendarId=" + calendarId, e);
+            throw classifyException("listEvents", "calendarId=" + calendarId, e);
         }
     }
 
@@ -151,8 +151,7 @@ public class GoogleCalendarClient {
         } catch (ExternalApiException | ExternalApiClientException e) {
             throw e;
         } catch (Exception e) {
-            throw new ExternalApiClientException("GoogleCalendar",
-                    "insertEvent 실패: calendarId=" + calendarId, e);
+            throw classifyException("insertEvent", "calendarId=" + calendarId, e);
         }
     }
 
@@ -178,8 +177,7 @@ public class GoogleCalendarClient {
         } catch (ExternalApiException | ExternalApiClientException e) {
             throw e;
         } catch (Exception e) {
-            throw new ExternalApiClientException("GoogleCalendar",
-                    "updateEvent 실패: eventId=" + eventId, e);
+            throw classifyException("updateEvent", "eventId=" + eventId, e);
         }
     }
 
@@ -200,8 +198,31 @@ public class GoogleCalendarClient {
         } catch (ExternalApiException | ExternalApiClientException e) {
             throw e;
         } catch (Exception e) {
-            throw new ExternalApiClientException("GoogleCalendar",
-                    "deleteEvent 실패: eventId=" + eventId, e);
+            throw classifyException("deleteEvent", "eventId=" + eventId, e);
         }
+    }
+
+    // =========================================================================
+    // 내부 헬퍼
+    // =========================================================================
+
+    /**
+     * Google SDK 예외를 프로젝트 예외로 변환한다.
+     *
+     * <p>HttpResponseException(4xx/5xx)은 statusCode를 보존하여 {@link ExternalApiException}으로,
+     * 그 외는 {@link ExternalApiClientException}으로 변환한다.
+     * 특히 429(Rate Limit)는 상위 계층에서 쿼타 초과 알림을 트리거할 수 있도록 statusCode를 유지한다.
+     */
+    private static RuntimeException classifyException(String operation, String context, Exception e) {
+        if (e instanceof HttpResponseException httpEx) {
+            int statusCode = httpEx.getStatusCode();
+            String detail = operation + " HTTP " + statusCode + ": " + context;
+            if (statusCode == 429) {
+                log.warn("[GoogleCalendarClient] Calendar API 쿼타 초과 (429): {}", context);
+            }
+            return new ExternalApiException("GoogleCalendar", statusCode, detail);
+        }
+        return new ExternalApiClientException("GoogleCalendar",
+                operation + " 실패: " + context, e);
     }
 }
