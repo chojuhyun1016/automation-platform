@@ -68,9 +68,11 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           trigger_phrase: ""
+          show_full_output: true
           prompt: |
             CI 빌드가 실패했습니다. build-error.txt 파일을 읽고 에러를 분석한 후 코드를 수정해주세요.
             수정 후 ./gradlew build --no-daemon 으로 빌드가 통과하는지 확인해주세요.
+            수정사항은 반드시 git add와 git commit으로 커밋하고 git push로 푸시해주세요.
 
   # PR 코멘트에서 수동 @claude 트리거
   manual-fix:
