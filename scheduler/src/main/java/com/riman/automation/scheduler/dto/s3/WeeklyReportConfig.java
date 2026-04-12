@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 주간(실적) 보고 설정 DTO
  *
@@ -94,4 +96,20 @@ public class WeeklyReportConfig {
      */
     @JsonProperty("error_notify_slack_user_id")
     private String errorNotifySlackUserId;
+
+    /**
+     * 프로젝트 그룹별 보고서 분리 설정.
+     *
+     * <p>설정 시 그룹별로 별도 Confluence 페이지를 생성한다.
+     * 미설정(null/빈 배열) 시 기존 동작 유지 (전체 카테고리 하나의 페이지).
+     */
+    @JsonProperty("project_groups")
+    private List<ProjectGroup> projectGroups;
+
+    /**
+     * 프로젝트 그룹 분리 활성화 여부.
+     */
+    public boolean isGroupSeparationEnabled() {
+        return projectGroups != null && !projectGroups.isEmpty();
+    }
 }

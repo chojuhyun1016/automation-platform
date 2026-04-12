@@ -6,8 +6,11 @@ import com.riman.automation.clients.slack.SlackClient;
 import com.riman.automation.common.exception.ConfigException;
 import com.riman.automation.common.slack.SlackBlockBuilder;
 import com.riman.automation.scheduler.dto.report.WeeklyReportData;
+import com.riman.automation.scheduler.dto.report.WeeklyReportData.WeeklyTicketItem;
+import com.riman.automation.scheduler.dto.s3.ProjectGroup;
 import com.riman.automation.scheduler.dto.s3.TeamMember;
 import com.riman.automation.scheduler.dto.s3.WeeklyReportConfig;
+import com.riman.automation.scheduler.service.ReportArchiveService;
 import com.riman.automation.scheduler.service.collect.WeeklyCalendarTicketCollector;
 import com.riman.automation.scheduler.service.collect.WeeklyCalendarTicketCollector.CollectResult;
 import com.riman.automation.scheduler.service.load.TeamMemberService;
@@ -22,7 +25,10 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAdjusters;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 주간(실적) 보고 오케스트레이터
@@ -64,6 +70,7 @@ public class WeeklyReportFacade {
     private final WeeklyReportFormatter formatter;
     private final WeeklyReportService weeklyReportService;
     private final SlackClient slackClient;
+    private final ReportArchiveService archiveService;
 
     public WeeklyReportFacade(
             S3Client s3Client,
@@ -73,7 +80,8 @@ public class WeeklyReportFacade {
             WeeklyCalendarTicketCollector ticketCollector,
             WeeklyReportFormatter formatter,
             WeeklyReportService weeklyReportService,
-            SlackClient slackClient) {
+            SlackClient slackClient,
+            ReportArchiveService archiveService) {
         this.s3Client = s3Client;
         this.configBucket = configBucket;
         this.configKey = configKey;
@@ -82,6 +90,7 @@ public class WeeklyReportFacade {
         this.formatter = formatter;
         this.weeklyReportService = weeklyReportService;
         this.slackClient = slackClient;
+        this.archiveService = archiveService;
     }
 
     // =========================================================================
@@ -132,10 +141,20 @@ public class WeeklyReportFacade {
         data.setInProgressByCategory(collected.getInProgressByCategory());
         data.setIssuesByCategory(collected.getIssuesByCategory());
 
-        // ── 5) HTML 생성 ─────────────────────────────────────────────────────
-        String pageHtml = formatter.format(data);
+        // ── 5) 프로젝트 그룹 분리 또는 통합 ────────────────────────────────
+        if (config.isGroupSeparationEnabled()) {
+            publishByProjectGroups(data, config);
+        } else {
+            publishUnified(data, config);
+        }
+    }
 
-        // ── 6) Confluence 페이지 생성/업데이트 ──────────────────────────────
+    // =========================================================================
+    // 통합 보고서 (기존 동작)
+    // =========================================================================
+
+    private void publishUnified(WeeklyReportData data, WeeklyReportConfig config) {
+        String pageHtml = formatter.format(data);
         try {
             String pageId = weeklyReportService.publishWeeklyPage(
                     data, pageHtml,
@@ -145,16 +164,95 @@ public class WeeklyReportFacade {
             String pageUrl = weeklyReportService.buildPageUrl(pageId);
             log.info("[WeeklyReportFacade] 주간보고 완료: url={}", pageUrl);
 
-            // 7) 엑셀 생성 + 페이지 첨부
             String pageTitle = weeklyReportService.buildWeeklyTitle(data, config.getTeamName());
             weeklyReportService.attachExcel(pageId, pageTitle, data);
 
-            // TODO: 8) Slack DM 발송  weeklyReportService.notifySlack(pageUrl, ...)
+            // 아카이빙
+            if (archiveService != null) {
+                try {
+                    archiveService.archiveWeekly(data.getWeekStart(), pageHtml);
+                } catch (Exception e) {
+                    log.warn("[WeeklyReportFacade] weekly 아카이빙 실패 (무시): {}", e.getMessage());
+                }
+            }
         } catch (Exception e) {
             String weeklyTitle = weeklyReportService.buildWeeklyTitle(data, config.getTeamName());
             notifyConfluenceError("주간보고", weeklyTitle, e, config.getErrorNotifySlackUserId());
             throw e;
         }
+    }
+
+    // =========================================================================
+    // 프로젝트 그룹별 분리 보고서
+    // =========================================================================
+
+    private void publishByProjectGroups(WeeklyReportData data, WeeklyReportConfig config) {
+        for (ProjectGroup group : config.getProjectGroups()) {
+            try {
+                WeeklyReportData groupData = filterDataByCategories(data, group.getEffectiveCategories());
+
+                String pageHtml = formatter.format(groupData);
+                String groupTeamName = config.getTeamName() + " - " + group.getName();
+
+                String pageId = weeklyReportService.publishWeeklyPage(
+                        groupData, pageHtml,
+                        config.getConfluenceParentPageId(),
+                        groupTeamName);
+
+                String pageUrl = weeklyReportService.buildPageUrl(pageId);
+                log.info("[WeeklyReportFacade] 주간보고 그룹 완료: group={}, url={}",
+                        group.getName(), pageUrl);
+
+                String pageTitle = weeklyReportService.buildWeeklyTitle(groupData, groupTeamName);
+                weeklyReportService.attachExcel(pageId, pageTitle, groupData);
+
+                // 아카이빙
+                if (archiveService != null) {
+                    try {
+                        String safeName = group.getName().replace("/", "_");
+                        archiveService.archiveWeeklyGroup(data.getWeekStart(), safeName, pageHtml);
+                    } catch (Exception e) {
+                        log.warn("[WeeklyReportFacade] weekly group 아카이빙 실패 (무시): group={}, err={}",
+                                group.getName(), e.getMessage());
+                    }
+                }
+            } catch (Exception e) {
+                String title = weeklyReportService.buildWeeklyTitle(data,
+                        config.getTeamName() + " - " + group.getName());
+                notifyConfluenceError("주간보고(" + group.getName() + ")", title,
+                        e, config.getErrorNotifySlackUserId());
+                log.error("[WeeklyReportFacade] 주간보고 그룹 실패: group={}", group.getName(), e);
+            }
+        }
+    }
+
+    /**
+     * 전체 데이터에서 특정 카테고리만 필터링한 새 WeeklyReportData를 생성한다.
+     */
+    private WeeklyReportData filterDataByCategories(WeeklyReportData data, List<String> categories) {
+        return WeeklyReportData.builder()
+                .baseDate(data.getBaseDate())
+                .weekStart(data.getWeekStart())
+                .weekEnd(data.getWeekEnd())
+                .weekNumber(data.getWeekNumber())
+                .year(data.getYear())
+                .quarter(data.getQuarter())
+                .quarterStart(data.getQuarterStart())
+                .quarterEnd(data.getQuarterEnd())
+                .doneByCategory(filterMap(data.getDoneByCategory(), categories))
+                .inProgressByCategory(filterMap(data.getInProgressByCategory(), categories))
+                .issuesByCategory(filterMap(data.getIssuesByCategory(), categories))
+                .build();
+    }
+
+    private static Map<String, List<WeeklyTicketItem>> filterMap(
+            Map<String, List<WeeklyTicketItem>> source, List<String> categories) {
+        if (source == null) return Map.of();
+        return source.entrySet().stream()
+                .filter(e -> categories.contains(e.getKey()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, Map.Entry::getValue,
+                        (a, b) -> a, LinkedHashMap::new));
     }
 
     // =========================================================================

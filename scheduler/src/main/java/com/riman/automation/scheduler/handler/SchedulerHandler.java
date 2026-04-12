@@ -25,12 +25,14 @@ import com.riman.automation.scheduler.service.load.ReportRulesService;
 import com.riman.automation.scheduler.service.load.TeamMemberService;
 import com.riman.automation.scheduler.service.format.DailyReportFormatter;
 import com.riman.automation.scheduler.service.report.DailyReportService;
+import com.riman.automation.scheduler.service.ReportArchiveService;
 import com.riman.automation.scheduler.service.excel.MonthlyExcelGenerator;
 import com.riman.automation.scheduler.service.format.MonthlyReportFormatter;
 import com.riman.automation.scheduler.service.report.MonthlyReportService;
 import com.riman.automation.scheduler.service.excel.WeeklyExcelGenerator;
 import com.riman.automation.scheduler.service.format.WeeklyReportFormatter;
 import com.riman.automation.scheduler.service.report.WeeklyReportService;
+import com.riman.automation.scheduler.dto.s3.ArchiveConfig;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -173,13 +175,16 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
         // 오늘 일정 수집: SCHEDULE_MAPPING_TABLE 설정 시 활성화
         DailyScheduleCollector scheduleCollector = buildScheduleCollector(calendarClient);
 
+        // 보고서 아카이빙: scheduler-config.json archive 섹션 기반
+        ReportArchiveService archiveService = buildArchiveService(s3, configBucket, schedulerConfigKey);
+
         dailyOrchestrator = new DailyReportFacade(
                 s3, configBucket, schedulerConfigKey,
                 teamMemberService,
                 ticketCollector, absenceCollector,
                 scheduleCollector,
                 formatter, aiRefiner,
-                slackClient);
+                slackClient, archiveService);
 
         // ── 주간 보고 오케스트레이터 ─────────────────────────────────────────
         // CONFLUENCE_BASE_URL / CONFLUENCE_SPACE_KEY 미설정 시 null
@@ -189,14 +194,14 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
         weeklyOrchestrator = buildWeeklyOrchestrator(
                 s3, configBucket, schedulerConfigKey,
                 calendarClient, jiraClient, jiraBaseUrl,
-                teamMemberService, sharedConfluenceClient, slackClient);
+                teamMemberService, sharedConfluenceClient, slackClient, archiveService);
 
         // ── 월간 보고 오케스트레이터 ─────────────────────────────────────────
         // CONFLUENCE_BASE_URL / CONFLUENCE_SPACE_KEY 미설정 시 null
         monthlyOrchestrator = buildMonthlyOrchestrator(
                 s3, configBucket, schedulerConfigKey,
                 calendarClient, jiraClient, jiraBaseUrl,
-                teamMemberService, sharedConfluenceClient, slackClient);
+                teamMemberService, sharedConfluenceClient, slackClient, archiveService);
 
         SentryInitializer.init("scheduler");
         log.info("[SchedulerHandler] 초기화 완료 (AI={}, schedule={}, weekly={}, monthly={}, configKey={})",
@@ -467,7 +472,8 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
             JiraClient jiraClient, String jiraBaseUrl,
             TeamMemberService teamMemberService,
             ConfluenceClient confluenceClient,
-            SlackClient slackClient) {
+            SlackClient slackClient,
+            ReportArchiveService archiveService) {
 
         if (confluenceClient == null) {
             log.info("[SchedulerHandler] CONFLUENCE 미설정 → 주간보고 비활성");
@@ -485,7 +491,7 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
         return new WeeklyReportFacade(
                 s3, configBucket, schedulerConfigKey,
                 teamMemberService, weeklyTicketCollector,
-                weeklyFormatter, weeklyReportService, slackClient);
+                weeklyFormatter, weeklyReportService, slackClient, archiveService);
     }
 
     /**
@@ -507,7 +513,8 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
             JiraClient jiraClient, String jiraBaseUrl,
             TeamMemberService teamMemberService,
             ConfluenceClient confluenceClient,
-            SlackClient slackClient) {
+            SlackClient slackClient,
+            ReportArchiveService archiveService) {
 
         if (confluenceClient == null) {
             log.info("[SchedulerHandler] CONFLUENCE 미설정 → 월간보고 비활성");
@@ -525,12 +532,44 @@ public class SchedulerHandler implements RequestHandler<Map<String, Object>, Str
         return new MonthlyReportFacade(
                 s3, configBucket, schedulerConfigKey,
                 teamMemberService, monthlyTicketCollector,
-                monthlyFormatter, monthlyReportService, slackClient);
+                monthlyFormatter, monthlyReportService, slackClient, archiveService);
     }
 
     // =========================================================================
     // 환경변수 유틸
     // =========================================================================
+
+    /**
+     * 보고서 아카이빙 서비스 빌드.
+     * scheduler-config.json 의 archive 섹션이 enabled=true 일 때만 활성화.
+     * 설정 로드 실패 시 null 반환 (아카이빙 비활성).
+     */
+    private static ReportArchiveService buildArchiveService(
+            S3Client s3, String configBucket, String schedulerConfigKey) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+            byte[] bytes = s3.getObject(
+                    GetObjectRequest.builder().bucket(configBucket).key(schedulerConfigKey).build()
+            ).readAllBytes();
+            com.fasterxml.jackson.databind.JsonNode root = om.readTree(
+                    new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+            com.fasterxml.jackson.databind.JsonNode archiveNode = root.path("archive");
+            if (archiveNode.isMissingNode() || archiveNode.isNull()) {
+                log.info("[SchedulerHandler] archive 설정 없음 → 아카이빙 비활성");
+                return null;
+            }
+            ArchiveConfig archiveConfig = om.treeToValue(archiveNode, ArchiveConfig.class);
+            if (!archiveConfig.isEnabled()) {
+                log.info("[SchedulerHandler] archive.enabled=false → 아카이빙 비활성");
+                return null;
+            }
+            log.info("[SchedulerHandler] ReportArchiveService 초기화: prefix={}", archiveConfig.getPrefix());
+            return new ReportArchiveService(s3, configBucket, archiveConfig.getPrefix());
+        } catch (Exception e) {
+            log.warn("[SchedulerHandler] archive 설정 로드 실패, 아카이빙 비활성: {}", e.getMessage());
+            return null;
+        }
+    }
 
     /**
      * Confluence 클라이언트 빌드.

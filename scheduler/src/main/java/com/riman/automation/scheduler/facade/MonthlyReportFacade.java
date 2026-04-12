@@ -6,8 +6,11 @@ import com.riman.automation.clients.slack.SlackClient;
 import com.riman.automation.common.exception.ConfigException;
 import com.riman.automation.common.slack.SlackBlockBuilder;
 import com.riman.automation.scheduler.dto.report.MonthlyReportData;
+import com.riman.automation.scheduler.dto.report.MonthlyReportData.MonthlyTicketItem;
 import com.riman.automation.scheduler.dto.s3.MonthlyReportConfig;
+import com.riman.automation.scheduler.dto.s3.ProjectGroup;
 import com.riman.automation.scheduler.dto.s3.TeamMember;
+import com.riman.automation.scheduler.service.ReportArchiveService;
 import com.riman.automation.scheduler.service.collect.MonthlyCalendarTicketCollector;
 import com.riman.automation.scheduler.service.collect.MonthlyCalendarTicketCollector.CollectResult;
 import com.riman.automation.scheduler.service.load.TeamMemberService;
@@ -20,7 +23,10 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 월간(실적) 보고 오케스트레이터
@@ -72,6 +78,7 @@ public class MonthlyReportFacade {
     private final MonthlyReportFormatter formatter;
     private final MonthlyReportService monthlyReportService;
     private final SlackClient slackClient;
+    private final ReportArchiveService archiveService;
 
     public MonthlyReportFacade(
             S3Client s3Client,
@@ -81,7 +88,8 @@ public class MonthlyReportFacade {
             MonthlyCalendarTicketCollector ticketCollector,
             MonthlyReportFormatter formatter,
             MonthlyReportService monthlyReportService,
-            SlackClient slackClient) {
+            SlackClient slackClient,
+            ReportArchiveService archiveService) {
         this.s3Client = s3Client;
         this.configBucket = configBucket;
         this.configKey = configKey;
@@ -90,6 +98,7 @@ public class MonthlyReportFacade {
         this.formatter = formatter;
         this.monthlyReportService = monthlyReportService;
         this.slackClient = slackClient;
+        this.archiveService = archiveService;
     }
 
     // =========================================================================
@@ -142,10 +151,20 @@ public class MonthlyReportFacade {
         data.setInProgressByCategory(collected.getInProgressByCategory());
         data.setIssuesByCategory(collected.getIssuesByCategory());
 
-        // ── 5) HTML 생성 ─────────────────────────────────────────────────────
-        String pageHtml = formatter.format(data);
+        // ── 5) 프로젝트 그룹 분리 또는 통합 ────────────────────────────────
+        if (config.isGroupSeparationEnabled()) {
+            publishByProjectGroups(data, config);
+        } else {
+            publishUnified(data, config);
+        }
+    }
 
-        // ── 6) Confluence 페이지 생성/업데이트 ──────────────────────────────
+    // =========================================================================
+    // 통합 보고서 (기존 동작)
+    // =========================================================================
+
+    private void publishUnified(MonthlyReportData data, MonthlyReportConfig config) {
+        String pageHtml = formatter.format(data);
         try {
             String pageId = monthlyReportService.publishMonthlyPage(
                     data, pageHtml,
@@ -155,16 +174,94 @@ public class MonthlyReportFacade {
             String pageUrl = monthlyReportService.buildPageUrl(pageId);
             log.info("[MonthlyReportFacade] 월간보고 완료: url={}", pageUrl);
 
-            // ── 7) 엑셀 생성 + 페이지 첨부 ──────────────────────────────────────
             String pageTitle = monthlyReportService.buildMonthlyTitle(data, config.getTeamName());
             monthlyReportService.attachExcel(pageId, pageTitle, data);
 
-            // TODO: 8) Slack DM 발송
+            // 아카이빙
+            if (archiveService != null) {
+                try {
+                    String yearMonth = String.format("%d-%02d", data.getYear(), data.getMonth());
+                    archiveService.archiveMonthly(yearMonth, pageHtml);
+                } catch (Exception e) {
+                    log.warn("[MonthlyReportFacade] monthly 아카이빙 실패 (무시): {}", e.getMessage());
+                }
+            }
         } catch (Exception e) {
             String monthlyTitle = monthlyReportService.buildMonthlyTitle(data, config.getTeamName());
             notifyConfluenceError("월간보고", monthlyTitle, e, config.getErrorNotifySlackUserId());
             throw e;
         }
+    }
+
+    // =========================================================================
+    // 프로젝트 그룹별 분리 보고서
+    // =========================================================================
+
+    private void publishByProjectGroups(MonthlyReportData data, MonthlyReportConfig config) {
+        for (ProjectGroup group : config.getProjectGroups()) {
+            try {
+                MonthlyReportData groupData = filterDataByCategories(data, group.getEffectiveCategories());
+
+                String pageHtml = formatter.format(groupData);
+                String groupTeamName = config.getTeamName() + " - " + group.getName();
+
+                String pageId = monthlyReportService.publishMonthlyPage(
+                        groupData, pageHtml,
+                        config.getConfluenceParentPageId(),
+                        groupTeamName);
+
+                String pageUrl = monthlyReportService.buildPageUrl(pageId);
+                log.info("[MonthlyReportFacade] 월간보고 그룹 완료: group={}, url={}",
+                        group.getName(), pageUrl);
+
+                String pageTitle = monthlyReportService.buildMonthlyTitle(groupData, groupTeamName);
+                monthlyReportService.attachExcel(pageId, pageTitle, groupData);
+
+                // 아카이빙
+                if (archiveService != null) {
+                    try {
+                        String yearMonth = String.format("%d-%02d", data.getYear(), data.getMonth());
+                        String safeName = group.getName().replace("/", "_");
+                        archiveService.archiveMonthlyGroup(yearMonth, safeName, pageHtml);
+                    } catch (Exception e) {
+                        log.warn("[MonthlyReportFacade] monthly group 아카이빙 실패 (무시): group={}, err={}",
+                                group.getName(), e.getMessage());
+                    }
+                }
+            } catch (Exception e) {
+                String title = monthlyReportService.buildMonthlyTitle(data,
+                        config.getTeamName() + " - " + group.getName());
+                notifyConfluenceError("월간보고(" + group.getName() + ")", title,
+                        e, config.getErrorNotifySlackUserId());
+                log.error("[MonthlyReportFacade] 월간보고 그룹 실패: group={}", group.getName(), e);
+            }
+        }
+    }
+
+    private MonthlyReportData filterDataByCategories(MonthlyReportData data, List<String> categories) {
+        return MonthlyReportData.builder()
+                .baseDate(data.getBaseDate())
+                .monthStart(data.getMonthStart())
+                .monthEnd(data.getMonthEnd())
+                .year(data.getYear())
+                .month(data.getMonth())
+                .quarter(data.getQuarter())
+                .quarterStart(data.getQuarterStart())
+                .quarterEnd(data.getQuarterEnd())
+                .doneByCategory(filterMap(data.getDoneByCategory(), categories))
+                .inProgressByCategory(filterMap(data.getInProgressByCategory(), categories))
+                .issuesByCategory(filterMap(data.getIssuesByCategory(), categories))
+                .build();
+    }
+
+    private static Map<String, List<MonthlyTicketItem>> filterMap(
+            Map<String, List<MonthlyTicketItem>> source, List<String> categories) {
+        if (source == null) return Map.of();
+        return source.entrySet().stream()
+                .filter(e -> categories.contains(e.getKey()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, Map.Entry::getValue,
+                        (a, b) -> a, LinkedHashMap::new));
     }
 
     // =========================================================================

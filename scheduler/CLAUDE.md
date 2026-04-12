@@ -10,7 +10,9 @@ com.riman.automation.scheduler
 ├── facade/       DailyReportFacade, WeeklyReportFacade, MonthlyReportFacade
 ├── dto/
 │   ├── report/   TicketItem, AbsenceItem, ScheduleItem
-│   └── s3/       SchedulerConfig, ProjectConfig, TeamMember, ReportTarget
+│   └── s3/       DailyReportConfig, WeeklyReportConfig, MonthlyReportConfig,
+│                 TeamMember, AnnouncementItem, MemberReportPreference,
+│                 ProjectGroup, ArchiveConfig
 ├── service/
 │   ├── collect/  DailyCalendarTicketCollector, DailyJiraTicketCollector,
 │   │             DailyAbsenceCollector, DailyScheduleCollector,
@@ -19,6 +21,7 @@ com.riman.automation.scheduler
 │   ├── report/   DailyReportService, WeeklyReportService, MonthlyReportService
 │   ├── excel/    WeeklyExcelGenerator, MonthlyExcelGenerator
 │   ├── load/     ReportRulesService, TeamMemberService
+│   ├── ReportArchiveService (보고서 S3 아카이빙)
 │   ├── util/     CalendarTicketParser
 │   └── tool/     CalendarStartDateFixer (1회용)
 ```

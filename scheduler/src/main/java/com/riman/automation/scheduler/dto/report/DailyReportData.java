@@ -24,6 +24,12 @@ import java.util.LinkedHashMap;
 public class DailyReportData {
 
     /**
+     * 보고서 대상 팀원 이름 — 섹션 필터링에 사용.
+     * DailyReportConfig.isSectionEnabled(memberName, section) 으로 확인.
+     */
+    private String memberName;
+
+    /**
      * 보고서 기준일 (KST 오늘)
      */
     private LocalDate baseDate;

@@ -174,15 +174,15 @@ ConfluenceClient 3단계 검색의 인덱싱 지연 대응을 강화하고, 중�
 
 ---
 
-## Phase N5: 보고서 커스터마이징
+## Phase N5: 보고서 커스터마이징 (#11)
 
-- [ ] Phase N5 시작
+- [x] Phase N5 완료
 
 ### 수정/개선
 
-- [ ] 팀원별 보고서 포맷 커스터마이징 (scheduler-config.json)
-- [ ] 프로젝트별 보고서 분리 (현재 전체 통합)
-- [ ] 보고서 히스토리 아카이빙 (S3)
+- [x] 팀원별 보고서 포맷 커스터마이징 (scheduler-config.json)
+- [x] 프로젝트별 보고서 분리 (현재 전체 통합)
+- [x] 보고서 히스토리 아카이빙 (S3)
 
 ---
 
@@ -256,7 +256,7 @@ Phase 작업을 시작하려면:
 | N2.5 | #5 | chore | `source scripts/create-worktree.sh chore 5 tdd-process-setup` |
 | N3 | #7 | fix | `source scripts/create-worktree.sh fix 7 confluence-hierarchy-stabilize` |
 | N4 | #10 | feat | `source scripts/create-worktree.sh feat 10 monitoring-alert` |
-| N5 | 미생성 | feat | 독립 실행 가능 |
+| N5 | #11 | feat | `source scripts/create-worktree.sh feat 11 report-customization` |
 | N6 | 미생성 | feat | N2 완료 후 실행 |
 | N7 | 미생성 | chore | N1 완료 후 실행 |
 
