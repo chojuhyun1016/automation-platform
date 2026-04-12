@@ -6,6 +6,7 @@ import com.google.api.services.calendar.model.EventDateTime;
 import com.riman.automation.clients.calendar.GoogleCalendarClient;
 import com.riman.automation.common.exception.ConfigException;
 import com.riman.automation.common.exception.ExternalApiClientException;
+import com.riman.automation.common.exception.ExternalApiException;
 import com.riman.automation.worker.dto.jira.JiraWebhookEvent;
 import com.riman.automation.worker.dto.s3.TeamMember;
 import com.riman.automation.worker.service.ConfigService.ProjectRouting;
@@ -136,6 +137,13 @@ public class CalendarService {
                 default:
                     log.debug("캘린더 처리 불필요: {}", webhookEvent);
             }
+        } catch (ExternalApiException e) {
+            if (e.getStatusCode() == 429) {
+                MonitoringAlertService.getInstance()
+                        .alertCalendarQuotaExceeded("processJiraEvent",
+                                "issueKey=" + jiraEvent.getIssue().getKey());
+            }
+            throw e;
         } catch (ExternalApiClientException e) {
             throw e;
         } catch (Exception e) {

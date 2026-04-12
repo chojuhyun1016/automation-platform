@@ -16,7 +16,7 @@ com.riman.automation.common
 │                  ExternalApiClientException
 ├── model/         GroupwareAccountInfo
 ├── slack/         SlackBlockBuilder
-└── util/          DateTimeUtil
+└── util/          DateTimeUtil, SentryInitializer
 ```
 
 ## 예외 계층

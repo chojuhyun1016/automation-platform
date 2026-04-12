@@ -7,6 +7,7 @@ import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.riman.automation.common.util.SentryInitializer;
 import com.riman.automation.worker.facade.AbsenceFacade;
 import com.riman.automation.worker.facade.JiraIssueFacade;
 import com.riman.automation.worker.facade.RemoteWorkFacade;
@@ -42,6 +43,10 @@ public class WorkerHandler implements RequestHandler<SQSEvent, Void> {
 
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule());
+
+    static {
+        SentryInitializer.init("worker");
+    }
 
     private final JiraIssueFacade jiraFacade;
     private final RemoteWorkFacade remoteWorkFacade;
@@ -80,6 +85,8 @@ public class WorkerHandler implements RequestHandler<SQSEvent, Void> {
                 successIds.add(message.getMessageId());
             } catch (Exception e) {
                 log.error("메시지 처리 실패: messageId={}", message.getMessageId(), e);
+                SentryInitializer.captureException(e, "dispatch");
+                SentryInitializer.flush();
                 failedIds.add(message.getMessageId());
                 throw new RuntimeException("Message processing failed: " + message.getMessageId(), e);
             }

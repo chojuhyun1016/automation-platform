@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent.SQSMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.riman.automation.common.util.SentryInitializer;
 import com.riman.automation.groupware.dto.GroupwareAbsenceMessage;
 import com.riman.automation.groupware.facade.GroupwareAbsenceFacade;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,10 @@ public class GroupwareHandler implements RequestHandler<SQSEvent, Void> {
 
     private static final GroupwareAbsenceFacade FACADE = new GroupwareAbsenceFacade();
 
+    static {
+        SentryInitializer.init("groupware");
+    }
+
     @Override
     public Void handleRequest(SQSEvent event, Context context) {
         List<String> successIds = new ArrayList<>();
@@ -47,6 +52,8 @@ public class GroupwareHandler implements RequestHandler<SQSEvent, Void> {
                 successIds.add(msg.getMessageId());
             } catch (Exception e) {
                 log.error("[GroupwareHandler] 처리 실패: messageId={}", msg.getMessageId(), e);
+                SentryInitializer.captureException(e, "handleGroupwareAbsence");
+                SentryInitializer.flush();
                 failedIds.add(msg.getMessageId());
                 // SQS 재시도 트리거를 위해 RuntimeException으로 던짐
                 throw new RuntimeException("Groupware processing failed: " + msg.getMessageId(), e);

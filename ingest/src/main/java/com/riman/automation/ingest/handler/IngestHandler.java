@@ -3,6 +3,7 @@ package com.riman.automation.ingest.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.riman.automation.common.util.SentryInitializer;
 import com.riman.automation.ingest.facade.JiraWebhookFacade;
 import com.riman.automation.ingest.facade.SlackFacade;
 import com.riman.automation.ingest.util.HttpResponse;
@@ -39,6 +40,10 @@ public class IngestHandler
     private static final JiraWebhookFacade jiraFacade = new JiraWebhookFacade();
     private static final SlackFacade slackFacade = new SlackFacade();
 
+    static {
+        SentryInitializer.init("ingest");
+    }
+
     public IngestHandler() {
         log.info("IngestHandler initialized");
     }
@@ -64,22 +69,29 @@ public class IngestHandler
         log.info("Request: path={}, bodyLength={}, requestId={}",
                 path, body.length(), context.getAwsRequestId());
 
-        // warmup 처리 — EventBridge Scheduler 직접 호출 및 API Gateway /warmup 모두 처리
-        if (path == null || "/warmup".equals(path)) {
-            log.info("Warmup 요청 수신 — Lambda warm 상태 유지 (path={})", path);
-            return HttpResponse.ok("warm");
-        }
+        try {
+            // warmup 처리 — EventBridge Scheduler 직접 호출 및 API Gateway /warmup 모두 처리
+            if (path == null || "/warmup".equals(path)) {
+                log.info("Warmup 요청 수신 — Lambda warm 상태 유지 (path={})", path);
+                return HttpResponse.ok("warm");
+            }
 
-        if (path.startsWith(SLACK_PATH_PREFIX)) {
-            return slackFacade.handle(headers, body, path);
-        }
+            if (path.startsWith(SLACK_PATH_PREFIX)) {
+                return slackFacade.handle(headers, body, path);
+            }
 
-        if (JIRA_PATH.equals(path)) {
-            return jiraFacade.handle(body, context.getAwsRequestId());
-        }
+            if (JIRA_PATH.equals(path)) {
+                return jiraFacade.handle(body, context.getAwsRequestId());
+            }
 
-        log.warn("등록되지 않은 경로 요청: path={}, requestId={}",
-                path, context.getAwsRequestId());
-        return HttpResponse.notFound(path);
+            log.warn("등록되지 않은 경로 요청: path={}, requestId={}",
+                    path, context.getAwsRequestId());
+            return HttpResponse.notFound(path);
+        } catch (Exception e) {
+            log.error("예상치 못한 오류: path={}, requestId={}", path, context.getAwsRequestId(), e);
+            SentryInitializer.captureException(e, "handleRequest");
+            SentryInitializer.flush();
+            return HttpResponse.ok("error");
+        }
     }
 }

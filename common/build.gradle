@@ -17,6 +17,9 @@ dependencies {
     // SLF4J API
     implementation 'org.slf4j:slf4j-api:2.0.9'
 
+    // Sentry — 에러 모니터링 (SENTRY_DSN 환경변수 미설정 시 비활성)
+    implementation 'io.sentry:sentry:7.14.0'
+
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
