@@ -7,6 +7,7 @@ import com.riman.automation.clients.http.ApiResponse;
 import com.riman.automation.clients.http.BaseHttpClient;
 import com.riman.automation.common.auth.TokenProvider;
 import com.riman.automation.common.exception.ExternalApiClientException;
+import com.riman.automation.common.exception.ExternalApiException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.OutputStream;
@@ -16,6 +17,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Confluence REST API v1 클라이언트
@@ -314,10 +316,12 @@ public class ConfluenceClient extends BaseHttpClient {
      * 페이지 현재 버전 번호 조회.
      */
     public int getPageVersion(String pageId) {
-        String url = wikiBase + "/rest/api/content/" + pageId + "?expand=version";
-        ApiResponse response = get(url, defaultHeaders());
-        requireSuccess(response, "getPageVersion");
-        return parse(response.getBody()).path("version").path("number").asInt(1);
+        return executeWithRetry("getPageVersion(" + pageId + ")", () -> {
+            String url = wikiBase + "/rest/api/content/" + pageId + "?expand=version";
+            ApiResponse response = get(url, defaultHeaders());
+            requireSuccess(response, "getPageVersion");
+            return parse(response.getBody()).path("version").path("number").asInt(1);
+        });
     }
 
     // =========================================================================
@@ -333,23 +337,25 @@ public class ConfluenceClient extends BaseHttpClient {
      * @return 생성된 pageId
      */
     public String createPage(String parentPageId, String title, String storageHtml) {
-        ObjectNode body = OM.createObjectNode();
-        body.put("type", "page");
-        body.put("title", title);
-        body.putObject("space").put("key", spaceKey);
-        body.putObject("body").putObject("storage")
-                .put("value", storageHtml)
-                .put("representation", "storage");
-        if (parentPageId != null) {
-            body.putArray("ancestors").addObject().put("id", parentPageId);
-        }
+        return executeWithRetry("createPage(" + title + ")", () -> {
+            ObjectNode body = OM.createObjectNode();
+            body.put("type", "page");
+            body.put("title", title);
+            body.putObject("space").put("key", spaceKey);
+            body.putObject("body").putObject("storage")
+                    .put("value", storageHtml)
+                    .put("representation", "storage");
+            if (parentPageId != null) {
+                body.putArray("ancestors").addObject().put("id", parentPageId);
+            }
 
-        String url = wikiBase + "/rest/api/content";
-        ApiResponse response = post(url, defaultHeaders(), toJson(body));
-        requireSuccess(response, "createPage");
-        String pageId = parse(response.getBody()).path("id").asText();
-        log.info("[ConfluenceClient] 페이지 생성: title={}, id={}", title, pageId);
-        return pageId;
+            String url = wikiBase + "/rest/api/content";
+            ApiResponse response = post(url, defaultHeaders(), toJson(body));
+            requireSuccess(response, "createPage");
+            String pageId = parse(response.getBody()).path("id").asText();
+            log.info("[ConfluenceClient] 페이지 생성: title={}, id={}", title, pageId);
+            return pageId;
+        });
     }
 
     // =========================================================================
@@ -377,51 +383,58 @@ public class ConfluenceClient extends BaseHttpClient {
      * @param parentPageId 이동할 부모 페이지 ID. null 이면 위치 변경 없이 내용만 업데이트.
      */
     public void updatePage(String pageId, String title, String storageHtml, int newVersion, String parentPageId) {
-        ObjectNode body = OM.createObjectNode();
-        body.put("type", "page");
-        body.put("title", title);
-        body.putObject("version").put("number", newVersion);
-        body.putObject("body").putObject("storage")
-                .put("value", storageHtml)
-                .put("representation", "storage");
-        // ancestors 포함 시 Confluence가 페이지를 해당 parent 아래로 이동
-        if (parentPageId != null) {
-            body.putArray("ancestors").addObject().put("id", parentPageId);
-        }
-
-        String urlStr = wikiBase + "/rest/api/content/" + pageId;
-        String jsonBody = toJson(body);
-
-        try {
-            URL url = new URL(urlStr);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("PUT");
-            conn.setDoOutput(true);
-            conn.setConnectTimeout(5_000);
-            conn.setReadTimeout(15_000);
-            conn.setRequestProperty("Authorization", token.toBasicHeader());
-            conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(jsonBody.getBytes(StandardCharsets.UTF_8));
+        executeWithRetry("updatePage(" + pageId + ")", () -> {
+            ObjectNode body = OM.createObjectNode();
+            body.put("type", "page");
+            body.put("title", title);
+            body.putObject("version").put("number", newVersion);
+            body.putObject("body").putObject("storage")
+                    .put("value", storageHtml)
+                    .put("representation", "storage");
+            if (parentPageId != null) {
+                body.putArray("ancestors").addObject().put("id", parentPageId);
             }
 
-            int status = conn.getResponseCode();
-            if (status < 200 || status >= 300) {
-                String errBody = conn.getErrorStream() != null
-                        ? new String(conn.getErrorStream().readAllBytes(), StandardCharsets.UTF_8)
-                        : "(no error body)";
-                throw new ExternalApiClientException(apiName,
-                        "PUT 실패: status=" + status + ", url=" + urlStr
-                                + ", body=" + errBody.substring(0, Math.min(300, errBody.length())));
+            String urlStr = wikiBase + "/rest/api/content/" + pageId;
+            String jsonBody = toJson(body);
+
+            try {
+                URL url = new URL(urlStr);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("PUT");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(5_000);
+                conn.setReadTimeout(15_000);
+                conn.setRequestProperty("Authorization", token.toBasicHeader());
+                conn.setRequestProperty("Accept", "application/json");
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(jsonBody.getBytes(StandardCharsets.UTF_8));
+                }
+
+                int status = conn.getResponseCode();
+                if (status < 200 || status >= 300) {
+                    String errBody = conn.getErrorStream() != null
+                            ? new String(conn.getErrorStream().readAllBytes(), StandardCharsets.UTF_8)
+                            : "(no error body)";
+                    // 4xx vs 5xx 구분 — 재시도 가능 여부에 영향
+                    if (status >= 500 || status == 429) {
+                        throw new ExternalApiException(apiName, status,
+                                "PUT 실패: url=" + urlStr
+                                        + ", body=" + errBody.substring(0, Math.min(300, errBody.length())));
+                    }
+                    throw new ExternalApiClientException(apiName,
+                            "PUT 실패: status=" + status + ", url=" + urlStr
+                                    + ", body=" + errBody.substring(0, Math.min(300, errBody.length())));
+                }
+                log.info("[ConfluenceClient] 페이지 업데이트: id={}, version={}", pageId, newVersion);
+            } catch (ExternalApiClientException | ExternalApiException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new ExternalApiClientException(apiName, "PUT 실패: " + urlStr, e);
             }
-            log.info("[ConfluenceClient] 페이지 업데이트: id={}, version={}", pageId, newVersion);
-        } catch (ExternalApiClientException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ExternalApiClientException(apiName, "PUT 실패: " + urlStr, e);
-        }
+        });
     }
 
     /**
@@ -479,30 +492,30 @@ public class ConfluenceClient extends BaseHttpClient {
      * @param content  파일 바이트 배열
      */
     public void attachFile(String pageId, String fileName, byte[] content) {
-        try {
-            // 1. 기존 첨부파일 ID 조회
-            String existingAttachmentId = findAttachmentId(pageId, fileName);
+        executeWithRetry("attachFile(" + pageId + ", " + fileName + ")", () -> {
+            try {
+                String existingAttachmentId = findAttachmentId(pageId, fileName);
 
-            // 2. 있으면 update, 없으면 create
-            String urlStr;
-            if (existingAttachmentId != null) {
-                urlStr = wikiBase + "/rest/api/content/" + pageId
-                        + "/child/attachment/" + existingAttachmentId + "/data";
-                log.info("[ConfluenceClient] 기존 첨부파일 덮어쓰기: pageId={}, attachmentId={}, file={}",
-                        pageId, existingAttachmentId, fileName);
-            } else {
-                urlStr = wikiBase + "/rest/api/content/" + pageId + "/child/attachment";
-                log.info("[ConfluenceClient] 신규 첨부파일 생성: pageId={}, file={}", pageId, fileName);
+                String urlStr;
+                if (existingAttachmentId != null) {
+                    urlStr = wikiBase + "/rest/api/content/" + pageId
+                            + "/child/attachment/" + existingAttachmentId + "/data";
+                    log.info("[ConfluenceClient] 기존 첨부파일 덮어쓰기: pageId={}, attachmentId={}, file={}",
+                            pageId, existingAttachmentId, fileName);
+                } else {
+                    urlStr = wikiBase + "/rest/api/content/" + pageId + "/child/attachment";
+                    log.info("[ConfluenceClient] 신규 첨부파일 생성: pageId={}, file={}", pageId, fileName);
+                }
+
+                doMultipartUpload(urlStr, pageId, fileName, content);
+
+            } catch (ExternalApiClientException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new ExternalApiClientException(apiName,
+                        "첨부 실패: pageId=" + pageId + ", file=" + fileName, e);
             }
-
-            doMultipartUpload(urlStr, pageId, fileName, content);
-
-        } catch (ExternalApiClientException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ExternalApiClientException(apiName,
-                    "첨부 실패: pageId=" + pageId + ", file=" + fileName, e);
-        }
+        });
     }
 
     /**
@@ -626,6 +639,79 @@ public class ConfluenceClient extends BaseHttpClient {
 
     public String getSpaceKey() {
         return spaceKey;
+    }
+
+    // =========================================================================
+    // Retry + 지수 백오프
+    // =========================================================================
+
+    private static final int MAX_RETRIES = 3;
+    private static final long INITIAL_DELAY_MS = 500;
+    private static final long MAX_DELAY_MS = 4_000;
+
+    /**
+     * 재시도 가능 여부 판정.
+     *
+     * <p>재시도 대상:
+     * <ul>
+     *   <li>{@link ExternalApiClientException} — 연결 실패, 타임아웃</li>
+     *   <li>{@link ExternalApiException} — HTTP 429 (Rate Limit) 또는 5xx</li>
+     * </ul>
+     * <p>4xx (429 제외)는 클라이언트 오류이므로 재시도하지 않는다.
+     */
+    private static boolean isRetryable(RuntimeException e) {
+        if (e instanceof ExternalApiClientException) {
+            return true;
+        }
+        if (e instanceof ExternalApiException api) {
+            int status = api.getStatusCode();
+            return status == 429 || status >= 500;
+        }
+        return false;
+    }
+
+    /**
+     * 지수 백오프 재시도 래퍼.
+     *
+     * @param operation 작업 이름 (로그용)
+     * @param action    실행할 작업
+     * @param <T>       반환 타입
+     * @return 작업 결과
+     */
+    <T> T executeWithRetry(String operation, Supplier<T> action) {
+        RuntimeException lastException = null;
+        long delay = INITIAL_DELAY_MS;
+
+        for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                return action.get();
+            } catch (RuntimeException e) {
+                lastException = e;
+                if (attempt >= MAX_RETRIES || !isRetryable(e)) {
+                    throw e;
+                }
+                log.warn("[ConfluenceClient] {} 실패 (시도 {}/{}), {}ms 후 재시도: {}",
+                        operation, attempt + 1, MAX_RETRIES + 1, delay, e.getMessage());
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw lastException;
+                }
+                delay = Math.min(delay * 2, MAX_DELAY_MS);
+            }
+        }
+        throw lastException;
+    }
+
+    /**
+     * void 반환 작업용 재시도 래퍼.
+     */
+    void executeWithRetry(String operation, Runnable action) {
+        executeWithRetry(operation, () -> {
+            action.run();
+            return null;
+        });
     }
 
     // =========================================================================
