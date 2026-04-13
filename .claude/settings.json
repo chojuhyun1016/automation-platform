@@ -9,6 +9,33 @@
             "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -q 'groupware-bot/.*\\.py$'; then python3 -m py_compile \"$CLAUDE_FILE_PATH\" 2>&1; elif MODULE=$(echo \"$CLAUDE_FILE_PATH\" | grep -oE '(common|clients|ingest|worker|scheduler|groupware)' | head -1) && [ -n \"$MODULE\" ]; then ./gradlew :$MODULE:test --no-daemon -q 2>&1 | tail -5; fi"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -qE '(Kms|Secret|Credential|Encryption|SlackSignature|EcsTaskService)[A-Za-z]*\\.java$|google-credentials'; then echo '[SECURITY] 보안 민감 파일 편집 감지 - security-reviewer 에이전트 실행 권장 (KMS/자격증명/HMAC)'; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -qE '(handler/[^/]+\\.java|facade/[^/]+Facade\\.java)$'; then echo '[LAMBDA] Handler/Facade 편집 감지 - 체크리스트: (1) Slack 3초 제한 (2) SQS 위임 (3) static volatile 캐싱 (4) handleRequest 리턴 타이밍'; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -qE '\\.claude/rules/.*\\.md$|/CLAUDE\\.md$'; then echo '[DOCS] 규칙/문서 편집 감지 - 관련 코드 일관성 확인, 대규모 변경이면 /update-docs 권장'; fi"
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [
@@ -17,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '❌ 컴파일/테스트 실패 — ./gradlew :모듈:test --info 로 상세 확인'"
+            "command": "echo '컴파일/테스트 실패 - ./gradlew :모듈:test --info 로 상세 확인'"
           }
         ]
       }
@@ -28,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q 'git push.*main'; then echo 'BLOCKED: main 직접 푸시 금지 — PR을 통해 merge' && exit 1; fi"
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q 'git push.*main'; then echo 'BLOCKED: main 직접 푸시 금지 - PR을 통해 merge' && exit 1; fi"
           }
         ]
       },
@@ -37,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -q 'google-credentials.json'; then echo 'BLOCKED: google-credentials.json은 민감 정보 — 읽기/수정 금지' && exit 1; fi"
+            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -q 'google-credentials.json'; then echo 'BLOCKED: google-credentials.json은 민감 정보 - 읽기/수정 금지' && exit 1; fi"
           }
         ]
       }
