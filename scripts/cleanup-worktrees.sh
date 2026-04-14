@@ -24,6 +24,9 @@ fi
 # 메인 워크트리 경로 자동 감지 (어디서든 실행 가능)
 MAIN_PATH=$(git worktree list --porcelain | head -1 | sed 's/^worktree //')
 
+# 메인 워크트리로 이동 (서브 워크트리에서 실행 시 정리 후 getcwd 오류 방지)
+cd "$MAIN_PATH" || { echo "❌ 메인 워크트리로 이동 실패: $MAIN_PATH"; exit 1; }
+
 echo "🔍 워크트리 조회 중... (메인: $MAIN_PATH)"
 echo ""
 

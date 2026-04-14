@@ -243,6 +243,46 @@ PR 생성/업데이트 시 GitHub Actions에서 전체 테스트를 자동 실�
 
 ---
 
+## Phase N8: /현재티켓 월별(monthly) 조회 기능 추가 (#21)
+
+- [x] Phase N8 완료 (PR #22)
+
+### 오버뷰
+
+`/현재티켓` 커맨드에 "월별" 기간 옵션을 추가한다. 기존 daily/weekly/quarterly 패턴과 동일하게 월말일 기준으로 필터링한다.
+
+### 메타
+- **라벨**: feature
+- **우선순위**: medium
+- **병렬 가능**: 예 (독립 기능, ingest 모듈 내부 변경)
+
+### 전제조건
+- 없음
+
+### 수정/개선
+- [x] **`ingest/src/main/java/com/riman/automation/ingest/payload/CurrentTicketModalBuilder.java`** — PERIOD_OPTIONS에 `{"monthly", "월별"}` 추가
+    - [x] quarterly 앞에 monthly 삽입 (daily → weekly → monthly → quarterly 순서)
+- [x] **`ingest/src/main/java/com/riman/automation/ingest/dto/slack/CurrentTicketModalSubmit.java`** — monthly 지원
+    - [x] `isMonthly()` 편의 메서드 추가
+    - [x] 클래스 Javadoc에 `"monthly"` 옵션 추가
+- [x] **`ingest/src/main/java/com/riman/automation/ingest/facade/CurrentTicketFacade.java`** — monthly 필터/표시 로직
+    - [x] `sendTicketDm()` switch문에 `case "monthly"` 추가: `dueDate == null || dueDate <= 이번달 말일`
+    - [x] `buildPeriodTitle()` switch문에 `case "monthly"` 추가: `"📅 월별 미완료 티켓 조회"`
+    - [x] `buildPeriodDetail()` switch문에 `case "monthly"` 추가: `"기준월: *MM/01 ~ MM/말일* 이하 마감"`
+- [x] **`.claude/rules/ingest.md`** — period 필터 조건 문서에 monthly 추가
+- [x] **`CLAUDE.md`** (루트) — `/현재티켓` 설명에 monthly 추가
+
+### 검증
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 테스트 통과
+- [ ] Slack에서 `/현재티켓` → 드롭다운에 "월별" 옵션 표시 확인
+- [ ] "월별" 선택 시 이번달 말일 이하 마감 티켓만 조회되는지 확인
+
+### 리스크
+- 없음 (기존 패턴 완전 동일, 신규 의존성 없음)
+
+---
+
 ## 실행 가이드
 
 Phase 작업을 시작하려면:
@@ -260,6 +300,7 @@ Phase 작업을 시작하려면:
 | N5 | #11 | feat | `source scripts/create-worktree.sh feat 11 report-customization` |
 | N6 | #14 | feat | `source scripts/create-worktree.sh feat 14 scheduler-groupware-test` |
 | N7 | #15 | chore | `source scripts/create-worktree.sh chore 15 ci-test-enhancement` |
+| N8 | #21 | feat | `source scripts/create-worktree.sh feat 21 current-ticket-monthly` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
 > 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`

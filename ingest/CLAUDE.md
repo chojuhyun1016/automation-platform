@@ -55,6 +55,7 @@ return HttpResponse.ok("");
 ```
 
 ### Pre-warm 데몬 (CurrentTicketFacade)
+기간별 조회: daily(일별), weekly(주별), monthly(월별), quarterly(분기별).
 handleCommand()에서 데몬 스레드로 CalendarClient 초기화 → handleModalSubmit()에서 join(2500).
 
 ### Static Volatile 캐싱

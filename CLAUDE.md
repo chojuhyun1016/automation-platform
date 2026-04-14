@@ -59,7 +59,7 @@ EventBridge → scheduler Lambda → Slack DM / Confluence
 | `/재택근무` | ingest → worker | RemoteWorkFacade | 재택근무 캘린더 등록 |
 | `/계정관리` | ingest | AccountManageFacade | 그룹웨어 계정 암호화 관리 |
 | `/일정등록` | ingest → worker | ScheduleManageFacade | 일정 캘린더 CRUD + DynamoDB 매핑 |
-| `/현재티켓` | ingest | CurrentTicketFacade | 담당 Jira 티켓 현황 조회 |
+| `/현재티켓` | ingest | CurrentTicketFacade | 담당 Jira 티켓 현황 조회 (daily/weekly/monthly/quarterly) |
 
 ## 빌드/배포
 
