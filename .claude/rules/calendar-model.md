@@ -82,6 +82,7 @@ https://riman-it.atlassian.net/browse/CCE-2339
 ### 티켓 조회 (CurrentTicketFacade, Scheduler)
 - Calendar API `searchQuery`는 결과 누락 가능
 - **전체 이벤트를 fetch한 후 Java에서 필터링**할 것
+- 담당자 매칭: 이벤트 제목 끝 `(이름1, 이름2)` → `team-members.json` name 필드와 비교
 
 ## 파싱 규칙 (CalendarTicketParser)
 

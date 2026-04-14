@@ -67,6 +67,11 @@ private static volatile Map<String, String> cachedTeamMemberMap;
 ### 티켓 조회 전략
 - Google Calendar API `searchQuery`는 결과 누락 가능 → 전체 이벤트 fetch 후 Java에서 필터링할 것
 - 분기 전체를 조회 후 period(daily/weekly/quarterly)로 필터링
+- **period 필터 조건**:
+  - `daily`: `dueDate == null || dueDate <= 오늘` (기한 초과 + 마감일 미설정 포함)
+  - `weekly`: `dueDate == null || dueDate <= 이번주 일요일` (기한 초과 + 마감일 미설정 포함)
+  - `quarterly`: 추가 필터 없음 (분기 전체 미완료)
+- 담당자 매칭: 이벤트 제목 끝 `(이름)` → `team-members.json` name 필드와 비교
 
 ## WorkerMessageService (싱글톤)
 
