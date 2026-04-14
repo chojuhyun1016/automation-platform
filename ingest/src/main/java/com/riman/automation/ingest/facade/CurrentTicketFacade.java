@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
  *   <li>담당자: 요청자 본인 (Slack real_name → 캘린더 이벤트 제목의 이름 매칭)</li>
  *   <li>상태: 미완료(DONE 아님)</li>
  *   <li>분기: 현재 분기(Q1~Q4) 전체 범위</li>
- *   <li>기간 드롭다운: 일별(오늘) / 주별(이번 주 월~일) / 분기별(분기 전체)</li>
+ *   <li>기간 드롭다운: 일별(오늘) / 주별(이번 주 월~일) / 월별(이번달 1일~말일) / 분기별(분기 전체)</li>
  * </ul>
  *
  * <p><b>환경변수:</b>
@@ -124,7 +124,7 @@ public class CurrentTicketFacade {
     /**
      * /현재티켓 슬래시커맨드 처리.
      *
-     * <p>기간 선택 모달(일별/주별/분기별)을 열고 200 반환.
+     * <p>기간 선택 모달(일별/주별/월별/분기별)을 열고 200 반환.
      * Calendar 초기화 여부와 무관하게 항상 모달을 표시한다.
      */
     public APIGatewayProxyResponseEvent handleCommand(
@@ -298,8 +298,9 @@ public class CurrentTicketFacade {
 
         // ── 기간별 추가 필터링 ───────────────────────────────────────────────
         //
-        // 일별: 현재날짜 <= dueDate (오늘 이후 마감인 미완료 티켓)
-        // 주별: 이번주 마지막일(일요일) <= dueDate (이번주 일요일 이후 마감인 미완료 티켓)
+        // 일별: dueDate <= 오늘 (오늘 마감 포함, 기한 초과 + 미설정 포함)
+        // 주별: dueDate <= 이번주 일요일 (이번주 마감 포함, 기한 초과 + 미설정 포함)
+        // 월별: dueDate <= 이번달 말일 (이번달 마감 포함, 기한 초과 + 미설정 포함)
         // 분기별: 필터 없음 (미완료 전체)
         List<TicketItem> tickets;
         switch (period) {
@@ -317,6 +318,14 @@ public class CurrentTicketFacade {
                 LocalDate thisSunday = thisMonday.plusDays(6);
                 tickets = allTickets.stream()
                         .filter(t -> t.dueDate == null || !t.dueDate.isAfter(thisSunday))
+                        .collect(Collectors.toList());
+                break;
+            case "monthly":
+                // dueDate <= 이번달 말일 (이번달 마감 포함, 기한 지난 미완료 포함)
+                // 또는 dueDate 없는 티켓 포함
+                LocalDate endOfMonth = today.with(TemporalAdjusters.lastDayOfMonth());
+                tickets = allTickets.stream()
+                        .filter(t -> t.dueDate == null || !t.dueDate.isAfter(endOfMonth))
                         .collect(Collectors.toList());
                 break;
             case "quarterly":
@@ -796,7 +805,7 @@ public class CurrentTicketFacade {
     }
 
     /**
-     * 헤더용 기간 제목: "일별 미완료 티켓 조회", "주별 미완료 티켓 조회", "분기별 미완료 티켓 조회"
+     * 헤더용 기간 제목: "일별 미완료 티켓 조회", "주별 미완료 티켓 조회", "월별 미완료 티켓 조회", "분기별 미완료 티켓 조회"
      */
     private String buildPeriodTitle(String period) {
         switch (period) {
@@ -804,6 +813,8 @@ public class CurrentTicketFacade {
                 return "📅 일별 미완료 티켓 조회";
             case "weekly":
                 return "📆 주별 미완료 티켓 조회";
+            case "monthly":
+                return "📋 월별 미완료 티켓 조회";
             case "quarterly":
             default:
                 return "🗓️ 분기별 미완료 티켓 조회";
@@ -823,6 +834,10 @@ public class CurrentTicketFacade {
                 LocalDate mon = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
                 LocalDate sun = mon.plusDays(6);
                 return "기준주: *" + DateTimeUtil.formatDate(mon) + " ~ " + DateTimeUtil.formatDate(sun) + "* 이하 마감";
+            case "monthly":
+                LocalDate monthStart = today.withDayOfMonth(1);
+                LocalDate monthEnd = today.with(TemporalAdjusters.lastDayOfMonth());
+                return "기준월: *" + DateTimeUtil.formatDate(monthStart) + " ~ " + DateTimeUtil.formatDate(monthEnd) + "* 이하 마감";
             case "quarterly":
             default:
                 return today.getYear() + " Q" + quarter

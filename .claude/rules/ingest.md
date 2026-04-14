@@ -70,6 +70,7 @@ private static volatile Map<String, String> cachedTeamMemberMap;
 - **period 필터 조건**:
   - `daily`: `dueDate == null || dueDate <= 오늘` (기한 초과 + 마감일 미설정 포함)
   - `weekly`: `dueDate == null || dueDate <= 이번주 일요일` (기한 초과 + 마감일 미설정 포함)
+  - `monthly`: `dueDate == null || dueDate <= 이번달 말일` (기한 초과 + 마감일 미설정 포함)
   - `quarterly`: 추가 필터 없음 (분기 전체 미완료)
 - 담당자 매칭: 이벤트 제목 끝 `(이름)` → `team-members.json` name 필드와 비교
 
