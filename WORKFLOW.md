@@ -7,12 +7,12 @@
   │  Phase 분해 → SPEC.md 기록
   ▼
 /create-issue Phase N1
-  │  GitHub 이슈 #12 생성 → SPEC.md에 (#12) 역기록
+  │  GitHub 이슈 #21 생성 → SPEC.md에 (#21) 역기록
   ▼
-source scripts/create-worktree.sh feat 12 add-schedule-repeat
-  │  git worktree + branch feat/12-add-schedule-repeat 생성 → Claude 자동 실행
+source scripts/create-worktree.sh feat 21 current-ticket-monthly
+  │  git worktree + branch feat/21-current-ticket-monthly 생성 → Claude 자동 실행
   ▼
-/resolve-issue 12
+/resolve-issue 21
   │  이슈 분석 → 구현 → 리뷰 → PR 생성
   ▼
 PR merge → bash scripts/cleanup-worktrees.sh
@@ -30,10 +30,10 @@ PR merge → bash scripts/cleanup-worktrees.sh
 
 | 타입 | 용도 | 예시 |
 |------|------|------|
-| `feat` | 새 기능 | `feat/12-add-schedule-repeat` |
-| `fix` | 버그 수정 | `fix/15-calendar-sync-error` |
+| `feat` | 새 기능 | `feat/21-current-ticket-monthly` |
+| `fix` | 버그 수정 | `fix/7-confluence-hierarchy-stabilize` |
 | `refactor` | 리팩터링 | `refactor/18-extract-config-service` |
-| `chore` | 설정/문서/빌드 | `chore/20-update-env-vars` |
+| `chore` | 설정/문서/빌드 | `chore/15-ci-test-enhancement` |
 | `hotfix` | 긴급 수정 | `hotfix/22-slack-timeout` |
 
 ### 규칙
@@ -48,13 +48,13 @@ PR merge → bash scripts/cleanup-worktrees.sh
 
 | 단계 | 번호 | 예시 |
 |------|------|------|
-| `/feature-breakdown` | Phase 번호 (내부 계획) | Phase N1, N2, N3 |
-| `/create-issue Phase N1` | GitHub 이슈 번호 (자동 부여) | #12 |
-| `create-worktree.sh` | 타입 + 이슈번호 + 설명 | `feat 12 add-schedule-repeat` |
-| `/resolve-issue` | GitHub 이슈 번호 사용 | `12` |
+| `/feature-breakdown` | Phase 번호 (내부 계획) | Phase N1, N2, N8 |
+| `/create-issue Phase N8` | GitHub 이슈 번호 (자동 부여) | #21 |
+| `create-worktree.sh` | 타입 + 이슈번호 + 설명 | `feat 21 current-ticket-monthly` |
+| `/resolve-issue` | GitHub 이슈 번호 사용 | `21` |
 
 `/create-issue`가 Phase → GitHub 이슈로 변환하며, SPEC.md에 매핑을 기록한다:
-`## Phase N1: 유닛 테스트` → `## Phase N1: 유닛 테스트 (#12)`
+`## Phase N8: 제목` → `## Phase N8: 제목 (#21)`
 
 ## 병렬 작업
 
@@ -62,12 +62,12 @@ PR merge → bash scripts/cleanup-worktrees.sh
 
 ```bash
 # 터미널 1
-source scripts/create-worktree.sh feat 12 add-schedule-repeat
-# Claude: /resolve-issue 12
+source scripts/create-worktree.sh feat 21 current-ticket-monthly
+# Claude: /resolve-issue 21
 
 # 터미널 2
-source scripts/create-worktree.sh feat 13 add-absence-type
-# Claude: /resolve-issue 13
+source scripts/create-worktree.sh feat 14 scheduler-groupware-test
+# Claude: /resolve-issue 14
 ```
 
 ## 충돌 예방
@@ -121,13 +121,30 @@ bash scripts/cleanup-worktrees.sh
 - merged PR의 워크트리 + 브랜치 자동 삭제
 - 미merge 워크트리는 스킵 + 목록 표시
 - 메인 워크트리 경로를 자동 감지하므로 실행 위치 무관
+- 서브 워크트리에서 실행 시 자동으로 메인으로 이동 (getcwd 오류 방지)
 
 ### 개별 정리
 
 ```bash
-git worktree remove ../worktree/feat-12-add-schedule-repeat
+git worktree remove ../worktree/feat-21-current-ticket-monthly
 git worktree prune
 ```
+
+## 완료된 Phase 이력
+
+| Phase | 이슈 | 타입 | 내용 |
+|-------|------|------|------|
+| N1 | #1 | feat | 테스트 기반 구축 + 순수 함수 유닛 테스트 |
+| N2 | #3 | feat | worker/ingest 서비스 Mock 테스트 |
+| N2.5 | #5 | chore | TDD 프로세스 정착 |
+| N3 | #7 | fix | Confluence 페이지 계층 안정화 |
+| N4 | #10 | feat | 모니터링 & 알림 강화 |
+| N5 | #11 | feat | 보고서 커스터마이징 |
+| N6 | #14 | feat | scheduler/groupware 테스트 확장 |
+| N7 | #15 | chore | CI 자동 테스트 (GitHub Actions) |
+| N8 | #21 | feat | /현재티켓 월별(monthly) 조회 기능 추가 |
+
+> 최신 Phase 목록은 `SPEC.md` 실행 가이드 테이블 참조.
 
 ## 커맨드 목록
 
