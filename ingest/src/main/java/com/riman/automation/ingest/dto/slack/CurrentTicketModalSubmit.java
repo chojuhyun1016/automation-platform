@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
  *
  * <p>모달 block 구성:
  * <pre>
- *   block_ticket_period / action_ticket_period → 조회 기간 ("daily" | "weekly" | "quarterly")
+ *   block_ticket_period / action_ticket_period → 조회 기간 ("daily" | "weekly" | "monthly" | "quarterly")
  * </pre>
  *
  * <p>private_metadata 구조: "userId" (1단 — 요청자 본인 ID)
@@ -30,7 +30,7 @@ public class CurrentTicketModalSubmit {
 
     private final String type;      // "view_submission"
     private final String userId;    // Slack User ID (payload.user.id)
-    private final String period;    // "daily" | "weekly" | "quarterly"
+    private final String period;    // "daily" | "weekly" | "monthly" | "quarterly"
 
     private CurrentTicketModalSubmit(JsonNode payload) {
         this.type = payload.path("type").asText("");
@@ -70,6 +70,13 @@ public class CurrentTicketModalSubmit {
      */
     public boolean isWeekly() {
         return "weekly".equals(period);
+    }
+
+    /**
+     * 월별 조회 여부
+     */
+    public boolean isMonthly() {
+        return "monthly".equals(period);
     }
 
     /**

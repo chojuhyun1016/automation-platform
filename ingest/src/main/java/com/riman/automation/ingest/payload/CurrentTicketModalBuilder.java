@@ -13,6 +13,7 @@ import com.riman.automation.common.slack.SlackBlockBuilder;
  *   period 드롭다운 (static_select)
  *     - 일별  (value: daily)
  *     - 주별  (value: weekly)
+ *     - 월별  (value: monthly)
  *     - 분기별 (value: quarterly)
  * </pre>
  *
@@ -35,6 +36,7 @@ public class CurrentTicketModalBuilder {
     private static final String[][] PERIOD_OPTIONS = {
             {"daily", "일별"},
             {"weekly", "주별"},
+            {"monthly", "월별"},
             {"quarterly", "분기별"},
     };
 

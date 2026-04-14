@@ -25,7 +25,7 @@ PRD: `automation-platform-prd.md` 참조.
 - [x] `/재택근무` — 재택근무 캘린더 등록/취소
 - [x] `/계정관리` — 그룹웨어 계정 KMS 암호화 관리
 - [x] `/일정등록` — 일정 캘린더 CRUD + DynamoDB 매핑
-- [x] `/현재티켓` — 담당 Jira 티켓 현황 조회 (daily/weekly/quarterly)
+- [x] `/현재티켓` — 담당 Jira 티켓 현황 조회 (daily/weekly/monthly/quarterly)
 
 ### F2. Jira 웹훅 동기화
 
