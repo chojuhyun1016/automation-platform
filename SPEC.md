@@ -285,7 +285,7 @@ PR 생성/업데이트 시 GitHub Actions에서 전체 테스트를 자동 실�
 
 ## Phase N9: 주석 리팩토링 - common + clients 모듈 (#23)
 
-- [ ] Phase N9 완료
+- [x] Phase N9 완료 (PR #33)
 
 ### 오버뷰
 common(18파일)과 clients(8파일) 모듈의 전체 주석을 재작성하고 Google Java Style 포맷팅을 적용한다. 소스 코드 로직은 절대 변경하지 않는다.
@@ -333,7 +333,7 @@ common(18파일)과 clients(8파일) 모듈의 전체 주석을 재작성하고 
 
 ## Phase N10: 주석 리팩토링 - ingest 모듈 (#24)
 
-- [ ] Phase N10 완료
+- [x] Phase N10 완료 (PR #36)
 
 ### 오버뷰
 ingest 모듈(25파일, 5,458 LOC)의 전체 주석을 재작성하고 Google Java Style 포맷팅을 적용한다. Slack 커맨드 수신부터 SQS 위임까지의 흐름이 주석으로 파악 가능하도록 한다.
@@ -369,7 +369,7 @@ ingest 모듈(25파일, 5,458 LOC)의 전체 주석을 재작성하고 Google Ja
 
 ## Phase N11: 주석 리팩토링 - worker 모듈 (#25)
 
-- [ ] Phase N11 완료
+- [x] Phase N11 완료 (PR #34)
 
 ### 오버뷰
 worker 모듈(24파일, 4,531 LOC)의 전체 주석을 재작성하고 Google Java Style 포맷팅을 적용한다. SQS 메시지 수신부터 Calendar/DynamoDB 처리까지의 흐름이 주석으로 파악 가능하도록 한다.
@@ -405,7 +405,7 @@ worker 모듈(24파일, 4,531 LOC)의 전체 주석을 재작성하고 Google Ja
 
 ## Phase N12: 주석 리팩토링 - scheduler 상위 레이어 (#26)
 
-- [ ] Phase N12 완료
+- [x] Phase N12 완료 (PR #35)
 
 ### 오버뷰
 scheduler 모듈 상위 레이어(18파일)의 주석을 재작성한다. 보고서 파이프라인의 전체 흐름(handler -> facade -> report service -> load service)이 주석으로 파악 가능하도록 한다.
@@ -438,7 +438,7 @@ scheduler 모듈 상위 레이어(18파일)의 주석을 재작성한다. 보고
 
 ## Phase N13: 주석 리팩토링 - scheduler 하위 레이어 + groupware (#27)
 
-- [ ] Phase N13 완료
+- [x] Phase N13 완료 (PR #37)
 
 ### 오버뷰
 scheduler 모듈 하위 레이어(16파일)와 groupware 모듈(4파일)의 주석을 재작성한다. 데이터 수집, 포맷팅, Excel 생성의 세부 로직이 주석으로 파악 가능하도록 한다.
