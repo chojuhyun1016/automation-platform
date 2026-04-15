@@ -7,25 +7,28 @@ import lombok.Data;
 import java.time.Instant;
 
 /**
- * 재택근무 SQS 메시지 모델
+ * 재택근무 SQS 메시지 DTO.
+ * ingest 모듈이 발행하고 RemoteWorkFacade가 소비한다.
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RemoteWorkMessage {
 
-    private String messageType;  // "remote_work"
-    private String eventId;
-    private Instant receivedAt;
+  private String messageType;
+  private String eventId;
+  private Instant receivedAt;
 
-    @JsonProperty("action")
-    private String action;        // "apply" | "cancel"
+  /** "apply" 또는 "cancel". */
+  @JsonProperty("action")
+  private String action;
 
-    @JsonProperty("name")
-    private String name;
+  @JsonProperty("name")
+  private String name;
 
-    @JsonProperty("date")
-    private String date;          // "2026-02-21"
+  /** 재택 대상 날짜 (yyyy-MM-dd). */
+  @JsonProperty("date")
+  private String date;
 
-    @JsonProperty("slack_user_id")
-    private String slackUserId;
+  @JsonProperty("slack_user_id")
+  private String slackUserId;
 }

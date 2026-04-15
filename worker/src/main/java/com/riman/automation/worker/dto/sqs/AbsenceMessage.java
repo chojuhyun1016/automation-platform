@@ -6,101 +6,73 @@ import com.riman.automation.common.code.AbsenceTypeCode;
 import lombok.Data;
 
 /**
- * 부재등록 SQS 메시지 DTO
- *
- * <p>ingest {@code SQSService.sendAbsence()}가 발행하는 메시지 구조.
- *
- * <pre>
- * {
- *   "messageType":   "absence",
- *   "eventId":       "uuid",
- *   "receivedAt":    "ISO instant",
- *   "slack_user_id": "U...",
- *   "name":          "영문 userName (AbsenceFacade에서 한글로 교체)",
- *   "absenceType":   "연차|오전 반차|...",
- *   "action":        "apply|cancel",
- *   "startDate":     "yyyy-MM-dd",
- *   "endDate":       "yyyy-MM-dd",
- *   "reason":        "사유 (공란이면 AbsenceFacade에서 '개인사유' 설정)"
- * }
- * </pre>
- *
- * <p>날짜 1개 유형(반차류 등)은 {@code AbsenceFacade}에서 endDate = startDate 처리.
+ * 부재등록 SQS 메시지 DTO.
+ * ingest의 SQSService.sendAbsence()가 발행하는 메시지 구조를 표현하며, AbsenceFacade가 소비한다.
+ * 반차 등 단일일 유형은 AbsenceFacade에서 endDate = startDate로 보정된다.
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AbsenceMessage {
 
-    @JsonProperty("messageType")
-    private String messageType;
+  @JsonProperty("messageType")
+  private String messageType;
 
-    @JsonProperty("eventId")
-    private String eventId;
+  @JsonProperty("eventId")
+  private String eventId;
 
-    @JsonProperty("receivedAt")
-    private String receivedAt;
+  @JsonProperty("receivedAt")
+  private String receivedAt;
 
-    @JsonProperty("slack_user_id")
-    private String slackUserId;
+  @JsonProperty("slack_user_id")
+  private String slackUserId;
 
-    /**
-     * 영문 폴백 → AbsenceFacade에서 TeamMemberService 조회 후 한글로 교체
-     */
-    @JsonProperty("name")
-    private String name;
+  /** Slack username (영문). AbsenceFacade에서 TeamMemberService 조회 후 한글로 교체한다. */
+  @JsonProperty("name")
+  private String name;
 
-    /**
-     * 부재 유형 레이블 (AbsenceTypeCode.getLabel()과 동일)
-     */
-    @JsonProperty("absenceType")
-    private String absenceType;
+  /** 부재 유형 레이블 (AbsenceTypeCode.getLabel() 값과 일치). */
+  @JsonProperty("absenceType")
+  private String absenceType;
 
-    /**
-     * "apply" | "cancel"
-     */
-    @JsonProperty("action")
-    private String action;
+  /** "apply" 또는 "cancel". */
+  @JsonProperty("action")
+  private String action;
 
-    @JsonProperty("startDate")
-    private String startDate;
+  @JsonProperty("startDate")
+  private String startDate;
 
-    /**
-     * 날짜 1개 유형이면 AbsenceFacade에서 startDate로 덮어씀
-     */
-    @JsonProperty("endDate")
-    private String endDate;
+  /** 날짜 1개 유형이면 AbsenceFacade에서 startDate로 덮어쓴다. */
+  @JsonProperty("endDate")
+  private String endDate;
 
-    /**
-     * 공란이면 AbsenceFacade에서 "개인사유" 설정
-     */
-    @JsonProperty("reason")
-    private String reason;
+  /** 공란이면 AbsenceFacade에서 "개인사유"로 설정한다. */
+  @JsonProperty("reason")
+  private String reason;
 
-    // ── 헬퍼 ─────────────────────────────────────────────────────────────────
+  public boolean isApply() {
+    return "apply".equals(action);
+  }
 
-    public boolean isApply() {
-        return "apply".equals(action);
-    }
+  public boolean isCancel() {
+    return "cancel".equals(action);
+  }
 
-    public boolean isCancel() {
-        return "cancel".equals(action);
-    }
+  /**
+   * 날짜 1개 유형인지 여부.
+   * 판정 로직은 AbsenceTypeCode enum에 위임하여 하드코딩을 피한다.
+   */
+  public boolean isSingleDayType() {
+    AbsenceTypeCode type = AbsenceTypeCode.fromLabel(absenceType);
+    return type != null && type.isSingleDayOnly();
+  }
 
-    /**
-     * 날짜 1개 유형 여부
-     * AbsenceTypeCode enum에 위임 — 하드코딩 없음.
-     */
-    public boolean isSingleDayType() {
-        AbsenceTypeCode type = AbsenceTypeCode.fromLabel(absenceType);   // ✏️ 변경
-        return type != null && type.isSingleDayOnly();
-    }
-
-    /**
-     * 실제 유효 종료일 반환 (날짜 1개 유형은 startDate 반환)
-     */
-    public String getEffectiveEndDate() {
-        if (isSingleDayType()) return startDate;
-        if (endDate == null || endDate.isBlank()) return startDate;
-        return endDate;
-    }
+  /**
+   * 실제 유효 종료일을 반환한다.
+   * 날짜 1개 유형이거나 endDate가 비어있으면 startDate를 반환한다.
+   */
+  public String getEffectiveEndDate() {
+    if (isSingleDayType()) return startDate;
+    if (endDate == null || endDate.isBlank()) return startDate;
+    return endDate;
+  }
 }
