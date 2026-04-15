@@ -310,24 +310,24 @@ common(18파일)과 clients(8파일) 모듈의 전체 주석을 재작성하고 
 - import 정렬, 빈 줄 정리
 
 ### 수정/개선
-- [ ] **common/auth/** (3파일) — TokenProvider, BasicTokenProvider, EnvTokenProvider 주석 정리
-- [ ] **common/code/** (7파일) — Enum 클래스 주석 정리 (AbsenceTypeCode, DueDateUrgencyCode, JiraPriorityCode, JiraStatusCode, ReportPeriodCode, ReportWeekCode, WorkStatusCode)
-- [ ] **common/exception/** (4파일) — 예외 클래스 주석 정리
-- [ ] **common/model/** (1파일) — GroupwareAccountInfo 주석 정리
-- [ ] **common/slack/** (1파일) — SlackBlockBuilder 주석 정리 (빌더 메서드 상세 설명)
-- [ ] **common/util/** (2파일) — DateTimeUtil, SentryInitializer 주석 정리
-- [ ] **clients/http/** (3파일) — BaseHttpClient, ApiResponse, SharedHttpClient 주석 정리 (HTTP 통신 흐름 상세)
-- [ ] **clients/anthropic/** (1파일) — AnthropicClient 주석 정리
-- [ ] **clients/calendar/** (1파일) — GoogleCalendarClient 주석 정리 (캐싱 패턴 상세)
-- [ ] **clients/confluence/** (1파일) — ConfluenceClient 주석 정리
-- [ ] **clients/jira/** (1파일) — JiraClient 주석 정리
-- [ ] **clients/slack/** (1파일) — SlackClient 주석 정리
+- [x] **common/auth/** (3파일) — TokenProvider, BasicTokenProvider, EnvTokenProvider 주석 정리
+- [x] **common/code/** (7파일) — Enum 클래스 주석 정리 (AbsenceTypeCode, DueDateUrgencyCode, JiraPriorityCode, JiraStatusCode, ReportPeriodCode, ReportWeekCode, WorkStatusCode)
+- [x] **common/exception/** (4파일) — 예외 클래스 주석 정리
+- [x] **common/model/** (1파일) — GroupwareAccountInfo 주석 정리
+- [x] **common/slack/** (1파일) — SlackBlockBuilder 주석 정리 (빌더 메서드 상세 설명)
+- [x] **common/util/** (2파일) — DateTimeUtil, SentryInitializer 주석 정리
+- [x] **clients/http/** (3파일) — BaseHttpClient, ApiResponse, SharedHttpClient 주석 정리 (HTTP 통신 흐름 상세)
+- [x] **clients/anthropic/** (1파일) — AnthropicClient 주석 정리
+- [x] **clients/calendar/** (1파일) — GoogleCalendarClient 주석 정리 (캐싱 패턴 상세)
+- [x] **clients/confluence/** (1파일) — ConfluenceClient 주석 정리
+- [x] **clients/jira/** (1파일) — JiraClient 주석 정리
+- [x] **clients/slack/** (1파일) — SlackClient 주석 정리
 
 ### 검증
-- [ ] `./gradlew :common:compileJava` 빌드 성공
-- [ ] `./gradlew :clients:compileJava` 빌드 성공
-- [ ] `./gradlew :common:test` 테스트 통과
-- [ ] `./gradlew :clients:test` 테스트 통과
+- [x] `./gradlew :common:compileJava` 빌드 성공
+- [x] `./gradlew :clients:compileJava` 빌드 성공
+- [x] `./gradlew :common:test` 테스트 통과
+- [x] `./gradlew :clients:test` 테스트 통과
 
 ---
 
@@ -347,23 +347,23 @@ ingest 모듈(25파일, 5,458 LOC)의 전체 주석을 재작성하고 Google Ja
 - 없음
 
 ### 수정/개선
-- [ ] **handler/** (1파일) — IngestHandler Lambda 진입점 주석 (요청 라우팅 흐름 상세)
-- [ ] **facade/** (5파일) — SlackFacade, CurrentTicketFacade, AccountManageFacade, JiraWebhookFacade, ScheduleManageFacade
-    - [ ] SlackFacade: 커맨드 라우팅 분기 흐름 상세 기술
-    - [ ] CurrentTicketFacade: 기간별 필터링 로직 상세 기술
-    - [ ] ScheduleManageFacade: CRUD 분기 흐름 상세 기술
-- [ ] **service/** (5파일) — GroupwareCredentialService, PasswordEncryptionService, ScheduleMappingQueryService, SlackApiService, WorkerMessageService
-    - [ ] PasswordEncryptionService: KMS 암호화 흐름 상세 기술
-    - [ ] WorkerMessageService: SQS 메시지 위임 패턴 상세 기술
-- [ ] **payload/** (5파일) — AbsenceModalBuilder, AccountModalBuilder, CurrentTicketModalBuilder, RemoteWorkModalBuilder, ScheduleModalBuilder
-- [ ] **dto/slack/** (6파일) — SlackCommandRequest, AbsenceModalSubmit, AccountModalSubmit, CurrentTicketModalSubmit, RemoteWorkModalSubmit, ScheduleModalSubmit
-- [ ] **dto/jira/** (1파일) — JiraWebhookEvent
-- [ ] **security/** (1파일) — SlackSignatureVerifier (서명 검증 흐름 상세)
-- [ ] **util/** (1파일) — HttpResponse
+- [x] **handler/** (1파일) — IngestHandler Lambda 진입점 주석 (요청 라우팅 흐름 상세)
+- [x] **facade/** (5파일) — SlackFacade, CurrentTicketFacade, AccountManageFacade, JiraWebhookFacade, ScheduleManageFacade
+    - [x] SlackFacade: 커맨드 라우팅 분기 흐름 상세 기술
+    - [x] CurrentTicketFacade: 기간별 필터링 로직 상세 기술
+    - [x] ScheduleManageFacade: CRUD 분기 흐름 상세 기술
+- [x] **service/** (5파일) — GroupwareCredentialService, PasswordEncryptionService, ScheduleMappingQueryService, SlackApiService, WorkerMessageService
+    - [x] PasswordEncryptionService: KMS 암호화 흐름 상세 기술
+    - [x] WorkerMessageService: SQS 메시지 위임 패턴 상세 기술
+- [x] **payload/** (5파일) — AbsenceModalBuilder, AccountModalBuilder, CurrentTicketModalBuilder, RemoteWorkModalBuilder, ScheduleModalBuilder
+- [x] **dto/slack/** (6파일) — SlackCommandRequest, AbsenceModalSubmit, AccountModalSubmit, CurrentTicketModalSubmit, RemoteWorkModalSubmit, ScheduleModalSubmit
+- [x] **dto/jira/** (1파일) — JiraWebhookEvent
+- [x] **security/** (1파일) — SlackSignatureVerifier (서명 검증 흐름 상세)
+- [x] **util/** (1파일) — HttpResponse
 
 ### 검증
-- [ ] `./gradlew :ingest:compileJava` 빌드 성공
-- [ ] `./gradlew :ingest:test` 테스트 통과
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 테스트 통과
 
 ---
 
@@ -383,23 +383,23 @@ worker 모듈(24파일, 4,531 LOC)의 전체 주석을 재작성하고 Google Ja
 - 없음
 
 ### 수정/개선
-- [ ] **handler/** (2파일) — WorkerHandler, DlqAlertHandler
-    - [ ] WorkerHandler: SQS 메시지 디스패치 흐름 상세 기술
-    - [ ] DlqAlertHandler: DLQ 알림 흐름 상세 기술
-- [ ] **facade/** (4파일) — AbsenceFacade, JiraIssueFacade, RemoteWorkFacade, ScheduleFacade
-    - [ ] AbsenceFacade: 부재 등록 전체 오케스트레이션 상세 기술
-    - [ ] JiraIssueFacade: CREATE/UPDATE/DELETE 분기 흐름 상세 기술
-- [ ] **service/** (11파일) — AbsenceService, CalendarService, ConfigService, DedupeService, GroupwareMessageService, JiraCalendarMappingService, MonitoringAlertService, RemoteWorkService, ScheduleEventMappingService, SlackNotificationService, TeamMemberService
-    - [ ] CalendarService: Google Calendar CRUD 패턴 상세 기술
-    - [ ] JiraCalendarMappingService: DynamoDB 2계층 조회 패턴 상세 기술
-    - [ ] DedupeService: 중복 방지 로직 상세 기술
-    - [ ] ConfigService: S3 설정 로딩 및 static 캐싱 패턴 상세 기술
-- [ ] **payload/** (2파일) — JiraSlackMessageBuilder, SlackTimeHeaderBuilder
-- [ ] **dto/** (5파일) — JiraWebhookEvent, TeamMember, AbsenceMessage, RemoteWorkMessage, ScheduleMessage
+- [x] **handler/** (2파일) — WorkerHandler, DlqAlertHandler
+    - [x] WorkerHandler: SQS 메시지 디스패치 흐름 상세 기술
+    - [x] DlqAlertHandler: DLQ 알림 흐름 상세 기술
+- [x] **facade/** (4파일) — AbsenceFacade, JiraIssueFacade, RemoteWorkFacade, ScheduleFacade
+    - [x] AbsenceFacade: 부재 등록 전체 오케스트레이션 상세 기술
+    - [x] JiraIssueFacade: CREATE/UPDATE/DELETE 분기 흐름 상세 기술
+- [x] **service/** (11파일) — AbsenceService, CalendarService, ConfigService, DedupeService, GroupwareMessageService, JiraCalendarMappingService, MonitoringAlertService, RemoteWorkService, ScheduleEventMappingService, SlackNotificationService, TeamMemberService
+    - [x] CalendarService: Google Calendar CRUD 패턴 상세 기술
+    - [x] JiraCalendarMappingService: DynamoDB 2계층 조회 패턴 상세 기술
+    - [x] DedupeService: 중복 방지 로직 상세 기술
+    - [x] ConfigService: S3 설정 로딩 및 static 캐싱 패턴 상세 기술
+- [x] **payload/** (2파일) — JiraSlackMessageBuilder, SlackTimeHeaderBuilder
+- [x] **dto/** (5파일) — JiraWebhookEvent, TeamMember, AbsenceMessage, RemoteWorkMessage, ScheduleMessage
 
 ### 검증
-- [ ] `./gradlew :worker:compileJava` 빌드 성공
-- [ ] `./gradlew :worker:test` 테스트 통과
+- [x] `./gradlew :worker:compileJava` 빌드 성공
+- [x] `./gradlew :worker:test` 테스트 통과
 
 ---
 
@@ -419,20 +419,20 @@ scheduler 모듈 상위 레이어(18파일)의 주석을 재작성한다. 보고
 - 없음
 
 ### 수정/개선
-- [ ] **handler/** (1파일) — SchedulerHandler Lambda 진입점 (Daily/Weekly/Monthly 분기 흐름 상세)
-- [ ] **facade/** (3파일) — DailyReportFacade, WeeklyReportFacade, MonthlyReportFacade
-    - [ ] 각 Facade의 파이프라인 오케스트레이션 흐름 상세 기술
-- [ ] **service/report/** (3파일) — DailyReportService, WeeklyReportService, MonthlyReportService
-    - [ ] 수집 -> 포맷 -> 전송 파이프라인 흐름 상세 기술
-- [ ] **service/load/** (2파일) — ReportRulesService, TeamMemberService
-    - [ ] ReportRulesService: S3 규칙 파일 로딩 및 AI 프롬프트 구성 상세 기술
-- [ ] **dto/report/** (3파일) — DailyReportData, WeeklyReportData, MonthlyReportData
-- [ ] **dto/s3/** (8파일) — AnnouncementItem, ArchiveConfig, DailyReportConfig, MemberReportPreference, MonthlyReportConfig, ProjectGroup, TeamMember, WeeklyReportConfig
-- [ ] **service/ReportArchiveService.java** (1파일) — Confluence 아카이브 흐름 상세 기술
-- [ ] **tool/** (1파일) — CalendarStartDateFixer
+- [x] **handler/** (1파일) — SchedulerHandler Lambda 진입점 (Daily/Weekly/Monthly 분기 흐름 상세)
+- [x] **facade/** (3파일) — DailyReportFacade, WeeklyReportFacade, MonthlyReportFacade
+    - [x] 각 Facade의 파이프라인 오케스트레이션 흐름 상세 기술
+- [x] **service/report/** (3파일) — DailyReportService, WeeklyReportService, MonthlyReportService
+    - [x] 수집 -> 포맷 -> 전송 파이프라인 흐름 상세 기술
+- [x] **service/load/** (2파일) — ReportRulesService, TeamMemberService
+    - [x] ReportRulesService: S3 규칙 파일 로딩 및 AI 프롬프트 구성 상세 기술
+- [x] **dto/report/** (3파일) — DailyReportData, WeeklyReportData, MonthlyReportData
+- [x] **dto/s3/** (8파일) — AnnouncementItem, ArchiveConfig, DailyReportConfig, MemberReportPreference, MonthlyReportConfig, ProjectGroup, TeamMember, WeeklyReportConfig
+- [x] **service/ReportArchiveService.java** (1파일) — Confluence 아카이브 흐름 상세 기술
+- [x] **tool/** (1파일) — CalendarStartDateFixer
 
 ### 검증
-- [ ] `./gradlew :scheduler:compileJava` 빌드 성공
+- [x] `./gradlew :scheduler:compileJava` 빌드 성공
 
 ---
 
@@ -452,23 +452,23 @@ scheduler 모듈 하위 레이어(16파일)와 groupware 모듈(4파일)의 주�
 - 없음
 
 ### 수정/개선
-- [ ] **scheduler/service/collect/** (6파일) — DailyAbsenceCollector, DailyCalendarTicketCollector, DailyJiraTicketCollector, DailyScheduleCollector, MonthlyCalendarTicketCollector, WeeklyCalendarTicketCollector
-    - [ ] 각 Collector의 데이터 수집 대상, 필터 조건, 반환 형식 상세 기술
-- [ ] **scheduler/service/format/** (3파일) — DailyReportFormatter, WeeklyReportFormatter, MonthlyReportFormatter
-    - [ ] Slack Block Kit 메시지 구성 흐름 상세 기술
-- [ ] **scheduler/service/excel/** (2파일) — WeeklyExcelGenerator, MonthlyExcelGenerator
-    - [ ] Excel 시트 구성, 셀 매핑 로직 상세 기술
-- [ ] **scheduler/service/util/** (1파일) — CalendarTicketParser (파싱 규칙 상세)
-- [ ] **groupware/handler/** (1파일) — GroupwareHandler
-- [ ] **groupware/facade/** (1파일) — GroupwareAbsenceFacade (ECS 오케스트레이션 흐름 상세)
-- [ ] **groupware/service/** (1파일) — EcsTaskService (Fargate 태스크 실행 패턴 상세)
-- [ ] **groupware/dto/** (1파일) — GroupwareAbsenceMessage
+- [x] **scheduler/service/collect/** (6파일) — DailyAbsenceCollector, DailyCalendarTicketCollector, DailyJiraTicketCollector, DailyScheduleCollector, MonthlyCalendarTicketCollector, WeeklyCalendarTicketCollector
+    - [x] 각 Collector의 데이터 수집 대상, 필터 조건, 반환 형식 상세 기술
+- [x] **scheduler/service/format/** (3파일) — DailyReportFormatter, WeeklyReportFormatter, MonthlyReportFormatter
+    - [x] Slack Block Kit 메시지 구성 흐름 상세 기술
+- [x] **scheduler/service/excel/** (2파일) — WeeklyExcelGenerator, MonthlyExcelGenerator
+    - [x] Excel 시트 구성, 셀 매핑 로직 상세 기술
+- [x] **scheduler/service/util/** (1파일) — CalendarTicketParser (파싱 규칙 상세)
+- [x] **groupware/handler/** (1파일) — GroupwareHandler
+- [x] **groupware/facade/** (1파일) — GroupwareAbsenceFacade (ECS 오케스트레이션 흐름 상세)
+- [x] **groupware/service/** (1파일) — EcsTaskService (Fargate 태스크 실행 패턴 상세)
+- [x] **groupware/dto/** (1파일) — GroupwareAbsenceMessage
 
 ### 검증
-- [ ] `./gradlew :scheduler:compileJava` 빌드 성공
-- [ ] `./gradlew :scheduler:test` 테스트 통과
-- [ ] `./gradlew :groupware:compileJava` 빌드 성공
-- [ ] `./gradlew :groupware:test` 테스트 통과
+- [x] `./gradlew :scheduler:compileJava` 빌드 성공
+- [x] `./gradlew :scheduler:test` 테스트 통과
+- [x] `./gradlew :groupware:compileJava` 빌드 성공
+- [x] `./gradlew :groupware:test` 테스트 통과
 
 ---
 
