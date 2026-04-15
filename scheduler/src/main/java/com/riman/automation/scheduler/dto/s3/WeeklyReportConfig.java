@@ -7,109 +7,67 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 주간(실적) 보고 설정 DTO
- *
- * <p>S3 {@code scheduler-config.json}의 {@code "weeklyReport"} 섹션과 매핑된다.
- *
- * <pre>
- * {
- *   "weeklyReport": {
- *     "enabled": true,
- *     "team_name": "보상코어 개발팀",
- *     "ticket_calendar_id": "abcd@group.calendar.google.com",
- *     "confluence_base_url": "https://riman-it.atlassian.net",
- *     "confluence_space_key": "IT",
- *     "confluence_parent_page_id": "2337538054"
- *   }
- * }
- * </pre>
- *
- * <p><b>카테고리 분류는 설정이 아닌 코드로 관리:</b>
- * 프로젝트 키 → 카테고리 매핑은 {@link com.riman.automation.scheduler.dto.report.WeeklyReportData#detectCategory}
- * 의 switch 문에 하드코딩되어 있다. 새 프로젝트 추가 시 해당 메서드만 수정하면 된다.
- *
- * <p><b>Confluence 페이지 계층 구조:</b>
- * <pre>
- *   [confluence_parent_page_id]  "실적보고"        ← 이미 존재, 직접 생성 안 함
- *     └─ "2026년 주간"                             ← 연도 페이지,  없으면 자동 생성
- *         └─ "2026년 주간 Q1"                      ← 분기 페이지,  없으면 자동 생성
- *             └─ "2026 1월 W4 - 보상코어 개발팀 실적"  ← 주간보고 페이지
- * </pre>
+ * 주간 실적 보고 설정 DTO이다. S3 scheduler-config.json의 "weeklyReport" 섹션과 매핑된다.
+ * 카테고리 분류는 설정이 아닌 WeeklyReportData.detectCategory 코드 매핑으로 관리되므로 새 프로젝트 추가 시 해당 메서드만 수정한다.
+ * Confluence 페이지 계층은 confluence_parent_page_id 하위에 연도 → 분기 → 주간보고 페이지가 자동 생성된다.
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class WeeklyReportConfig {
 
-    /**
-     * 주간보고 활성화 여부
-     */
-    private Boolean enabled = true;
+  /** 주간보고 활성화 여부이다. */
+  private Boolean enabled = true;
 
-    /**
-     * 팀명 — Confluence 주간보고 페이지 제목 접미사에 사용.
-     * <br>예: "보상코어 개발팀" → 페이지 제목: "2026 1월 W4 - 보상코어 개발팀 실적"
-     * <br>미설정 시 기본값 "보상코어 개발팀" 사용.
-     */
-    @JsonProperty("team_name")
-    private String teamName = "보상코어 개발팀";
+  /**
+   * 팀명이다. Confluence 주간보고 페이지 제목 접미사로 사용한다.
+   * 예: "보상코어 개발팀" → "2026 1월 W4 - 보상코어 개발팀 실적". 미설정 시 기본값 "보상코어 개발팀"을 사용한다.
+   */
+  @JsonProperty("team_name")
+  private String teamName = "보상코어 개발팀";
 
-    /**
-     * 티켓 이벤트 조회용 Google Calendar ID.
-     *
-     * <p>캘린더 이벤트 제목 규칙: "[CCE-123] 제목 (담당자이름)"
-     *
-     * <p><b>필수 설정:</b> 미설정 시 주간보고 데이터 수집 불가.
-     */
-    @JsonProperty("ticket_calendar_id")
-    private String ticketCalendarId;
+  /**
+   * 티켓 이벤트 조회용 Google Calendar ID이다.
+   * 이벤트 제목 규칙은 "[CCE-123] 제목 (담당자이름)"이며 미설정 시 주간보고 데이터를 수집할 수 없다.
+   */
+  @JsonProperty("ticket_calendar_id")
+  private String ticketCalendarId;
 
-    /**
-     * Confluence 베이스 URL.
-     * <br>예: https://riman-it.atlassian.net  (/wiki 미포함 — ConfluenceClient 가 자동 추가)
-     */
-    @JsonProperty("confluence_base_url")
-    private String confluenceBaseUrl;
+  /**
+   * Confluence 베이스 URL이다.
+   * 예: https://riman-it.atlassian.net. /wiki는 포함하지 않으며 ConfluenceClient가 자동 추가한다.
+   */
+  @JsonProperty("confluence_base_url")
+  private String confluenceBaseUrl;
 
-    /**
-     * Confluence Space Key.
-     * <br>예: "IT"
-     */
-    @JsonProperty("confluence_space_key")
-    private String confluenceSpaceKey;
+  /** Confluence Space Key이다(예: "IT"). */
+  @JsonProperty("confluence_space_key")
+  private String confluenceSpaceKey;
 
-    /**
-     * 주간보고 루트 부모 페이지 ID.
-     *
-     * <p>"실적보고"처럼 이미 존재하는 최상위 페이지 ID.
-     * 이 페이지 하위에 연도 → 분기 → 주간보고 계층이 자동 생성된다.
-     *
-     * <p>Confluence URL에서 확인:
-     * <br>{@code https://riman-it.atlassian.net/wiki/spaces/IT/pages/2337538054}
-     * <br>→ pageId = "2337538054"
-     */
-    @JsonProperty("confluence_parent_page_id")
-    private String confluenceParentPageId;
+  /**
+   * 주간보고 루트 부모 페이지 ID이다.
+   * "실적보고"처럼 이미 존재하는 최상위 페이지 ID이며 이 페이지 하위에 연도/분기/주간보고 계층이 자동 생성된다.
+   * Confluence URL의 /pages/{id} 경로에서 확인할 수 있다.
+   */
+  @JsonProperty("confluence_parent_page_id")
+  private String confluenceParentPageId;
 
-    /**
-     * 보고서 생성 실패 시 Slack 알림을 받을 사용자 ID.
-     * <br>미설정 시 실패 알림은 로그에만 남김.
-     */
-    @JsonProperty("error_notify_slack_user_id")
-    private String errorNotifySlackUserId;
+  /**
+   * 보고서 생성 실패 시 Slack 알림을 받을 사용자 ID이다. 미설정 시 실패 알림은 로그에만 남긴다.
+   */
+  @JsonProperty("error_notify_slack_user_id")
+  private String errorNotifySlackUserId;
 
-    /**
-     * 프로젝트 그룹별 보고서 분리 설정.
-     *
-     * <p>설정 시 그룹별로 별도 Confluence 페이지를 생성한다.
-     * 미설정(null/빈 배열) 시 기존 동작 유지 (전체 카테고리 하나의 페이지).
-     */
-    @JsonProperty("project_groups")
-    private List<ProjectGroup> projectGroups;
+  /**
+   * 프로젝트 그룹별 보고서 분리 설정이다.
+   * 설정 시 그룹별로 별도 Confluence 페이지를 생성하며 미설정 시 전체 카테고리 단일 페이지로 생성한다.
+   */
+  @JsonProperty("project_groups")
+  private List<ProjectGroup> projectGroups;
 
-    /**
-     * 프로젝트 그룹 분리 활성화 여부.
-     */
-    public boolean isGroupSeparationEnabled() {
-        return projectGroups != null && !projectGroups.isEmpty();
-    }
+  /**
+   * 프로젝트 그룹 분리 활성화 여부를 반환한다.
+   */
+  public boolean isGroupSeparationEnabled() {
+    return projectGroups != null && !projectGroups.isEmpty();
+  }
 }

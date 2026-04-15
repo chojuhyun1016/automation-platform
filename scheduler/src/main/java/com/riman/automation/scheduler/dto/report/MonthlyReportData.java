@@ -11,253 +11,160 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 월간보고 데이터 컨테이너
- *
- * <p><b>WeeklyReportData 와의 대응:</b>
- * <pre>
- *   WeeklyReportData — 주간 실적 (전주 완료 + 분기 진행중)
- *   MonthlyReportData — 월간 실적 (대상 월 완료 + 분기 진행중)
- * </pre>
- *
- * <p><b>보고 기간:</b>
- * 대상 월의 1일(monthStart) ~ 말일(monthEnd).
- * 예: 1월 → 2026-01-01 ~ 2026-01-31
- *
- * <p><b>카테고리 분류 기준:</b>
- * {@link WeeklyReportData#detectCategory(String, String)} 와 동일.
- * MonthlyReportData는 WeeklyReportData의 static 유틸을 위임하여 일관성을 유지한다.
- *
- * <p><b>페이지 계층:</b>
- * <pre>
- *   실적보고 (rootParentPageId)
- *     └─ 2026년 월간
- *         └─ 2026년 월간 Q1
- *             └─ 2026 Q1 1월 - 보상코어 개발팀 실적
- * </pre>
+ * 월간보고 데이터 컨테이너이다. 대상 월의 1일부터 말일까지를 보고 기간으로 하며,
+ * 카테고리별 완료/진행중/이슈 티켓을 보관한다. 카테고리 분류 규칙은 WeeklyReportData에 위임하여 일관성을 유지한다.
+ * Confluence 페이지 계층은 실적보고 → 2026년 월간 → 2026년 월간 Q1 → 2026 Q1 1월 - 보상코어 개발팀 실적 순이다.
  */
 @Data
 @Builder
 public class MonthlyReportData {
 
-    // =========================================================================
-    // 메타
-    // =========================================================================
+  /** 보고서 기준일이다. Lambda 실행일이다. */
+  private LocalDate baseDate;
+
+  /** 대상 월 시작일(1일)이다. 예: 2026-01-01. */
+  private LocalDate monthStart;
+
+  /** 대상 월 종료일(말일)이다. 예: 2026-01-31. */
+  private LocalDate monthEnd;
+
+  /** 연도이다(예: 2026). */
+  private int year;
+
+  /** 대상 월이다(1~12). */
+  private int month;
+
+  /** 분기이다(1~4). */
+  private int quarter;
+
+  /** 분기 시작일이다(예: 2026-01-01). */
+  private LocalDate quarterStart;
+
+  /** 분기 종료일이다(예: 2026-03-31). */
+  private LocalDate quarterEnd;
+
+  /** 카테고리별 대상 월 완료 티켓 맵이다. key는 카테고리명이다. */
+  private Map<String, List<MonthlyTicketItem>> doneByCategory;
+
+  /** 카테고리별 분기 전체 진행중 티켓 맵이다. */
+  private Map<String, List<MonthlyTicketItem>> inProgressByCategory;
+
+  /** 카테고리별 이슈 티켓 맵이다. [이슈] 태그가 포함된 미완료 티켓이 해당된다. */
+  private Map<String, List<MonthlyTicketItem>> issuesByCategory;
+
+  /** 카테고리 표시 순서이다. WeeklyReportData와 동일한 순서를 유지한다. */
+  public static final List<String> CATEGORY_ORDER =
+      List.of("주문", "회원", "수당", "포인트", "ABO", "RBO");
+
+  /**
+   * 프로젝트 키와 제목으로 카테고리를 반환한다. WeeklyReportData.detectCategory와 동일한 규칙을 적용한다.
+   *
+   * @param projectKey 티켓 프로젝트 키(예: "CCE", "RBO")
+   * @param summary    티켓 제목
+   * @return 카테고리명, 분류 불가면 null
+   */
+  public static String detectCategory(String projectKey, String summary) {
+    return WeeklyReportData.detectCategory(projectKey, summary);
+  }
+
+  /**
+   * 제목에 "[이슈]" 태그가 포함되면 이슈로 판별한다.
+   */
+  public static boolean detectIssue(String summary) {
+    return WeeklyReportData.detectIssue(summary);
+  }
+
+  private static final DateTimeFormatter LABEL_FMT =
+      DateTimeFormatter.ofPattern("MM-dd");
+
+  /**
+   * 기간 문자열을 반환한다(예: "01-01 ~ 01-31").
+   */
+  public String monthRangeLabel() {
+    return monthStart.format(LABEL_FMT) + " ~ " + monthEnd.format(LABEL_FMT);
+  }
+
+  /**
+   * 분기 레이블을 반환한다(예: "2026 Q1 (01-01 ~ 03-31)").
+   */
+  public String quarterLabel() {
+    return String.format("%d Q%d (%s ~ %s)",
+        year, quarter,
+        quarterStart.format(LABEL_FMT),
+        quarterEnd.format(LABEL_FMT));
+  }
+
+  /**
+   * 페이지 제목 접두 정보를 반환한다(예: "2026 Q1 1월").
+   * 전체 페이지 제목은 MonthlyReportService.buildMonthlyTitle()에서 팀명을 포함하여 생성한다.
+   */
+  public String pageMetaLabel() {
+    return String.format("%d Q%d %d월", year, quarter, month);
+  }
+
+  /**
+   * 분기 디렉토리 제목을 반환한다(예: "2026년 월간 Q1").
+   */
+  public String quarterDirTitle() {
+    return String.format("%d년 월간 Q%d", year, quarter);
+  }
+
+  /**
+   * 연도 디렉토리 제목을 반환한다(예: "2026년 월간").
+   */
+  public String yearDirTitle() {
+    return String.format("%d년 월간", year);
+  }
+
+  /**
+   * 월간보고 티켓 항목이다. WeeklyTicketItem과 동일 구조이나 Monthly 컨텍스트 전용 타입으로 분리한다.
+   */
+  @Data
+  @Builder(toBuilder = true)
+  public static class MonthlyTicketItem {
+
+    /** Jira 이슈 키이다(예: CCE-123). */
+    private String issueKey;
+
+    /** 이슈 제목이다. */
+    private String summary;
+
+    /** 담당자 이름이다. */
+    private String assigneeName;
+
+    /** Jira 상태 코드이다. */
+    private JiraStatusCode status;
+
+    /** Jira 실제 상태명이다(예: "완료", "Done"). */
+    private String statusName;
 
     /**
-     * 보고서 기준일 (Lambda 실행일)
+     * 시작일이다. Jira customfield_10015 또는 extendedProperties["jiraStartDate"]에서 파싱한다.
+     * 기능 추가 이전 이벤트는 값이 없을 수 있으며 null을 허용한다.
      */
-    private LocalDate baseDate;
+    private LocalDate startDate;
 
     /**
-     * 대상 월 시작일 (1일)
-     * 예: 2026-01-01
+     * 완료 티켓은 완료일, 진행 중 티켓은 기한일을 나타낸다.
+     * 캘린더 이벤트 start.date 기반이며 Jira duedate와 대응한다. null을 허용한다.
      */
-    private LocalDate monthStart;
+    private LocalDate dueDate;
 
     /**
-     * 대상 월 종료일 (말일)
-     * 예: 2026-01-31
+     * Jira 우선순위이다. description의 "Priority: " 라인에서 파싱하며 없거나 파싱 불가 시 UNKNOWN이다.
      */
-    private LocalDate monthEnd;
+    private JiraPriorityCode priority;
 
-    /**
-     * 연도 (예: 2026)
-     */
-    private int year;
+    /** Jira 이슈 URL이다. */
+    private String url;
 
-    /**
-     * 대상 월 (1~12)
-     */
-    private int month;
+    /** 카테고리(주문/회원/수당/포인트/ABO/RBO)이다. */
+    private String category;
 
-    /**
-     * 분기 (1~4)
-     */
-    private int quarter;
+    /** 이슈 여부이다. [이슈] 태그가 포함되면 true이다. */
+    private boolean issue;
 
-    /**
-     * 분기 시작일 (예: 2026-01-01)
-     */
-    private LocalDate quarterStart;
-
-    /**
-     * 분기 종료일 (예: 2026-03-31)
-     */
-    private LocalDate quarterEnd;
-
-    // =========================================================================
-    // 티켓 데이터 — 카테고리별 분류
-    // key: 카테고리명 (주문/회원/수당/포인트/ABO/RBO)
-    // =========================================================================
-
-    /**
-     * 카테고리 → 대상 월 완료 티켓
-     */
-    private Map<String, List<MonthlyTicketItem>> doneByCategory;
-
-    /**
-     * 카테고리 → 분기 전체 진행중 티켓
-     */
-    private Map<String, List<MonthlyTicketItem>> inProgressByCategory;
-
-    /**
-     * 카테고리 → 이슈 티켓 ([이슈] 태그 + 미완료)
-     */
-    private Map<String, List<MonthlyTicketItem>> issuesByCategory;
-
-    // =========================================================================
-    // 카테고리 상수 — WeeklyReportData와 동일 순서 유지
-    // =========================================================================
-
-    /**
-     * 카테고리 표시 순서 (Confluence 섹션 순서와 일치)
-     */
-    public static final List<String> CATEGORY_ORDER =
-            List.of("주문", "회원", "수당", "포인트", "ABO", "RBO");
-
-    // =========================================================================
-    // 카테고리 분류 (static) — WeeklyReportData에 위임
-    // =========================================================================
-
-    /**
-     * 프로젝트 키 + 제목으로 카테고리 반환.
-     * WeeklyReportData.detectCategory 와 동일한 규칙 적용.
-     *
-     * @param projectKey 티켓 프로젝트 키 (예: "CCE", "RBO")
-     * @param summary    티켓 제목
-     * @return 카테고리명, 분류 불가면 null
-     */
-    public static String detectCategory(String projectKey, String summary) {
-        return WeeklyReportData.detectCategory(projectKey, summary);
-    }
-
-    /**
-     * 이슈 여부 — 제목에 {@code "[이슈]"} 포함.
-     */
-    public static boolean detectIssue(String summary) {
-        return WeeklyReportData.detectIssue(summary);
-    }
-
-    // =========================================================================
-    // 표시용 유틸
-    // =========================================================================
-
-    private static final DateTimeFormatter LABEL_FMT =
-            DateTimeFormatter.ofPattern("MM-dd");
-
-    /**
-     * 기간 문자열. 예: "01-01 ~ 01-31"
-     */
-    public String monthRangeLabel() {
-        return monthStart.format(LABEL_FMT) + " ~ " + monthEnd.format(LABEL_FMT);
-    }
-
-    /**
-     * 분기 레이블. 예: "2026 Q1 (01-01 ~ 03-31)"
-     */
-    public String quarterLabel() {
-        return String.format("%d Q%d (%s ~ %s)",
-                year, quarter,
-                quarterStart.format(LABEL_FMT),
-                quarterEnd.format(LABEL_FMT));
-    }
-
-    /**
-     * 페이지 제목 접두 정보. 예: "2026 Q1 1월"
-     * (전체 페이지 제목은 MonthlyReportService.buildMonthlyTitle() 에서 팀명 포함하여 생성)
-     */
-    public String pageMetaLabel() {
-        return String.format("%d Q%d %d월", year, quarter, month);
-    }
-
-    /**
-     * 분기 디렉토리 제목. 예: "2026년 월간 Q1"
-     */
-    public String quarterDirTitle() {
-        return String.format("%d년 월간 Q%d", year, quarter);
-    }
-
-    /**
-     * 연도 디렉토리 제목. 예: "2026년 월간"
-     */
-    public String yearDirTitle() {
-        return String.format("%d년 월간", year);
-    }
-
-    // =========================================================================
-    // MonthlyTicketItem — 티켓 단위 DTO
-    // WeeklyTicketItem 과 동일한 구조, Monthly 컨텍스트 전용 타입으로 분리
-    // =========================================================================
-
-    /**
-     * 월간보고 티켓 항목
-     */
-    @Data
-    @Builder(toBuilder = true)
-    public static class MonthlyTicketItem {
-
-        /**
-         * Jira 이슈 키 (예: CCE-123)
-         */
-        private String issueKey;
-
-        /**
-         * 이슈 제목
-         */
-        private String summary;
-
-        /**
-         * 담당자 이름
-         */
-        private String assigneeName;
-
-        /**
-         * Jira 상태 코드
-         */
-        private JiraStatusCode status;
-
-        /**
-         * Jira 실제 상태명 (예: "완료", "Done")
-         */
-        private String statusName;
-
-        /**
-         * 시작일 (Jira customfield_10015 / extendedProperties["jiraStartDate"]).
-         * 기능 추가 이전에 생성된 이벤트는 이 값이 없을 수 있음 → null 허용.
-         */
-        private LocalDate startDate;
-
-        /**
-         * 완료일 (완료 티켓) 또는 기한일 (진행중 티켓).
-         * 캘린더 이벤트 start.date 기반 (= Jira duedate). null 허용.
-         */
-        private LocalDate dueDate;
-
-        /**
-         * Jira 우선순위.
-         * description의 "Priority: " 라인으로부터 파싱.
-         * 없거나 파싱 불가 시 {@link JiraPriorityCode#UNKNOWN}.
-         */
-        private JiraPriorityCode priority;
-
-        /**
-         * Jira 이슈 URL
-         */
-        private String url;
-
-        /**
-         * 카테고리 (주문/회원/수당/포인트/ABO/RBO)
-         */
-        private String category;
-
-        /**
-         * 이슈 여부 ([이슈] 태그 포함)
-         */
-        private boolean issue;
-
-        /**
-         * 원본 프로젝트 키 (디버깅용)
-         */
-        private String projectKey;
-    }
+    /** 원본 프로젝트 키이다(디버깅용). */
+    private String projectKey;
+  }
 }
