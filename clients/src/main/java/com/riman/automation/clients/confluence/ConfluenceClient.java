@@ -531,8 +531,8 @@ public class ConfluenceClient extends BaseHttpClient {
       JsonNode results = root.path("results");
       if (results.isArray()) {
         for (JsonNode att : results) {
-          String attTitle = att.path("title").asText("");
-          if (fileName.equals(attTitle)) {
+          String title = att.path("title").asText("");
+          if (fileName.equals(title)) {
             String id = att.path("id").asText(null);
             log.info("[ConfluenceClient] 기존 첨부파일 발견: id={}, file={}", id, fileName);
             return id;
