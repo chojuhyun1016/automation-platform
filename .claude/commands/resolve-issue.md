@@ -120,7 +120,12 @@ critical/high 이슈 → 수정 후 재검증.
   충돌 발생 시 `/resolve-conflict` 프로세스를 실행하여 해결해라.
 - `gh pr create --title "[#$ARGUMENTS] 제목" --body "resolves #$ARGUMENTS"`
 - PR 본문에 변경 요약 + 검증 결과
-- SPEC.md Phase가 있으면 체크박스 완료: `- [x] Phase N 완료`
+- **SPEC.md Phase 체크박스 전체 완료 처리 (필수)**:
+  - 최상위 `- [x] Phase N 완료 (PR #N)` 체크
+  - `### 수정/개선` 내 **모든 세부 체크박스** `[x]` (중첩 항목 포함)
+  - `### 검증` 내 **모든 체크박스** `[x]`
+  - 관례는 루트 `CLAUDE.md` "SPEC.md Phase 체크박스 완료 규칙" 섹션 참조
+  - 누락 시 새 Claude 세션이 잘못된 "미완료" 상태를 신뢰하여 중복 작업 발생
 - `gh issue close $ARGUMENTS` 제안
 
 ### 10. 후속 안내
