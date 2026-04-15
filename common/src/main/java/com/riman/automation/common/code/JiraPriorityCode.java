@@ -4,37 +4,36 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Jira 이슈 우선순위 코드
- *
- * <p>order 값이 낮을수록 높은 우선순위 (정렬 기준).
+ * Jira 이슈 우선순위 코드.
+ * order 값이 낮을수록 높은 우선순위이며, 정렬 기준으로 사용한다.
  */
 @Getter
 @RequiredArgsConstructor
 public enum JiraPriorityCode {
 
-    HIGHEST("Highest", 1, "🔴"),
-    HIGH("High", 2, "🟠"),
-    MEDIUM("Medium", 3, "🟡"),
-    LOW("Low", 4, "🟢"),
-    LOWEST("Lowest", 5, "⚪"),
-    UNKNOWN("Unknown", 99, "⚫");
+  HIGHEST("Highest", 1, "🔴"),
+  HIGH("High", 2, "🟠"),
+  MEDIUM("Medium", 3, "🟡"),
+  LOW("Low", 4, "🟢"),
+  LOWEST("Lowest", 5, "⚪"),
+  UNKNOWN("Unknown", 99, "⚫");
 
-    private final String displayName;
-    private final int order;
-    private final String emoji;
+  private final String displayName;
+  private final int order;
+  private final String emoji;
 
-    public static JiraPriorityCode from(String name) {
-        if (name == null) return UNKNOWN;
-        for (JiraPriorityCode p : values()) {
-            if (p.displayName.equalsIgnoreCase(name)) return p;
-        }
-        return UNKNOWN;
+  public static JiraPriorityCode from(String name) {
+    if (name == null) return UNKNOWN;
+    for (JiraPriorityCode p : values()) {
+      if (p.displayName.equalsIgnoreCase(name)) return p;
     }
+    return UNKNOWN;
+  }
 
-    /**
-     * High 이상 → 보고서 상단 배치
-     */
-    public boolean isHighOrAbove() {
-        return this == HIGHEST || this == HIGH;
-    }
+  /**
+   * High 이상이면 true를 반환한다. 보고서 상단 배치 판단에 사용.
+   */
+  public boolean isHighOrAbove() {
+    return this == HIGHEST || this == HIGH;
+  }
 }
