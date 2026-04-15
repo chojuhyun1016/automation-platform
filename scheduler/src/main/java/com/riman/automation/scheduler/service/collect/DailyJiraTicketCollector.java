@@ -17,106 +17,99 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Jira 데이터 수집 서비스
+ * Jira JQL 기반 티켓 수집 서비스.
+ * JiraClient 호출 후 JSON을 파싱하여 TicketItem 목록을 반환한다. 포맷과 비즈니스 판단은 수행하지 않는다.
  *
- * <p>JiraClient 호출 → JSON 파싱 → TicketItem 목록 반환.
- * 포맷, 비즈니스 판단 없음.
- *
- * <p>포함 기준:
- * <ul>
- *   <li>statusCategory: new(To Do) + indeterminate(In Progress) — 미완료 상태만 수집</li>
- *   <li>금주 범위의 due date (금요일이면 차주 금요일까지)</li>
- *   <li>정렬: 우선순위 높은 것 → due date 임박 순</li>
- * </ul>
+ * 포함 기준:
+ *   statusCategory: new(To Do) + indeterminate(In Progress) — 미완료 상태만 수집
+ *   금주 범위의 due date (금요일이면 차주 금요일까지)
+ *   정렬: 우선순위 높은 것 → due date 임박 순
  */
 @Slf4j
 @RequiredArgsConstructor
 public class DailyJiraTicketCollector {
 
-    private static final String DEFAULT_FIELDS =
-            "summary,status,priority,assignee,duedate,project,issuetype";
+  private static final String DEFAULT_FIELDS =
+      "summary,status,priority,assignee,duedate,project,issuetype";
 
-    private final JiraClient jiraClient;
-    private final String jiraBaseUrl;
+  private final JiraClient jiraClient;
+  private final String jiraBaseUrl;
 
-    /**
-     * 활성 티켓 수집
-     *
-     * @param projectKeys Jira 프로젝트 키 목록
-     * @param baseDate    기준일 (KST 오늘)
-     */
-    public List<TicketItem> collect(List<String> projectKeys, LocalDate baseDate) {
-        if (projectKeys == null || projectKeys.isEmpty()) return List.of();
+  /**
+   * 활성 티켓 수집.
+   *
+   * @param projectKeys Jira 프로젝트 키 목록
+   * @param baseDate 기준일 (KST 오늘)
+   */
+  public List<TicketItem> collect(List<String> projectKeys, LocalDate baseDate) {
+    if (projectKeys == null || projectKeys.isEmpty()) return List.of();
 
-        LocalDate endDate = ReportWeekCode.endDate(baseDate);
-        String jql = buildJql(projectKeys, endDate);
+    LocalDate endDate = ReportWeekCode.endDate(baseDate);
+    String jql = buildJql(projectKeys, endDate);
 
-        JsonNode result = jiraClient.search(jql, DEFAULT_FIELDS, 0); // 0 = 전체 수집 (제한 없음)
-        List<TicketItem> items = parseIssues(result, baseDate);
+    // 0 = 제한 없이 전체 수집
+    JsonNode result = jiraClient.search(jql, DEFAULT_FIELDS, 0);
+    List<TicketItem> items = parseIssues(result, baseDate);
 
-        // 우선순위 오름차순(1=Highest) → due date 임박 순(null은 마지막)
-        items.sort(Comparator
-                .comparingInt((TicketItem t) -> t.getPriority().getOrder())
-                .thenComparingInt(t -> t.getDueDate() == null ? Integer.MAX_VALUE
-                        : (int) java.time.temporal.ChronoUnit.DAYS.between(baseDate, t.getDueDate()))
-        );
+    // 우선순위 오름차순(1=Highest) → due date 임박 순(null은 마지막)
+    items.sort(Comparator
+        .comparingInt((TicketItem t) -> t.getPriority().getOrder())
+        .thenComparingInt(t -> t.getDueDate() == null ? Integer.MAX_VALUE
+            : (int) java.time.temporal.ChronoUnit.DAYS.between(baseDate, t.getDueDate()))
+    );
 
-        log.info("[DailyJiraTicketCollector] 수집 완료: {}건", items.size());
-        return items;
+    log.info("[DailyJiraTicketCollector] 수집 완료: {}건", items.size());
+    return items;
+  }
+
+  private String buildJql(List<String> projects, LocalDate endDate) {
+    return "project in (" + String.join(", ", projects) + ")"
+        + " AND statusCategory in ('new', 'indeterminate')"
+        + " AND issuetype != Epic"
+        + " AND (duedate <= '" + DateTimeUtil.formatDate(endDate) + "'"
+        + "      OR duedate is EMPTY)"
+        + " ORDER BY priority ASC, duedate ASC";
+  }
+
+  private List<TicketItem> parseIssues(JsonNode result, LocalDate baseDate) {
+    List<TicketItem> list = new ArrayList<>();
+    JsonNode issues = result.path("issues");
+    if (!issues.isArray()) return list;
+
+    for (JsonNode issue : issues) {
+      try {
+        list.add(parseIssue(issue, baseDate));
+      } catch (Exception e) {
+        log.warn("[DailyJiraTicketCollector] 이슈 파싱 실패: key={}", issue.path("key").asText(), e);
+      }
     }
+    return list;
+  }
 
-    // =========================================================================
-    // 내부
-    // =========================================================================
+  private TicketItem parseIssue(JsonNode issue, LocalDate baseDate) {
+    String key = issue.path("key").asText();
+    JsonNode f = issue.path("fields");
 
-    private String buildJql(List<String> projects, LocalDate endDate) {
-        return "project in (" + String.join(", ", projects) + ")"
-                + " AND statusCategory in ('new', 'indeterminate')"
-                + " AND issuetype != Epic"
-                + " AND (duedate <= '" + DateTimeUtil.formatDate(endDate) + "'"
-                + "      OR duedate is EMPTY)"
-                + " ORDER BY priority ASC, duedate ASC";
-    }
+    String summary = f.path("summary").asText("");
+    String projectKey = f.path("project").path("key").asText("");
+    String assigneeName = f.path("assignee").path("displayName").asText("미배정");
+    String assigneeId = f.path("assignee").path("accountId").asText("");
 
-    private List<TicketItem> parseIssues(JsonNode result, LocalDate baseDate) {
-        List<TicketItem> list = new ArrayList<>();
-        JsonNode issues = result.path("issues");
-        if (!issues.isArray()) return list;
+    String catKey = f.path("status").path("statusCategory").path("key").asText();
+    JiraStatusCode status = JiraStatusCode.fromCategoryKey(catKey);
+    JiraPriorityCode priority = JiraPriorityCode.from(f.path("priority").path("name").asText());
 
-        for (JsonNode issue : issues) {
-            try {
-                list.add(parseIssue(issue, baseDate));
-            } catch (Exception e) {
-                log.warn("[DailyJiraTicketCollector] 이슈 파싱 실패: key={}", issue.path("key").asText(), e);
-            }
-        }
-        return list;
-    }
+    LocalDate dueDate = DateTimeUtil.parseDate(f.path("duedate").asText(null));
+    DueDateUrgencyCode urgency = DueDateUrgencyCode.of(baseDate, dueDate);
 
-    private TicketItem parseIssue(JsonNode issue, LocalDate baseDate) {
-        String key = issue.path("key").asText();
-        JsonNode f = issue.path("fields");
+    String url = (jiraBaseUrl != null ? jiraBaseUrl : "https://riman-it.atlassian.net")
+        + "/browse/" + key;
 
-        String summary = f.path("summary").asText("");
-        String projectKey = f.path("project").path("key").asText("");
-        String assigneeName = f.path("assignee").path("displayName").asText("미배정");
-        String assigneeId = f.path("assignee").path("accountId").asText("");
-
-        String catKey = f.path("status").path("statusCategory").path("key").asText();
-        JiraStatusCode status = JiraStatusCode.fromCategoryKey(catKey);
-        JiraPriorityCode priority = JiraPriorityCode.from(f.path("priority").path("name").asText());
-
-        LocalDate dueDate = DateTimeUtil.parseDate(f.path("duedate").asText(null));
-        DueDateUrgencyCode urgency = DueDateUrgencyCode.of(baseDate, dueDate);
-
-        String url = (jiraBaseUrl != null ? jiraBaseUrl : "https://riman-it.atlassian.net")
-                + "/browse/" + key;
-
-        return TicketItem.builder()
-                .issueKey(key).summary(summary).projectKey(projectKey)
-                .assigneeName(assigneeName).assigneeAccountId(assigneeId)
-                .status(status).priority(priority)
-                .dueDate(dueDate).urgency(urgency).url(url)
-                .build();
-    }
+    return TicketItem.builder()
+        .issueKey(key).summary(summary).projectKey(projectKey)
+        .assigneeName(assigneeName).assigneeAccountId(assigneeId)
+        .status(status).priority(priority)
+        .dueDate(dueDate).urgency(urgency).url(url)
+        .build();
+  }
 }
