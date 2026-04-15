@@ -111,9 +111,10 @@ SPEC.md 기록 완료 후, 사용자에게 물어라:
 ```
 
 **승인 시**: 각 Phase에 대해 `/create-issue Phase N` 프로세스를 순차 실행해라.
-- Phase 제목 → 이슈 제목
-- Phase 메타(라벨, 우선순위) → 이슈 라벨
-- Phase 내용 → 이슈 본문
+- `/create-issue`가 중복 체크, 라벨 검증, 본문 작성, `--body-file` 방식 처리를 담당한다.
+- `gh issue create`는 PreToolUse 훅으로 하드 차단되어 있다. Bash로 직접 호출 시도 금지.
+- **경로 혼용 금지**: 한 세션에서 직접 호출과 `/create-issue`를 혼용하면 중복 생성 위험. `/create-issue` 경로만 사용해라.
+- 동일 제목의 열린 이슈가 이미 있으면 `/create-issue`가 SKIP 처리한다 (멱등성 보장).
 - 생성 후 SPEC.md에 이슈 번호 역기록 (`Phase N1 (#12)`)
 - 모든 Phase 완료 후 아래 형식의 표를 보여줘라:
 

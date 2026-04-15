@@ -60,6 +60,15 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE 'gh issue create'; then echo 'BLOCKED: gh issue create 직접 호출 금지 - /create-issue 슬래시 커맨드 사용 (중복 생성 방지)' && exit 1; fi"
+          }
+        ]
+      },
+      {
         "matcher": "Read|Edit|Write",
         "hooks": [
           {

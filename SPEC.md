@@ -283,6 +283,195 @@ PR 생성/업데이트 시 GitHub Actions에서 전체 테스트를 자동 실�
 
 ---
 
+## Phase N9: 주석 리팩토링 - common + clients 모듈 (#23)
+
+- [ ] Phase N9 완료
+
+### 오버뷰
+common(18파일)과 clients(8파일) 모듈의 전체 주석을 재작성하고 Google Java Style 포맷팅을 적용한다. 소스 코드 로직은 절대 변경하지 않는다.
+
+### 메타
+- **라벨**: refactor
+- **우선순위**: medium
+- **병렬 가능**: 예 (모든 N9-N13은 주석/포맷만 변경, 전체 병렬 가능)
+
+### 전제조건
+- 없음
+
+### 작업 규칙 (N9-N13 공통)
+- 소스 코드 로직 절대 변경 금지 (주석, 공백, 들여쓰기만 수정)
+- 히스토리성 주석 제거 (날짜, 작성자, 변경 이력 등)
+- 주석에 특수문자, 기호, HTML 사용 금지
+- 클래스 Javadoc: 핵심 역할 1-2문장
+- 주요 public 메서드: 동작, 파라미터, 리턴값, 예외 설명
+- private/내부 메서드: 복잡한 로직만 간결하게 설명
+- 중요 비즈니스 로직 흐름은 상세하게 기술
+- 들여쓰기: 스페이스 2칸 (Google Java Style)
+- import 정렬, 빈 줄 정리
+
+### 수정/개선
+- [ ] **common/auth/** (3파일) — TokenProvider, BasicTokenProvider, EnvTokenProvider 주석 정리
+- [ ] **common/code/** (7파일) — Enum 클래스 주석 정리 (AbsenceTypeCode, DueDateUrgencyCode, JiraPriorityCode, JiraStatusCode, ReportPeriodCode, ReportWeekCode, WorkStatusCode)
+- [ ] **common/exception/** (4파일) — 예외 클래스 주석 정리
+- [ ] **common/model/** (1파일) — GroupwareAccountInfo 주석 정리
+- [ ] **common/slack/** (1파일) — SlackBlockBuilder 주석 정리 (빌더 메서드 상세 설명)
+- [ ] **common/util/** (2파일) — DateTimeUtil, SentryInitializer 주석 정리
+- [ ] **clients/http/** (3파일) — BaseHttpClient, ApiResponse, SharedHttpClient 주석 정리 (HTTP 통신 흐름 상세)
+- [ ] **clients/anthropic/** (1파일) — AnthropicClient 주석 정리
+- [ ] **clients/calendar/** (1파일) — GoogleCalendarClient 주석 정리 (캐싱 패턴 상세)
+- [ ] **clients/confluence/** (1파일) — ConfluenceClient 주석 정리
+- [ ] **clients/jira/** (1파일) — JiraClient 주석 정리
+- [ ] **clients/slack/** (1파일) — SlackClient 주석 정리
+
+### 검증
+- [ ] `./gradlew :common:compileJava` 빌드 성공
+- [ ] `./gradlew :clients:compileJava` 빌드 성공
+- [ ] `./gradlew :common:test` 테스트 통과
+- [ ] `./gradlew :clients:test` 테스트 통과
+
+---
+
+## Phase N10: 주석 리팩토링 - ingest 모듈 (#24)
+
+- [ ] Phase N10 완료
+
+### 오버뷰
+ingest 모듈(25파일, 5,458 LOC)의 전체 주석을 재작성하고 Google Java Style 포맷팅을 적용한다. Slack 커맨드 수신부터 SQS 위임까지의 흐름이 주석으로 파악 가능하도록 한다.
+
+### 메타
+- **라벨**: refactor
+- **우선순위**: medium
+- **병렬 가능**: 예
+
+### 전제조건
+- 없음
+
+### 수정/개선
+- [ ] **handler/** (1파일) — IngestHandler Lambda 진입점 주석 (요청 라우팅 흐름 상세)
+- [ ] **facade/** (5파일) — SlackFacade, CurrentTicketFacade, AccountManageFacade, JiraWebhookFacade, ScheduleManageFacade
+    - [ ] SlackFacade: 커맨드 라우팅 분기 흐름 상세 기술
+    - [ ] CurrentTicketFacade: 기간별 필터링 로직 상세 기술
+    - [ ] ScheduleManageFacade: CRUD 분기 흐름 상세 기술
+- [ ] **service/** (5파일) — GroupwareCredentialService, PasswordEncryptionService, ScheduleMappingQueryService, SlackApiService, WorkerMessageService
+    - [ ] PasswordEncryptionService: KMS 암호화 흐름 상세 기술
+    - [ ] WorkerMessageService: SQS 메시지 위임 패턴 상세 기술
+- [ ] **payload/** (5파일) — AbsenceModalBuilder, AccountModalBuilder, CurrentTicketModalBuilder, RemoteWorkModalBuilder, ScheduleModalBuilder
+- [ ] **dto/slack/** (6파일) — SlackCommandRequest, AbsenceModalSubmit, AccountModalSubmit, CurrentTicketModalSubmit, RemoteWorkModalSubmit, ScheduleModalSubmit
+- [ ] **dto/jira/** (1파일) — JiraWebhookEvent
+- [ ] **security/** (1파일) — SlackSignatureVerifier (서명 검증 흐름 상세)
+- [ ] **util/** (1파일) — HttpResponse
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 테스트 통과
+
+---
+
+## Phase N11: 주석 리팩토링 - worker 모듈 (#25)
+
+- [ ] Phase N11 완료
+
+### 오버뷰
+worker 모듈(24파일, 4,531 LOC)의 전체 주석을 재작성하고 Google Java Style 포맷팅을 적용한다. SQS 메시지 수신부터 Calendar/DynamoDB 처리까지의 흐름이 주석으로 파악 가능하도록 한다.
+
+### 메타
+- **라벨**: refactor
+- **우선순위**: medium
+- **병렬 가능**: 예
+
+### 전제조건
+- 없음
+
+### 수정/개선
+- [ ] **handler/** (2파일) — WorkerHandler, DlqAlertHandler
+    - [ ] WorkerHandler: SQS 메시지 디스패치 흐름 상세 기술
+    - [ ] DlqAlertHandler: DLQ 알림 흐름 상세 기술
+- [ ] **facade/** (4파일) — AbsenceFacade, JiraIssueFacade, RemoteWorkFacade, ScheduleFacade
+    - [ ] AbsenceFacade: 부재 등록 전체 오케스트레이션 상세 기술
+    - [ ] JiraIssueFacade: CREATE/UPDATE/DELETE 분기 흐름 상세 기술
+- [ ] **service/** (11파일) — AbsenceService, CalendarService, ConfigService, DedupeService, GroupwareMessageService, JiraCalendarMappingService, MonitoringAlertService, RemoteWorkService, ScheduleEventMappingService, SlackNotificationService, TeamMemberService
+    - [ ] CalendarService: Google Calendar CRUD 패턴 상세 기술
+    - [ ] JiraCalendarMappingService: DynamoDB 2계층 조회 패턴 상세 기술
+    - [ ] DedupeService: 중복 방지 로직 상세 기술
+    - [ ] ConfigService: S3 설정 로딩 및 static 캐싱 패턴 상세 기술
+- [ ] **payload/** (2파일) — JiraSlackMessageBuilder, SlackTimeHeaderBuilder
+- [ ] **dto/** (5파일) — JiraWebhookEvent, TeamMember, AbsenceMessage, RemoteWorkMessage, ScheduleMessage
+
+### 검증
+- [ ] `./gradlew :worker:compileJava` 빌드 성공
+- [ ] `./gradlew :worker:test` 테스트 통과
+
+---
+
+## Phase N12: 주석 리팩토링 - scheduler 상위 레이어 (#26)
+
+- [ ] Phase N12 완료
+
+### 오버뷰
+scheduler 모듈 상위 레이어(18파일)의 주석을 재작성한다. 보고서 파이프라인의 전체 흐름(handler -> facade -> report service -> load service)이 주석으로 파악 가능하도록 한다.
+
+### 메타
+- **라벨**: refactor
+- **우선순위**: medium
+- **병렬 가능**: 예
+
+### 전제조건
+- 없음
+
+### 수정/개선
+- [ ] **handler/** (1파일) — SchedulerHandler Lambda 진입점 (Daily/Weekly/Monthly 분기 흐름 상세)
+- [ ] **facade/** (3파일) — DailyReportFacade, WeeklyReportFacade, MonthlyReportFacade
+    - [ ] 각 Facade의 파이프라인 오케스트레이션 흐름 상세 기술
+- [ ] **service/report/** (3파일) — DailyReportService, WeeklyReportService, MonthlyReportService
+    - [ ] 수집 -> 포맷 -> 전송 파이프라인 흐름 상세 기술
+- [ ] **service/load/** (2파일) — ReportRulesService, TeamMemberService
+    - [ ] ReportRulesService: S3 규칙 파일 로딩 및 AI 프롬프트 구성 상세 기술
+- [ ] **dto/report/** (3파일) — DailyReportData, WeeklyReportData, MonthlyReportData
+- [ ] **dto/s3/** (8파일) — AnnouncementItem, ArchiveConfig, DailyReportConfig, MemberReportPreference, MonthlyReportConfig, ProjectGroup, TeamMember, WeeklyReportConfig
+- [ ] **service/ReportArchiveService.java** (1파일) — Confluence 아카이브 흐름 상세 기술
+- [ ] **tool/** (1파일) — CalendarStartDateFixer
+
+### 검증
+- [ ] `./gradlew :scheduler:compileJava` 빌드 성공
+
+---
+
+## Phase N13: 주석 리팩토링 - scheduler 하위 레이어 + groupware (#27)
+
+- [ ] Phase N13 완료
+
+### 오버뷰
+scheduler 모듈 하위 레이어(16파일)와 groupware 모듈(4파일)의 주석을 재작성한다. 데이터 수집, 포맷팅, Excel 생성의 세부 로직이 주석으로 파악 가능하도록 한다.
+
+### 메타
+- **라벨**: refactor
+- **우선순위**: medium
+- **병렬 가능**: 예
+
+### 전제조건
+- 없음
+
+### 수정/개선
+- [ ] **scheduler/service/collect/** (6파일) — DailyAbsenceCollector, DailyCalendarTicketCollector, DailyJiraTicketCollector, DailyScheduleCollector, MonthlyCalendarTicketCollector, WeeklyCalendarTicketCollector
+    - [ ] 각 Collector의 데이터 수집 대상, 필터 조건, 반환 형식 상세 기술
+- [ ] **scheduler/service/format/** (3파일) — DailyReportFormatter, WeeklyReportFormatter, MonthlyReportFormatter
+    - [ ] Slack Block Kit 메시지 구성 흐름 상세 기술
+- [ ] **scheduler/service/excel/** (2파일) — WeeklyExcelGenerator, MonthlyExcelGenerator
+    - [ ] Excel 시트 구성, 셀 매핑 로직 상세 기술
+- [ ] **scheduler/service/util/** (1파일) — CalendarTicketParser (파싱 규칙 상세)
+- [ ] **groupware/handler/** (1파일) — GroupwareHandler
+- [ ] **groupware/facade/** (1파일) — GroupwareAbsenceFacade (ECS 오케스트레이션 흐름 상세)
+- [ ] **groupware/service/** (1파일) — EcsTaskService (Fargate 태스크 실행 패턴 상세)
+- [ ] **groupware/dto/** (1파일) — GroupwareAbsenceMessage
+
+### 검증
+- [ ] `./gradlew :scheduler:compileJava` 빌드 성공
+- [ ] `./gradlew :scheduler:test` 테스트 통과
+- [ ] `./gradlew :groupware:compileJava` 빌드 성공
+- [ ] `./gradlew :groupware:test` 테스트 통과
+
+---
+
 ## 실행 가이드
 
 Phase 작업을 시작하려면:
@@ -301,6 +490,11 @@ Phase 작업을 시작하려면:
 | N6 | #14 | feat | `source scripts/create-worktree.sh feat 14 scheduler-groupware-test` |
 | N7 | #15 | chore | `source scripts/create-worktree.sh chore 15 ci-test-enhancement` |
 | N8 | #21 | feat | `source scripts/create-worktree.sh feat 21 current-ticket-monthly` |
+| N9 | #23 | refactor | `source scripts/create-worktree.sh refactor 23 comment-common-clients` |
+| N10 | #24 | refactor | `source scripts/create-worktree.sh refactor 24 comment-ingest` |
+| N11 | #25 | refactor | `source scripts/create-worktree.sh refactor 25 comment-worker` |
+| N12 | #26 | refactor | `source scripts/create-worktree.sh refactor 26 comment-scheduler-upper` |
+| N13 | #27 | refactor | `source scripts/create-worktree.sh refactor 27 comment-scheduler-lower-groupware` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
 > 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`

@@ -87,22 +87,52 @@ $ARGUMENTS가 "Phase N" 형식이면:
 [Phase 기반이면: `SPEC.md Phase N 참조`]
 ```
 
-**라벨**: GitHub 리포에 존재하는 라벨만 사용. `gh label list`로 확인 후 매핑:
+**라벨**: `gh label list`로 확인 후 매핑. 필요한 라벨이 없으면 생성해라.
 
-| 유형 | GitHub 라벨 |
-|------|-----------|
-| feature / enhancement | `enhancement` |
-| bug | `bug` |
-| refactor / chore | 라벨 없이 생성 (존재하지 않는 라벨 사용 금지) |
+| 유형 | GitHub 라벨 | 색상 |
+|------|-----------|------|
+| feature / enhancement | `enhancement` | `a2eeef` |
+| bug | `bug` | `d73a4a` |
+| refactor | `refactor` | `fbca04` |
+| chore | `chore` | `ededed` |
 
-라벨이 리포에 없으면 **라벨 없이 생성**해라. `--label` 옵션을 생략.
+라벨이 리포에 없으면 생성 후 사용:
+```bash
+gh label create "라벨명" --description "설명" --color "색상코드" 2>/dev/null || true
+```
 
-### 4. 사용자 확인 후 생성
+### 4. 중복 체크 (필수)
 
-내용을 보여주고 확인 후 `gh issue create` 실행.
+이슈 생성 직전에 **동일 제목의 열린 이슈가 이미 있는지** 반드시 확인해라:
+```bash
+TITLE="제목 전체 문자열"
+EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number,title --jq '.[0].number')
+if [ -n "$EXISTING" ]; then
+  echo "이미 존재: #$EXISTING - 중복 생성 SKIP"
+  # SPEC.md 역기록(5단계)에 기존 번호 사용. 6단계 워크트리 제안도 기존 번호로 진행.
+  # 이후 로직을 EXISTING 값으로 이어가라.
+else
+  # 5번 생성 단계로 진행
+  :
+fi
+```
+
+- 중복 발견 시: 기존 이슈 번호를 그대로 사용하여 SPEC.md 역기록/워크트리 제안 진행
+- 중복 아님: 다음 5번 단계로 이동
+
+### 5. 사용자 확인 후 생성
+
+내용을 보여주고 확인 후 생성. `--body` 인라인 heredoc은 사용 금지 (Claude Code 보안 체크에서 마크다운 `##`/`###`를 차단함).
+반드시 `--body-file` 방식을 사용해라:
+```bash
+cat > /tmp/issue-body.md <<'EOF'
+이슈 본문 (마크다운)
+EOF
+gh issue create --title "제목" --label "라벨" --body-file /tmp/issue-body.md
+```
 수정 요청 시 반영 후 재확인.
 
-### 5. SPEC.md 역기록 (Phase 기반)
+### 6. SPEC.md 역기록 (Phase 기반)
 
 이슈 생성 후 **2곳**을 업데이트해라:
 
@@ -115,7 +145,7 @@ $ARGUMENTS가 "Phase N" 형식이면:
 이 매핑이 있어야 `/resolve-issue 12` 실행 시 SPEC.md에서 해당 Phase를 찾을 수 있고,
 사용자가 SPEC.md만 열어도 실행 커맨드를 바로 복사할 수 있다.
 
-### 6. 워크트리 생성 제안
+### 7. 워크트리 생성 제안
 
 이슈 생성 직후, 사용자에게 **워크트리 생성 여부를 질문**해라:
 
