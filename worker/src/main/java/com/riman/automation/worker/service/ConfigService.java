@@ -14,342 +14,277 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import java.util.Map;
 
 /**
- * S3 기반 설정 서비스
- *
- * <p>config.json을 S3에서 로드하여 캐싱하고, 각 기능별 설정값을 제공한다.
- * 캐시 TTL은 5분이며, 만료 시 자동 재로드한다.
- *
- * <p><b>관리하는 설정 섹션:</b>
- * <ul>
- *   <li>{@link ProjectRouting}   — Jira 프로젝트별 Slack/캘린더 라우팅</li>
- *   <li>{@link RemoteWorkConfig} — 재택근무 캘린더 설정</li>
- *   <li>{@link AbsenceConfig}    — 부재등록 캘린더 설정</li>
- * </ul>
- *
- * <p>기존 {@code RoutingConfig}(별도 파일)는 이 클래스의 내부 static class
- * {@link ProjectRouting}으로 흡수. {@code AbsenceConfig}, {@code RemoteWorkConfig}와
- * 동일한 위치에 두어 설정 구조를 한 곳에서 파악할 수 있다.
+ * S3 기반 설정 서비스.
+ * config.json을 S3에서 로드하여 5분 TTL로 캐싱하고 각 기능별 설정값을 제공한다.
+ * 관리 섹션은 Jira 프로젝트 라우팅(ProjectRouting), 재택근무(RemoteWorkConfig), 부재등록(AbsenceConfig)이다.
+ * 캘린더 ID는 absence → remoteWork → CCE(기본) → "primary" 순서로 폴백된다.
  */
 @Slf4j
 public class ConfigService {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final long CACHE_TTL_MS = 5 * 60 * 1000; // 5분
+  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final long CACHE_TTL_MS = 5 * 60 * 1000;
 
-    private final S3Client s3Client;
-    private final String bucketName;
-    private final String configKey;
+  private final S3Client s3Client;
+  private final String bucketName;
+  private final String configKey;
 
-    private Map<String, ProjectRouting> routingConfigs;
+  private Map<String, ProjectRouting> routingConfigs;
+  private ProjectRouting defaultConfig;
+  private RemoteWorkConfig remoteWorkConfig;
+  private AbsenceConfig absenceConfig;
+  private long lastLoadTime = 0;
+
+  public ConfigService() {
+    this.s3Client = S3Client.builder().build();
+    this.bucketName = System.getenv("CONFIG_BUCKET");
+    this.configKey = System.getenv("CONFIG_KEY");
+
+    if (bucketName == null || configKey == null) {
+      throw new ConfigException("CONFIG_BUCKET 또는 CONFIG_KEY 미설정");
+    }
+
+    log.info("ConfigService 초기화: bucket={}, key={}", bucketName, configKey);
+    loadConfig();
+  }
+
+  /**
+   * 테스트용 생성자. Mock S3Client를 주입할 수 있으며 생성 시 loadConfig()가 호출된다.
+   */
+  ConfigService(S3Client s3Client, String bucketName, String configKey) {
+    this.s3Client = s3Client;
+    this.bucketName = bucketName;
+    this.configKey = configKey;
+    loadConfig();
+  }
+
+  /**
+   * 프로젝트 키 기반 Jira 라우팅 설정을 반환한다. 없으면 null을 반환한다.
+   *
+   * @param projectKey Jira 프로젝트 키 (예: CCE, RBO)
+   */
+  public ProjectRouting getRoutingConfig(String projectKey) {
+    refreshIfExpired();
+    return routingConfigs.getOrDefault(projectKey, null);
+  }
+
+  /**
+   * config.json defaultConfig 섹션의 기본 라우팅 설정을 반환한다.
+   */
+  public ProjectRouting getDefaultRoutingConfig() {
+    refreshIfExpired();
+    return defaultConfig;
+  }
+
+  /**
+   * 재택근무 캘린더 ID를 반환한다.
+   * 폴백 순서: remoteWork.calendar_id → CCE.calendar_id → "primary".
+   */
+  public String getRemoteWorkCalendarId() {
+    refreshIfExpired();
+
+    if (remoteWorkConfig != null
+        && remoteWorkConfig.getCalendarId() != null
+        && !remoteWorkConfig.getCalendarId().isEmpty()) {
+      log.info("재택 캘린더 ID: {}", remoteWorkConfig.getCalendarId());
+      return remoteWorkConfig.getCalendarId();
+    }
+
+    log.warn("remoteWork calendar_id 미설정, CCE 캘린더 사용");
+    return getDefaultCalendarId();
+  }
+
+  public RemoteWorkConfig getRemoteWorkConfig() {
+    refreshIfExpired();
+    return remoteWorkConfig;
+  }
+
+  /**
+   * 부재등록 캘린더 ID를 반환한다.
+   * 폴백 순서: absence.calendar_id → remoteWork.calendar_id → CCE.calendar_id → "primary".
+   */
+  public String getAbsenceCalendarId() {
+    refreshIfExpired();
+
+    if (absenceConfig != null
+        && absenceConfig.getCalendarId() != null
+        && !absenceConfig.getCalendarId().isEmpty()) {
+      log.info("부재 캘린더 ID: {}", absenceConfig.getCalendarId());
+      return absenceConfig.getCalendarId();
+    }
+
+    log.warn("absence calendar_id 미설정, remoteWork 캘린더로 폴백");
+    return getRemoteWorkCalendarId();
+  }
+
+  public AbsenceConfig getAbsenceConfig() {
+    refreshIfExpired();
+    return absenceConfig;
+  }
+
+  /**
+   * 일정등록 캘린더 ID를 반환한다.
+   * 별도 schedule 섹션 없이 absence → remoteWork → CCE → "primary" 폴백 체인을 재사용한다.
+   * 일정은 부재/재택과 동일한 공유 캘린더에 등록하려는 의도이며, 향후 schedule 섹션이 추가되면 이 메서드만 수정한다.
+   */
+  public String getScheduleCalendarId() {
+    refreshIfExpired();
+
+    if (absenceConfig != null
+        && absenceConfig.getCalendarId() != null
+        && !absenceConfig.getCalendarId().isEmpty()) {
+      log.info("일정 캘린더 ID (absence 폴백): {}", absenceConfig.getCalendarId());
+      return absenceConfig.getCalendarId();
+    }
+
+    if (remoteWorkConfig != null
+        && remoteWorkConfig.getCalendarId() != null
+        && !remoteWorkConfig.getCalendarId().isEmpty()) {
+      log.info("일정 캘린더 ID (remoteWork 폴백): {}", remoteWorkConfig.getCalendarId());
+      return remoteWorkConfig.getCalendarId();
+    }
+
+    log.warn("일정 캘린더 ID 미설정, CCE 캘린더 폴백");
+    return getDefaultCalendarId();
+  }
+
+  /**
+   * TTL이 만료되었으면 S3에서 config를 재로드한다.
+   */
+  private void refreshIfExpired() {
+    if (System.currentTimeMillis() - lastLoadTime > CACHE_TTL_MS) {
+      log.info("Config 캐시 만료, 재로드");
+      loadConfig();
+    }
+  }
+
+  /**
+   * CCE 라우팅의 calendar_id를 기본값으로 반환한다. 없으면 "primary"로 폴백한다.
+   */
+  private String getDefaultCalendarId() {
+    if (routingConfigs != null && routingConfigs.containsKey("CCE")) {
+      String cceCalendarId = routingConfigs.get("CCE").getCalendarId();
+      log.info("CCE 캘린더 ID 사용: {}", cceCalendarId);
+      return cceCalendarId;
+    }
+    log.warn("CCE 설정 없음, primary 사용");
+    return "primary";
+  }
+
+  /**
+   * S3에서 config.json을 로드하여 내부 필드를 갱신한다.
+   * 최초 로드 실패 시 ConfigException을 던지고, 이후 로드 실패 시 기존 캐시를 유지한다.
+   */
+  private void loadConfig() {
+    try {
+      GetObjectRequest request = GetObjectRequest.builder()
+          .bucket(bucketName)
+          .key(configKey)
+          .build();
+
+      ResponseInputStream<GetObjectResponse> response = s3Client.getObject(request);
+      byte[] bytes = response.readAllBytes();
+
+      ConfigFile configFile = objectMapper.readValue(bytes, ConfigFile.class);
+
+      this.routingConfigs = configFile.getRouting();
+      this.defaultConfig = configFile.getDefaultConfig();
+      this.remoteWorkConfig = configFile.getRemoteWork();
+      this.absenceConfig = configFile.getAbsence();
+      this.lastLoadTime = System.currentTimeMillis();
+
+      log.info("Config 로드 완료: {}개 프로젝트, remoteWork.calendarId={}, absence.calendarId={}",
+          routingConfigs.size(),
+          remoteWorkConfig != null ? remoteWorkConfig.getCalendarId() : "null",
+          absenceConfig != null ? absenceConfig.getCalendarId() : "null");
+
+    } catch (Exception e) {
+      log.error("Config 로드 실패", e);
+      if (routingConfigs == null) {
+        throw new ConfigException("초기 Config 로드 실패", e);
+      }
+      log.warn("캐시된 Config 유지");
+    }
+  }
+
+  @Data
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private static class ConfigFile {
+    private String version;
+    private Map<String, ProjectRouting> routing;
     private ProjectRouting defaultConfig;
-    private RemoteWorkConfig remoteWorkConfig;
-    private AbsenceConfig absenceConfig;
-    private long lastLoadTime = 0;
 
-    public ConfigService() {
-        this.s3Client = S3Client.builder().build();
-        this.bucketName = System.getenv("CONFIG_BUCKET");
-        this.configKey = System.getenv("CONFIG_KEY");
+    @JsonProperty("remoteWork")
+    private RemoteWorkConfig remoteWork;
 
-        if (bucketName == null || configKey == null) {
-            throw new ConfigException("CONFIG_BUCKET 또는 CONFIG_KEY 미설정");
-        }
+    @JsonProperty("absence")
+    private AbsenceConfig absence;
+  }
 
-        log.info("ConfigService 초기화: bucket={}, key={}", bucketName, configKey);
-        loadConfig();
-    }
+  /**
+   * Jira 프로젝트별 Slack/캘린더 라우팅 설정. config.json의 routing 섹션 값과 매핑된다.
+   */
+  @Data
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class ProjectRouting {
 
-    /**
-     * 테스트용 생성자 — Mock 주입. 생성 시 loadConfig()를 자동 호출한다.
-     */
-    ConfigService(S3Client s3Client, String bucketName, String configKey) {
-        this.s3Client = s3Client;
-        this.bucketName = bucketName;
-        this.configKey = configKey;
-        loadConfig();
-    }
+    /** Slack 채널 ID. */
+    @JsonProperty("slack_channel_id")
+    private String slackChannelId;
 
-    // =========================================================================
-    // Jira 라우팅
-    // =========================================================================
+    /** Secrets Manager에서 Bot 토큰을 조회할 시크릿 이름. */
+    @JsonProperty("slack_bot_token_secret")
+    private String slackBotTokenSecret;
 
-    /**
-     * 프로젝트 키 기반 라우팅 설정 조회.
-     *
-     * @param projectKey Jira 프로젝트 키 (예: CCE, RBO)
-     * @return 라우팅 설정 (없으면 null)
-     */
-    public ProjectRouting getRoutingConfig(String projectKey) {
-        refreshIfExpired();
-        return routingConfigs.getOrDefault(projectKey, null);
-    }
+    /** Slack 알림 활성 여부 (기본값: true). */
+    @JsonProperty("notification_enabled")
+    private Boolean notificationEnabled = true;
 
-    /**
-     * 기본 라우팅 설정 반환 (config.json defaultConfig 섹션).
-     */
-    public ProjectRouting getDefaultRoutingConfig() {
-        refreshIfExpired();
-        return defaultConfig;
-    }
+    /** 채널 전송 활성 여부 (기본값: false). */
+    @JsonProperty("send_to_channel")
+    private Boolean sendToChannel = false;
 
-    // =========================================================================
-    // 재택 캘린더 ID (기존 — 변경 없음)
-    // =========================================================================
+    /** 개인 DM 전송 활성 여부 (기본값: true). */
+    @JsonProperty("send_to_individuals")
+    private Boolean sendToIndividuals = true;
 
-    /**
-     * 재택근무 캘린더 ID 반환.
-     * config.json > remoteWork.calendar_id → CCE calendar_id → primary 순 폴백.
-     */
-    public String getRemoteWorkCalendarId() {
-        refreshIfExpired();
+    /** Google Calendar 연동 활성 여부 (기본값: false). */
+    @JsonProperty("calendar_enabled")
+    private Boolean calendarEnabled = false;
 
-        if (remoteWorkConfig != null
-                && remoteWorkConfig.getCalendarId() != null
-                && !remoteWorkConfig.getCalendarId().isEmpty()) {
-            log.info("재택 캘린더 ID: {}", remoteWorkConfig.getCalendarId());
-            return remoteWorkConfig.getCalendarId();
-        }
+    /** Google Calendar ID (기본값: "primary"). */
+    @JsonProperty("calendar_id")
+    private String calendarId = "primary";
+  }
 
-        log.warn("remoteWork calendar_id 미설정, CCE 캘린더 사용");
-        return getDefaultCalendarId();
-    }
+  /**
+   * 재택근무 캘린더 및 알림 설정. config.json의 remoteWork 섹션과 매핑된다.
+   */
+  @Data
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class RemoteWorkConfig {
 
-    /**
-     * 재택 전체 설정 반환.
-     */
-    public RemoteWorkConfig getRemoteWorkConfig() {
-        refreshIfExpired();
-        return remoteWorkConfig;
-    }
+    @JsonProperty("calendar_id")
+    private String calendarId;
 
-    // =========================================================================
-    // 부재 캘린더 ID (기존 — 변경 없음)
-    // =========================================================================
+    @JsonProperty("notification_enabled")
+    private Boolean notificationEnabled;
 
-    /**
-     * 부재등록 캘린더 ID 반환.
-     * config.json > absence.calendar_id → remoteWork.calendar_id → CCE calendar_id → primary 순 폴백.
-     */
-    public String getAbsenceCalendarId() {
-        refreshIfExpired();
+    @JsonProperty("reminder_days_before")
+    private Integer reminderDaysBefore;
+  }
 
-        if (absenceConfig != null
-                && absenceConfig.getCalendarId() != null
-                && !absenceConfig.getCalendarId().isEmpty()) {
-            log.info("부재 캘린더 ID: {}", absenceConfig.getCalendarId());
-            return absenceConfig.getCalendarId();
-        }
+  /**
+   * 부재등록 캘린더 및 알림 설정. config.json의 absence 섹션과 매핑된다.
+   */
+  @Data
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class AbsenceConfig {
 
-        log.warn("absence calendar_id 미설정, remoteWork 캘린더로 폴백");
-        return getRemoteWorkCalendarId();
-    }
+    @JsonProperty("calendar_id")
+    private String calendarId;
 
-    /**
-     * 부재 전체 설정 반환.
-     */
-    public AbsenceConfig getAbsenceConfig() {
-        refreshIfExpired();
-        return absenceConfig;
-    }
-
-    // =========================================================================
-    // 일정 캘린더 ID (신규 추가) ← 변경
-    // =========================================================================
-
-    /**
-     * 일정등록 캘린더 ID 반환.
-     *
-     * <p>별도 schedule 섹션 없이 기존 폴백 체인을 재사용한다.
-     * absence.calendar_id → remoteWork.calendar_id → CCE calendar_id → primary 순 폴백.
-     *
-     * <p>일정은 부재/재택과 동일한 공유 캘린더에 등록되도록 의도됨.
-     * 향후 config.json에 schedule 섹션이 추가되면 이 메서드만 수정하면 된다.
-     */
-    public String getScheduleCalendarId() {
-        refreshIfExpired();
-
-        // absence.calendar_id → remoteWork.calendar_id → default 폴백 체인 재사용
-        if (absenceConfig != null
-                && absenceConfig.getCalendarId() != null
-                && !absenceConfig.getCalendarId().isEmpty()) {
-            log.info("일정 캘린더 ID (absence 폴백): {}", absenceConfig.getCalendarId());
-            return absenceConfig.getCalendarId();
-        }
-
-        if (remoteWorkConfig != null
-                && remoteWorkConfig.getCalendarId() != null
-                && !remoteWorkConfig.getCalendarId().isEmpty()) {
-            log.info("일정 캘린더 ID (remoteWork 폴백): {}", remoteWorkConfig.getCalendarId());
-            return remoteWorkConfig.getCalendarId();
-        }
-
-        log.warn("일정 캘린더 ID 미설정, CCE 캘린더 폴백");
-        return getDefaultCalendarId();
-    }
-
-    // =========================================================================
-    // 내부
-    // =========================================================================
-
-    private void refreshIfExpired() {
-        if (System.currentTimeMillis() - lastLoadTime > CACHE_TTL_MS) {
-            log.info("Config 캐시 만료, 재로드");
-            loadConfig();
-        }
-    }
-
-    private String getDefaultCalendarId() {
-        if (routingConfigs != null && routingConfigs.containsKey("CCE")) {
-            String cceCalendarId = routingConfigs.get("CCE").getCalendarId();
-            log.info("CCE 캘린더 ID 사용: {}", cceCalendarId);
-            return cceCalendarId;
-        }
-        log.warn("CCE 설정 없음, primary 사용");
-        return "primary";
-    }
-
-    private void loadConfig() {
-        try {
-            GetObjectRequest request = GetObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(configKey)
-                    .build();
-
-            ResponseInputStream<GetObjectResponse> response = s3Client.getObject(request);
-            byte[] bytes = response.readAllBytes();
-
-            ConfigFile configFile = objectMapper.readValue(bytes, ConfigFile.class);
-
-            this.routingConfigs = configFile.getRouting();
-            this.defaultConfig = configFile.getDefaultConfig();
-            this.remoteWorkConfig = configFile.getRemoteWork();
-            this.absenceConfig = configFile.getAbsence();
-            this.lastLoadTime = System.currentTimeMillis();
-
-            log.info("Config 로드 완료: {}개 프로젝트, remoteWork.calendarId={}, absence.calendarId={}",
-                    routingConfigs.size(),
-                    remoteWorkConfig != null ? remoteWorkConfig.getCalendarId() : "null",
-                    absenceConfig != null ? absenceConfig.getCalendarId() : "null");
-
-        } catch (Exception e) {
-            log.error("Config 로드 실패", e);
-            if (routingConfigs == null) {
-                throw new ConfigException("초기 Config 로드 실패", e);
-            }
-            log.warn("캐시된 Config 유지");
-        }
-    }
-
-    // =========================================================================
-    // 내부 클래스 — S3 JSON 매핑
-    // =========================================================================
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private static class ConfigFile {
-        private String version;
-        private Map<String, ProjectRouting> routing;
-        private ProjectRouting defaultConfig;
-
-        @JsonProperty("remoteWork")
-        private RemoteWorkConfig remoteWork;
-
-        @JsonProperty("absence")
-        private AbsenceConfig absence;
-    }
-
-    // ── Jira 프로젝트별 라우팅 설정 ──────────────────────────────────────────
-    //
-    // 기존 별도 파일 RoutingConfig(worker.config)를 이 클래스로 흡수.
-    // 이 설정은 config.json의 routing 섹션에만 사용되므로
-    // ConfigService 내부에 두는 것이 응집도를 높인다.
-
-    /**
-     * Jira 프로젝트별 Slack/캘린더 라우팅 설정.
-     *
-     * <p>config.json {@code routing} 섹션의 프로젝트 키별 값과 매핑된다.
-     */
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class ProjectRouting {
-
-        /**
-         * Slack 채널 ID
-         */
-        @JsonProperty("slack_channel_id")
-        private String slackChannelId;
-
-        /**
-         * Secrets Manager에서 Bot 토큰을 조회할 시크릿 이름
-         */
-        @JsonProperty("slack_bot_token_secret")
-        private String slackBotTokenSecret;
-
-        /**
-         * Slack 알림 활성 여부 (기본값: true)
-         */
-        @JsonProperty("notification_enabled")
-        private Boolean notificationEnabled = true;
-
-        /**
-         * 채널 전송 활성 여부 (기본값: false)
-         */
-        @JsonProperty("send_to_channel")
-        private Boolean sendToChannel = false;
-
-        /**
-         * 개인 DM 전송 활성 여부 (기본값: true)
-         */
-        @JsonProperty("send_to_individuals")
-        private Boolean sendToIndividuals = true;
-
-        /**
-         * Google Calendar 연동 활성 여부 (기본값: false)
-         */
-        @JsonProperty("calendar_enabled")
-        private Boolean calendarEnabled = false;
-
-        /**
-         * Google Calendar ID (기본값: primary)
-         */
-        @JsonProperty("calendar_id")
-        private String calendarId = "primary";
-    }
-
-    // ── 재택근무 설정 ─────────────────────────────────────────────────────────
-
-    /**
-     * 재택근무 캘린더 및 알림 설정.
-     * config.json {@code remoteWork} 섹션과 매핑된다.
-     */
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class RemoteWorkConfig {
-
-        @JsonProperty("calendar_id")
-        private String calendarId;
-
-        @JsonProperty("notification_enabled")
-        private Boolean notificationEnabled;
-
-        @JsonProperty("reminder_days_before")
-        private Integer reminderDaysBefore;
-    }
-
-    // ── 부재등록 설정 ─────────────────────────────────────────────────────────
-
-    /**
-     * 부재등록 캘린더 및 알림 설정.
-     * config.json {@code absence} 섹션과 매핑된다.
-     */
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class AbsenceConfig {
-
-        @JsonProperty("calendar_id")
-        private String calendarId;
-
-        @JsonProperty("notification_enabled")
-        private Boolean notificationEnabled = true;
-    }
+    @JsonProperty("notification_enabled")
+    private Boolean notificationEnabled = true;
+  }
 }
