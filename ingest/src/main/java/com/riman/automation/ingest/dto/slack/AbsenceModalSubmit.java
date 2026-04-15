@@ -9,88 +9,81 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Slack 부재등록 Modal Submit 페이로드 파싱 결과 VO
- *
- * <p>모달 block 구성:
- * <pre>
- *   block_absence_type  / action_absence_type  → AbsenceTypeCode.getLabel()
- *   block_action_type   / action_action_type   → "apply" | "cancel"
- *   block_start_date    / action_start_date    → 시작일 (필수)
- *   block_end_date      / action_end_date      → 종료일 (날짜 1개 유형은 worker에서 시작일로 처리)
- *   block_reason        / action_reason        → 사유 (optional, 공란이면 worker에서 "개인사유" 처리)
- * </pre>
- *
- * <p>기존 RemoteWorkModalSubmit(재택근무)와 완전 독립.
+ * Slack 부재등록 Modal Submit 페이로드 파싱 결과 VO.
+ * 모달은 부재 유형, 신청/취소 구분, 시작일, 종료일, 사유 5개 필드로 구성된다.
  */
 @Getter
 public class AbsenceModalSubmit {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private final String type;        // "view_submission"
-    private final String userId;      // Slack User ID
-    private final String userName;    // private_metadata에서 복원
-    private final String absenceType; // AbsenceTypeCode.getLabel()
-    private final String action;      // "apply" | "cancel"
-    private final String startDate;   // yyyy-MM-dd
-    private final String endDate;     // yyyy-MM-dd
-    private final String reason;      // 사유 (빈 문자열 가능)
+  private final String type;
+  private final String userId;
+  private final String userName;
+  private final String absenceType;
+  private final String action;
+  private final String startDate;
+  private final String endDate;
+  private final String reason;
 
-    private AbsenceModalSubmit(JsonNode payload) {
-        this.type = payload.path("type").asText("");
-        this.userId = payload.path("user").path("id").asText("");
+  private AbsenceModalSubmit(JsonNode payload) {
+    this.type = payload.path("type").asText("");
+    this.userId = payload.path("user").path("id").asText("");
 
-        // private_metadata: "userId|userName"
-        String meta = payload.path("view").path("private_metadata").asText("");
-        String rawName = payload.path("user").path("username").asText("");
-        this.userName = meta.contains("|") ? meta.split("\\|", 2)[1] : rawName;
+    // private_metadata 형식: "userId|userName".
+    String meta = payload.path("view").path("private_metadata").asText("");
+    String rawName = payload.path("user").path("username").asText("");
+    this.userName = meta.contains("|") ? meta.split("\\|", 2)[1] : rawName;
 
-        JsonNode values = payload.path("view").path("state").path("values");
+    JsonNode values = payload.path("view").path("state").path("values");
 
-        this.absenceType = values
-                .path("block_absence_type").path("action_absence_type")
-                .path("selected_option").path("value").asText("");
+    this.absenceType = values
+        .path("block_absence_type").path("action_absence_type")
+        .path("selected_option").path("value").asText("");
 
-        this.action = values
-                .path("block_action_type").path("action_action_type")
-                .path("selected_option").path("value").asText("");
+    this.action = values
+        .path("block_action_type").path("action_action_type")
+        .path("selected_option").path("value").asText("");
 
-        this.startDate = values
-                .path("block_start_date").path("action_start_date")
-                .path("selected_date").asText("");
+    this.startDate = values
+        .path("block_start_date").path("action_start_date")
+        .path("selected_date").asText("");
 
-        this.endDate = values
-                .path("block_end_date").path("action_end_date")
-                .path("selected_date").asText("");
+    this.endDate = values
+        .path("block_end_date").path("action_end_date")
+        .path("selected_date").asText("");
 
-        this.reason = values
-                .path("block_reason").path("action_reason")
-                .path("value").asText("");
-    }
+    this.reason = values
+        .path("block_reason").path("action_reason")
+        .path("value").asText("");
+  }
 
-    public static AbsenceModalSubmit parse(String urlEncodedBody) throws Exception {
-        String decoded = URLDecoder.decode(
-                urlEncodedBody.substring("payload=".length()), StandardCharsets.UTF_8);
-        return new AbsenceModalSubmit(OBJECT_MAPPER.readTree(decoded));
-    }
+  /**
+   * URL-encoded payload body를 파싱하여 요청 객체를 생성한다.
+   */
+  public static AbsenceModalSubmit parse(String urlEncodedBody) throws Exception {
+    String decoded = URLDecoder.decode(
+        urlEncodedBody.substring("payload=".length()), StandardCharsets.UTF_8);
+    return new AbsenceModalSubmit(OBJECT_MAPPER.readTree(decoded));
+  }
 
-    public boolean isViewSubmission() {
-        return "view_submission".equals(type);
-    }
+  public boolean isViewSubmission() {
+    return "view_submission".equals(type);
+  }
 
-    public boolean isValidAbsenceType() {
-        return AbsenceTypeCode.isValid(absenceType);
-    }   // ✏️ 변경
+  public boolean isValidAbsenceType() {
+    return AbsenceTypeCode.isValid(absenceType);
+  }
 
-    public boolean isValidAction() {
-        return "apply".equals(action) || "cancel".equals(action);
-    }
+  public boolean isValidAction() {
+    return "apply".equals(action) || "cancel".equals(action);
+  }
 
-    public boolean isApply() {
-        return "apply".equals(action);
-    }
+  public boolean isApply() {
+    return "apply".equals(action);
+  }
 
-    public boolean isCancel() {
-        return "cancel".equals(action);
-    }
+  public boolean isCancel() {
+    return "cancel".equals(action);
+  }
 }
