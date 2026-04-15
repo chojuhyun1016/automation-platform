@@ -64,8 +64,8 @@ public class GoogleCalendarClient {
    * singleEvents=true로 반복 이벤트도 개별 항목으로 전개한다.
    *
    * @param calendarId 캘린더 ID (예: xxx@group.calendar.google.com)
-   * @param timeMinRfc3339 조회 시작 (RFC3339)
-   * @param timeMaxRfc3339 조회 종료 (RFC3339)
+   * @param timeMinRfc3339 조회 시작 (RFC3339, 예: 2026-02-24T00:00:00+09:00)
+   * @param timeMaxRfc3339 조회 종료 (RFC3339, 예: 2026-02-28T23:59:59+09:00)
    * @param searchQuery 제목 검색 키워드 (null이면 전체)
    * @return 이벤트 목록 (없으면 빈 리스트)
    */
