@@ -33,6 +33,7 @@ public class ConfigService {
   private ProjectRouting defaultConfig;
   private RemoteWorkConfig remoteWorkConfig;
   private AbsenceConfig absenceConfig;
+  private LunchCardConfig lunchCardConfig;
   private long lastLoadTime = 0;
 
   public ConfigService() {
@@ -123,6 +124,46 @@ public class ConfigService {
   }
 
   /**
+   * 점심카드 캘린더 ID를 반환한다.
+   * 폴백 순서: lunchCard.calendar_id → absence.calendar_id → remoteWork.calendar_id → CCE.calendar_id → "primary".
+   */
+  public String getLunchCardCalendarId() {
+    refreshIfExpired();
+
+    if (lunchCardConfig != null
+        && lunchCardConfig.getCalendarId() != null
+        && !lunchCardConfig.getCalendarId().isEmpty()) {
+      log.info("점심카드 캘린더 ID: {}", lunchCardConfig.getCalendarId());
+      return lunchCardConfig.getCalendarId();
+    }
+
+    log.warn("lunchCard calendar_id 미설정, absence 캘린더로 폴백");
+    return getAbsenceCalendarId();
+  }
+
+  /**
+   * 점심카드 알림 채널 ID를 반환한다.
+   * lunchCard.notification_channel_id가 미설정이면 null을 반환한다.
+   */
+  public String getLunchCardNotificationChannelId() {
+    refreshIfExpired();
+
+    if (lunchCardConfig != null
+        && lunchCardConfig.getNotificationChannelId() != null
+        && !lunchCardConfig.getNotificationChannelId().isEmpty()) {
+      return lunchCardConfig.getNotificationChannelId();
+    }
+
+    log.warn("lunchCard notification_channel_id 미설정");
+    return null;
+  }
+
+  public LunchCardConfig getLunchCardConfig() {
+    refreshIfExpired();
+    return lunchCardConfig;
+  }
+
+  /**
    * 일정등록 캘린더 ID를 반환한다.
    * 별도 schedule 섹션 없이 absence → remoteWork → CCE → "primary" 폴백 체인을 재사용한다.
    * 일정은 부재/재택과 동일한 공유 캘린더에 등록하려는 의도이며, 향후 schedule 섹션이 추가되면 이 메서드만 수정한다.
@@ -191,12 +232,14 @@ public class ConfigService {
       this.defaultConfig = configFile.getDefaultConfig();
       this.remoteWorkConfig = configFile.getRemoteWork();
       this.absenceConfig = configFile.getAbsence();
+      this.lunchCardConfig = configFile.getLunchCard();
       this.lastLoadTime = System.currentTimeMillis();
 
-      log.info("Config 로드 완료: {}개 프로젝트, remoteWork.calendarId={}, absence.calendarId={}",
+      log.info("Config 로드 완료: {}개 프로젝트, remoteWork.calendarId={}, absence.calendarId={}, lunchCard.calendarId={}",
           routingConfigs.size(),
           remoteWorkConfig != null ? remoteWorkConfig.getCalendarId() : "null",
-          absenceConfig != null ? absenceConfig.getCalendarId() : "null");
+          absenceConfig != null ? absenceConfig.getCalendarId() : "null",
+          lunchCardConfig != null ? lunchCardConfig.getCalendarId() : "null");
 
     } catch (Exception e) {
       log.error("Config 로드 실패", e);
@@ -219,6 +262,9 @@ public class ConfigService {
 
     @JsonProperty("absence")
     private AbsenceConfig absence;
+
+    @JsonProperty("lunchCard")
+    private LunchCardConfig lunchCard;
   }
 
   /**
@@ -286,5 +332,19 @@ public class ConfigService {
 
     @JsonProperty("notification_enabled")
     private Boolean notificationEnabled = true;
+  }
+
+  /**
+   * 점심카드 캘린더 및 알림 설정. config.json의 lunchCard 섹션과 매핑된다.
+   */
+  @Data
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class LunchCardConfig {
+
+    @JsonProperty("calendar_id")
+    private String calendarId;
+
+    @JsonProperty("notification_channel_id")
+    private String notificationChannelId;
   }
 }
