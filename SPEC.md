@@ -9,7 +9,7 @@ PRD: `automation-platform-prd.md` 참조.
 ### 현재 상태
 
 - **인프라**: Lambda 4개(ingest, worker, scheduler, groupware) + ECS Fargate 1개(groupware-bot)
-- **Slack 커맨드**: /부재등록, /재택근무, /계정관리, /일정등록, /현재티켓 (5개 완료)
+- **Slack 커맨드**: /부재등록, /재택근무, /계정관리, /일정등록, /현재티켓 (5개 완료), /점심카드 (Phase N14~N18 진행 중)
 - **Jira 동기화**: CREATE/UPDATE/DELETE → Calendar 자동 반영
 - **보고서**: Daily(Slack DM), Weekly/Monthly(Confluence + Excel)
 - **그룹웨어**: Playwright 브라우저 자동화 (EKP 부재 신청)
@@ -472,6 +472,181 @@ scheduler 모듈 하위 레이어(16파일)와 groupware 모듈(4파일)의 주�
 
 ---
 
+## Phase N14: 점심카드 — worker 기반 (Calendar 서비스 + Facade) (#38)
+
+- [x] Phase N14 완료 (PR #43)
+
+### 오버뷰
+점심카드 비즈니스 로직 기반을 worker 모듈에 구축한다. config에 캘린더 ID를 추가하고, Calendar CRUD + 팀 채널 알림을 처리하는 서비스/Facade를 생성한다.
+
+### 메타
+- **라벨**: feature
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [x] Phase N13 완료 (PR #37)
+
+### 수정/개선
+- [x] **`config/config.json`** — `lunchCard` 섹션 추가
+    - [x] `calendar_id`: 보상코어 개발팀 캘린더 ID
+    - [x] `notification_channel_id`: `C09DAQAABS5`
+- [x] **`worker/.../service/ConfigService.java`** — 점심카드 설정 접근 메서드 추가
+    - [x] `getLunchCardCalendarId()` (fallback: routing.CCE.calendar_id)
+    - [x] `getLunchCardNotificationChannelId()`
+- [x] **`worker/.../service/LunchCardService.java`** — Calendar CRUD 서비스 (신규)
+    - [x] `findLunchCardEvents(calendarId, weekStart, weekEnd)` — 주간/월간 이벤트 조회
+    - [x] `findLunchCardEvent(calendarId, date)` — 특정 날짜 이벤트 1건 조회
+    - [x] `applyLunchCard(calendarId, name, date)` — 종일 이벤트 생성 (중복 검증)
+    - [x] `cancelLunchCard(calendarId, name, date)` — 본인 이벤트만 삭제
+    - [x] 이벤트 제목: `점심카드(사용자명)`, transparency=transparent
+- [x] **`worker/.../dto/sqs/LunchCardMessage.java`** — SQS 메시지 DTO (신규)
+    - [x] 필드: messageType, eventId, receivedAt, action(apply/cancel), slackUserId, name, date
+- [x] **`worker/.../facade/LunchCardFacade.java`** — Worker Facade (신규)
+    - [x] `handle(String body)` — JSON 파싱 → 이름 resolve → 중복 체크 → LunchCardService → 알림
+    - [x] DedupeService 사용 (prefix: `LUNCH#`)
+    - [x] 팀 채널(C09DAQAABS5) 알림: "점심카드 사용: {이름} ({날짜})" / "점심카드 취소: {이름} ({날짜})"
+- [x] **`worker/.../handler/WorkerHandler.java`** — dispatch에 `lunch_card` 타입 추가
+    - [x] `TYPE_LUNCH_CARD = "lunch_card"` 상수 + LunchCardFacade 초기화
+- [x] **테스트**
+    - [x] `LunchCardServiceTest.java` — apply/cancel 분기, 타인 등록 시 예외
+    - [x] `LunchCardFacadeTest.java` — 파이프라인 + 알림 전송 검증
+
+### 검증
+- [x] `./gradlew :worker:compileJava` 빌드 성공
+- [x] `./gradlew :worker:test` 테스트 통과
+
+---
+
+## Phase N15: 점심카드 — ingest 라우팅 + SQS 전송 + DTO (#39)
+
+- [ ] Phase N15 완료
+
+### 오버뷰
+ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모달 제출 파싱 DTO를 추가한다.
+
+### 메타
+- **라벨**: feature
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [x] Phase N14 완료 (PR #43)
+
+### 수정/개선
+- [ ] **`ingest/.../dto/slack/SlackCommandRequest.java`** — `/점심카드` 커맨드 판별 추가
+    - [ ] `LUNCH_CARD_COMMAND = "/점심카드"`, `isLunchCardCommand()`
+- [ ] **`ingest/.../dto/slack/LunchCardModalSubmit.java`** — view_submission 파싱 DTO (신규)
+    - [ ] `parse(String body)`, private_metadata: `userId|displayName|date`
+- [ ] **`ingest/.../service/WorkerMessageService.java`** — `sendLunchCard()` 메서드 추가
+- [ ] **`ingest/.../facade/LunchCardFacade.java`** — ingest Facade (신규, stub)
+    - [ ] `handleCommand()`, `handleModalSubmit()`, `handleBlockAction()` stub
+    - [ ] static volatile 캐싱: S3Client, GoogleCalendarClient, TeamMemberMap
+- [ ] **`ingest/.../facade/SlackFacade.java`** — 라우팅 추가
+    - [ ] `CALLBACK_LUNCH_CARD = "lunch_card_submit"`, 풀 크기 5→6
+    - [ ] handleSlashCommand, handleModalSubmit, handleBlockActions 분기 추가
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 테스트 통과
+
+---
+
+## Phase N16: 점심카드 — 모달 UI 구축 (LunchCardModalBuilder + 동적 갱신) (#40)
+
+- [ ] Phase N16 완료
+
+### 오버뷰
+점심카드 모달의 Block Kit JSON 빌드를 구현한다. 날짜별 사용 현황 조회, 주간/월간 카운트, 상태별 UI 분기를 처리한다.
+
+### 메타
+- **라벨**: feature
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [ ] Phase N15 완료
+
+### 수정/개선
+- [ ] **`ingest/.../payload/LunchCardModalBuilder.java`** — 모달 JSON 빌더 (신규)
+    - [ ] `build()` (views.open), `buildUpdate()` (views.update)
+    - [ ] Datepicker + 주/월 토글(좌우 동시 전환) + 카운트 + 요일별 사용자
+    - [ ] 상태 분기: 미등록 / 본인 등록 / 타인 등록
+    - [ ] 사용/취소 체크박스 + 신청 버튼 + "타인이 이미 사용" 안내
+- [ ] **`ingest/.../facade/LunchCardFacade.java`** — handleCommand, handleBlockAction 완성
+    - [ ] Calendar 조회 + 모달 빌드 + openView/updateView
+    - [ ] 카운트 헬퍼: countWeekly, countMonthly, buildDayOfWeekMap
+- [ ] **`ingest/.../service/SlackApiService.java`** — `openLunchCardModal()`, `updateLunchCardView()` 추가
+- [ ] **테스트**
+    - [ ] `LunchCardModalBuilderTest.java` — JSON 구조, 3가지 상태별 UI 검증
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 테스트 통과
+
+### 리스크
+- Slack 체크박스 disabled 제한 → 상태별 다른 블록 렌더링으로 우회
+- 콜드스타트 trigger_id 만료 → expired_trigger_id 에러 핸들링 + static volatile 캐싱
+
+---
+
+## Phase N17: 점심카드 — submit 응답 + 결과 팝업 (#41)
+
+- [ ] Phase N17 완료
+
+### 오버뷰
+신청/취소 submit 후 결과 팝업(modalResult) 표시를 완성한다.
+
+### 메타
+- **라벨**: feature
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [ ] Phase N16 완료
+
+### 수정/개선
+- [ ] **`ingest/.../facade/LunchCardFacade.java`** — handleModalSubmit 완성
+    - [ ] SQS 위임 + join() + modalResult 응답
+    - [ ] 유효성 검증: date/action 빈값 → modalError
+- [ ] **`ingest/.../dto/slack/LunchCardModalSubmit.java`** — 유효성 검증 강화
+- [ ] **테스트**
+    - [ ] `LunchCardFacadeTest(ingest).java` — submit 응답 + SQS 전송 검증
+
+### 검증
+- [ ] `./gradlew build` 전체 빌드 성공
+- [ ] `./gradlew test` 전체 테스트 통과
+
+---
+
+## Phase N18: 점심카드 — 문서 갱신 (#42)
+
+- [ ] Phase N18 완료
+
+### 오버뷰
+CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
+
+### 메타
+- **라벨**: docs
+- **우선순위**: medium
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [ ] Phase N17 완료
+
+### 수정/개선
+- [ ] **`CLAUDE.md`** (루트) — Slack 커맨드 테이블에 `/점심카드` 추가
+- [ ] **`ingest/CLAUDE.md`** — LunchCardFacade 추가
+- [ ] **`worker/CLAUDE.md`** — LunchCardFacade 추가
+- [ ] **`.claude/rules/ingest.md`** — lunch_card_submit 추가
+- [ ] **`.claude/rules/worker.md`** — lunch_card 추가
+
+### 검증
+- [ ] `./gradlew build` 전체 빌드 성공
+- [ ] 문서 일관성 확인
+
+---
+
 ## 실행 가이드
 
 Phase 작업을 시작하려면:
@@ -495,6 +670,11 @@ Phase 작업을 시작하려면:
 | N11 | #25 | refactor | `source scripts/create-worktree.sh refactor 25 comment-worker` |
 | N12 | #26 | refactor | `source scripts/create-worktree.sh refactor 26 comment-scheduler-upper` |
 | N13 | #27 | refactor | `source scripts/create-worktree.sh refactor 27 comment-scheduler-lower-groupware` |
+| N14 | #38 | feat | `source scripts/create-worktree.sh feat 38 lunch-card-worker` |
+| N15 | #39 | feat | `source scripts/create-worktree.sh feat 39 lunch-card-ingest-routing` |
+| N16 | #40 | feat | `source scripts/create-worktree.sh feat 40 lunch-card-modal-ui` |
+| N17 | #41 | feat | `source scripts/create-worktree.sh feat 41 lunch-card-submit` |
+| N18 | #42 | docs | `source scripts/create-worktree.sh docs 42 lunch-card-docs` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
 > 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`

@@ -24,6 +24,18 @@ fi
 # 메인 워크트리 경로 자동 감지 (어디서든 실행 가능)
 MAIN_PATH=$(git worktree list --porcelain | head -1 | sed 's/^worktree //')
 
+# 워크트리 내부 실행 감지 → 부모 셸 CWD 무효화 방지
+CALLER_CWD=$(pwd -P 2>/dev/null || echo "")
+if [ "$CALLER_CWD" != "$MAIN_PATH" ]; then
+    if git worktree list --porcelain | grep -q "^worktree $CALLER_CWD$"; then
+        echo "🚫 워크트리 내부에서 실행 감지: $CALLER_CWD"
+        echo "   부모 셸 CWD가 무효화될 수 있습니다."
+        echo "   다음 명령으로 실행하세요:"
+        echo "   cd $MAIN_PATH && bash scripts/cleanup-worktrees.sh"
+        exit 1
+    fi
+fi
+
 # 메인 워크트리로 이동 (서브 워크트리에서 실행 시 정리 후 getcwd 오류 방지)
 cd "$MAIN_PATH" || { echo "❌ 메인 워크트리로 이동 실패: $MAIN_PATH"; exit 1; }
 
