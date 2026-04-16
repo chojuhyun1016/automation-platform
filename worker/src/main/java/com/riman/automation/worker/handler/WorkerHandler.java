@@ -10,11 +10,13 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.riman.automation.common.util.SentryInitializer;
 import com.riman.automation.worker.facade.AbsenceFacade;
 import com.riman.automation.worker.facade.JiraIssueFacade;
+import com.riman.automation.worker.facade.LunchCardFacade;
 import com.riman.automation.worker.facade.RemoteWorkFacade;
 import com.riman.automation.worker.facade.ScheduleFacade;
 import com.riman.automation.worker.service.CalendarService;
 import com.riman.automation.worker.service.ConfigService;
 import com.riman.automation.worker.service.DedupeService;
+import com.riman.automation.worker.service.LunchCardNotificationService;
 import com.riman.automation.worker.service.ScheduleEventMappingService;
 import com.riman.automation.worker.service.TeamMemberService;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,7 @@ public class WorkerHandler implements RequestHandler<SQSEvent, Void> {
   private static final String TYPE_REMOTE_WORK = "remote_work";
   private static final String TYPE_ABSENCE = "absence";
   private static final String TYPE_SCHEDULE = "schedule";
+  private static final String TYPE_LUNCH_CARD = "lunch_card";
   private static final String TYPE_JIRA_WEBHOOK = "jira_webhook";
 
   private static final ObjectMapper objectMapper = new ObjectMapper()
@@ -46,6 +49,7 @@ public class WorkerHandler implements RequestHandler<SQSEvent, Void> {
   private final RemoteWorkFacade remoteWorkFacade;
   private final AbsenceFacade absenceFacade;
   private final ScheduleFacade scheduleFacade;
+  private final LunchCardFacade lunchCardFacade;
 
   /**
    * Facade와 공유 Service를 구성한다.
@@ -66,7 +70,14 @@ public class WorkerHandler implements RequestHandler<SQSEvent, Void> {
     this.scheduleFacade = new ScheduleFacade(
         configService, calendarService, dedupeService, scheduleMappingService);
 
-    log.info("WorkerHandler 초기화 완료 (Jira + RemoteWork + Absence + Schedule)");
+    String lunchCardChannelId = configService.getLunchCardNotificationChannelId();
+    LunchCardNotificationService lunchCardNotificationService =
+        new LunchCardNotificationService(lunchCardChannelId);
+    this.lunchCardFacade = new LunchCardFacade(
+        configService, calendarService, teamMemberService, dedupeService,
+        lunchCardNotificationService);
+
+    log.info("WorkerHandler 초기화 완료 (Jira + RemoteWork + Absence + Schedule + LunchCard)");
   }
 
   /**
@@ -116,6 +127,9 @@ public class WorkerHandler implements RequestHandler<SQSEvent, Void> {
         break;
       case TYPE_SCHEDULE:
         scheduleFacade.handle(body);
+        break;
+      case TYPE_LUNCH_CARD:
+        lunchCardFacade.handle(body);
         break;
       default:
         jiraFacade.handle(body);

@@ -73,5 +73,9 @@
   "absence": {
     "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com",
     "notification_enabled": false
+  },
+  "lunchCard": {
+    "calendar_id": "ad935c8251a0992ec9352112b6811919d41d30c0dd95a92b36e71b106e9f2b7e@group.calendar.google.com",
+    "notification_channel_id": "C09DAQAABS5"
   }
 }
