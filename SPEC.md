@@ -945,6 +945,106 @@ SELF_REGISTERED 체크박스 해제 후 신청 가능한 버그 수정, 알림 �
 
 ---
 
+## Phase N26: 점심카드 — worker Calendar searchQuery 버그 수정 + 날짜 로직 전면 점검 (#62)
+
+- [ ] Phase N26 완료
+
+### 오버뷰
+worker `LunchCardService`가 여전히 `q="점심카드"` searchQuery를 사용하여 Calendar 조회 결과가 불안정. ingest Phase N24에서 수정된 동일 패턴(null + Java 필터링)을 worker에도 적용하고, 날짜 필터링/매칭 로직을 전면 점검한다.
+
+### 메타
+- **라벨**: bug
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [x] Phase N25 완료
+
+### 수정/개선
+
+#### A. worker searchQuery 제거 (핵심)
+- [ ] **`worker/src/main/java/.../service/LunchCardService.java`**
+    - [ ] `findLunchCardEvents()`: `SEARCH_QUERY` → `null` + Java 필터링 (`summary.startsWith("점심카드")`)
+    - [ ] `findLunchCardEvent()`: 위 수정에 맞춰 조정
+    - [ ] `applyLunchCard()` / `cancelLunchCard()` 동작 확인
+- [ ] **`worker/src/main/java/.../service/CalendarService.java`** — 변경 없음 확인 (listCalendarEvents는 그대로)
+
+#### B. 날짜 로직 점검 (ingest)
+- [ ] **`ingest/src/main/java/.../facade/LunchCardFacade.java`**
+    - [ ] `queryWeekEvents()`: 주간 범위 (월~토 00:00) 정확성 확인
+    - [ ] `queryMonthEvents()`: 월간 범위 정확성 확인
+    - [ ] `filterEventsByDate()`: all-day 이벤트 날짜 매칭 확인
+    - [ ] `extractEventDate()`: all-day vs dateTime 분기 정확성 확인
+    - [ ] `determineStatus()`: UNREGISTERED/SELF_REGISTERED/OTHER_REGISTERED 판별 정확성 확인
+    - [ ] `buildDayOfWeekMap()`: 요일별 사용자 매핑 정확성 확인
+
+#### C. 테스트
+- [ ] **`worker/src/test/java/.../service/LunchCardServiceTest.java`** (신규 또는 기존 보강)
+    - [ ] searchQuery=null + Java 필터링 동작 검증
+    - [ ] applyLunchCard 멱등 체크 검증
+    - [ ] cancelLunchCard 이벤트 찾기/삭제 검증
+- [ ] **`ingest/src/test/java/.../facade/LunchCardFacadeTest.java`**
+    - [ ] 날짜 필터링 edge case 검증 (all-day 이벤트)
+
+### 검증
+- [ ] `./gradlew :worker:compileJava` 빌드 성공
+- [ ] `./gradlew :worker:test` 전체 테스트 통과
+- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [ ] 배포 후 신청 → 재조회 시 즉시 표시 확인
+- [ ] 배포 후 취소 → 재조회 시 즉시 반영 확인
+- [ ] 배포 후 다른 날짜 이벤트 영향 없음 확인
+
+### 리스크
+- Google Calendar API `q` 파라미터 제거 시 전체 이벤트를 fetch하므로 이벤트 수가 많으면 응답 느려질 수 있음 (현재 80건+235건 수준이므로 문제없음)
+
+---
+
+## Phase N27: 점심카드 — UI 안내 문구 제거 + 기존 요구사항 재점검 (#63)
+
+- [ ] Phase N27 완료
+
+### 오버뷰
+사용자 요청에 따라 "✅ 사용 신청이 적용됩니다" / "❌ 취소가 적용됩니다" 안내 문구를 제거하고, 기존 점심카드 요구사항 전체를 재점검하여 미반영 항목을 수정한다.
+
+### 메타
+- **라벨**: enhancement
+- **우선순위**: medium
+- **병렬 가능**: Phase N26과 병렬 가능 (수정 파일 겹치지 않음)
+
+### 전제조건
+- [ ] 없음 (Phase N26과 병렬 가능)
+
+### 수정/개선
+
+#### A. UI 안내 문구 제거
+- [ ] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
+    - [ ] `addApplyBlock()`: "✅ 사용 신청이 적용됩니다" 텍스트 제거 (빈 블록 또는 메서드 자체 제거)
+    - [ ] `addCancelBlock()`: "❌ 취소가 적용됩니다" 텍스트 제거
+    - [ ] 상태별 submit 버튼 라벨로 충분히 구분: UNREGISTERED → "신청", SELF_REGISTERED → "취소"
+- [ ] **submit 버튼 텍스트 변경 검토**
+    - [ ] UNREGISTERED: submit 버튼 "신청"
+    - [ ] SELF_REGISTERED: submit 버튼 "취소" (현재는 둘 다 "신청"으로 되어 있음 — 수정 필요)
+
+#### B. 기존 요구사항 재점검
+- [ ] **카운트 표시 재확인**: 주간/월간 카운트가 해당 사용자가 아닌 전체 사용을 의미하는지 확인
+- [ ] **요일별 사용자 현황**: 선택 날짜의 요일에 bold 처리가 정상 동작하는지 확인
+- [ ] **OTHER_REGISTERED 상태**: 타인 등록 시 안내 + submit 버튼 미표시 정상 동작 확인
+- [ ] **팀 채널 알림**: worker에서 신청/취소 시 알림 전송 정상 동작 확인
+
+#### C. 테스트
+- [ ] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
+    - [ ] 안내 문구 제거 검증
+    - [ ] submit 버튼 텍스트 검증 (신청/취소 분리)
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [ ] 배포 후 UNREGISTERED: submit "신청" + 안내 문구 없음
+- [ ] 배포 후 SELF_REGISTERED: submit "취소" + 안내 문구 없음
+- [ ] 배포 후 OTHER_REGISTERED: submit 없음 + 타인 안내만
+
+---
+
 ## 실행 가이드
 
 Phase 작업을 시작하려면:
@@ -980,6 +1080,8 @@ Phase 작업을 시작하려면:
 | N23 | #54 | chore | `source scripts/create-worktree.sh chore 54 lunch-card-notification-test` |
 | N24 | #58 | fix | `source scripts/create-worktree.sh fix 58 lunch-card-calendar-query-fix` |
 | N25 | #60 | fix | `source scripts/create-worktree.sh fix 60 lunch-card-checkbox-config-ui` |
+| N26 | #62 | fix | `source scripts/create-worktree.sh fix 62 lunch-card-worker-searchquery` |
+| N27 | #63 | feat | `source scripts/create-worktree.sh feat 63 lunch-card-ui-simplify` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
 > 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`
