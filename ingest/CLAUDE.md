@@ -9,13 +9,14 @@ API Gateway → IngestHandler → SlackFacade / JiraWebhookFacade.
 com.riman.automation.ingest
 ├── handler/    IngestHandler (Lambda 진입점)
 ├── facade/     SlackFacade, AccountManageFacade, CurrentTicketFacade,
-│               ScheduleManageFacade, JiraWebhookFacade
+│               ScheduleManageFacade, LunchCardFacade, JiraWebhookFacade
 ├── dto/
 │   ├── slack/  SlackCommandRequest, AbsenceModalSubmit, RemoteWorkModalSubmit,
-│   │           AccountModalSubmit, ScheduleModalSubmit, CurrentTicketModalSubmit
+│   │           AccountModalSubmit, ScheduleModalSubmit, CurrentTicketModalSubmit,
+│   │           LunchCardModalSubmit
 │   └── jira/   JiraWebhookEvent
 ├── payload/    AbsenceModalBuilder, RemoteWorkModalBuilder, AccountModalBuilder,
-│               ScheduleModalBuilder, CurrentTicketModalBuilder
+│               ScheduleModalBuilder, CurrentTicketModalBuilder, LunchCardModalBuilder
 ├── security/   SlackSignatureVerifier (HMAC-SHA256, 5분 유효)
 ├── service/    SlackApiService, WorkerMessageService, PasswordEncryptionService,
 │               GroupwareCredentialService, ScheduleMappingQueryService

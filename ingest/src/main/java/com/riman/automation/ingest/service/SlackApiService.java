@@ -6,6 +6,7 @@ import com.riman.automation.common.model.GroupwareAccountInfo;
 import com.riman.automation.ingest.payload.AbsenceModalBuilder;
 import com.riman.automation.ingest.payload.AccountModalBuilder;
 import com.riman.automation.ingest.payload.CurrentTicketModalBuilder;
+import com.riman.automation.ingest.payload.LunchCardModalBuilder;
 import com.riman.automation.ingest.payload.RemoteWorkModalBuilder;
 import com.riman.automation.ingest.payload.ScheduleModalBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -172,6 +173,35 @@ public class SlackApiService {
     } catch (Exception e) {
       log.error("일정 결과 화면 업데이트 실패: viewId={}", viewId, e);
       throw new RuntimeException("일정 결과 화면 업데이트 실패", e);
+    }
+  }
+
+  /**
+   * /점심카드 모달을 연다 (Calendar 데이터 기반).
+   */
+  public void openLunchCardModal(String triggerId, LunchCardModalBuilder.ViewData viewData) {
+    try {
+      String payload = LunchCardModalBuilder.build(triggerId, viewData);
+      slackClient.openView(payload);
+      log.info("점심카드 Modal 열기 성공: user={}", viewData.userName());
+    } catch (Exception e) {
+      log.error("점심카드 Modal 열기 실패: triggerId={}", triggerId, e);
+      throw new RuntimeException("점심카드 Modal 열기 실패", e);
+    }
+  }
+
+  /**
+   * 점심카드 모달을 갱신한다 (views.update 직접 호출).
+   * block_actions (날짜 변경, 주/월 토글)에서 Calendar 재조회 후 호출된다.
+   */
+  public void updateLunchCardView(String viewId, LunchCardModalBuilder.ViewData viewData) {
+    try {
+      String payload = LunchCardModalBuilder.buildUpdate(viewId, viewData);
+      slackClient.updateView(payload);
+      log.info("점심카드 모달 갱신 성공: user={}", viewData.userName());
+    } catch (Exception e) {
+      log.error("점심카드 모달 갱신 실패: viewId={}", viewId, e);
+      throw new RuntimeException("점심카드 모달 갱신 실패", e);
     }
   }
 

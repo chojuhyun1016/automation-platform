@@ -37,7 +37,7 @@ public class LunchCardModalSubmit {
         .path("selected_date").asText("");
 
     this.action = values
-        .path("block_lunch_card_action").path("action_lunch_card_toggle")
+        .path("block_lunch_card_action").path("action_lunch_card_action")
         .path("selected_option").path("value").asText("");
   }
 

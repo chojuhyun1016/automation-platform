@@ -554,7 +554,7 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 
 ## Phase N16: 점심카드 — 모달 UI 구축 (LunchCardModalBuilder + 동적 갱신) (#40)
 
-- [ ] Phase N16 완료
+- [x] Phase N16 완료 (PR #TBD)
 
 ### 오버뷰
 점심카드 모달의 Block Kit JSON 빌드를 구현한다. 날짜별 사용 현황 조회, 주간/월간 카운트, 상태별 UI 분기를 처리한다.
@@ -568,21 +568,21 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 - [x] Phase N15 완료 (PR #44)
 
 ### 수정/개선
-- [ ] **`ingest/.../payload/LunchCardModalBuilder.java`** — 모달 JSON 빌더 (신규)
-    - [ ] `build()` (views.open), `buildUpdate()` (views.update)
-    - [ ] Datepicker + 주/월 토글(좌우 동시 전환) + 카운트 + 요일별 사용자
-    - [ ] 상태 분기: 미등록 / 본인 등록 / 타인 등록
-    - [ ] 사용/취소 체크박스 + 신청 버튼 + "타인이 이미 사용" 안내
-- [ ] **`ingest/.../facade/LunchCardFacade.java`** — handleCommand, handleBlockAction 완성
-    - [ ] Calendar 조회 + 모달 빌드 + openView/updateView
-    - [ ] 카운트 헬퍼: countWeekly, countMonthly, buildDayOfWeekMap
-- [ ] **`ingest/.../service/SlackApiService.java`** — `openLunchCardModal()`, `updateLunchCardView()` 추가
-- [ ] **테스트**
-    - [ ] `LunchCardModalBuilderTest.java` — JSON 구조, 3가지 상태별 UI 검증
+- [x] **`ingest/.../payload/LunchCardModalBuilder.java`** — 모달 JSON 빌더 (신규)
+    - [x] `build()` (views.open), `buildUpdate()` (views.update)
+    - [x] Datepicker + 주/월 토글(좌우 동시 전환) + 카운트 + 요일별 사용자
+    - [x] 상태 분기: 미등록 / 본인 등록 / 타인 등록
+    - [x] 사용/취소 라디오 + 신청 버튼 + "타인이 이미 사용" 안내
+- [x] **`ingest/.../facade/LunchCardFacade.java`** — handleCommand, handleBlockAction 완성
+    - [x] Calendar 조회 + 모달 빌드 + openView/updateView
+    - [x] 카운트 헬퍼: countEvents, buildDayOfWeekMap
+- [x] **`ingest/.../service/SlackApiService.java`** — `openLunchCardModal()`, `updateLunchCardView()` 추가
+- [x] **테스트**
+    - [x] `LunchCardModalBuilderTest.java` — JSON 구조, 3가지 상태별 UI 검증
 
 ### 검증
-- [ ] `./gradlew :ingest:compileJava` 빌드 성공
-- [ ] `./gradlew :ingest:test` 테스트 통과
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 테스트 통과
 
 ### 리스크
 - Slack 체크박스 disabled 제한 → 상태별 다른 블록 렌더링으로 우회
@@ -603,7 +603,7 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 - **병렬 가능**: 아니오
 
 ### 전제조건
-- [ ] Phase N16 완료
+- [x] Phase N16 완료 (PR #TBD)
 
 ### 수정/개선
 - [ ] **`ingest/.../facade/LunchCardFacade.java`** — handleModalSubmit 완성

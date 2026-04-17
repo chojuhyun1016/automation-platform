@@ -30,7 +30,7 @@ class LunchCardModalSubmitTest {
                   "action_lunch_card_date": { "selected_date": "2026-04-18" }
                 },
                 "block_lunch_card_action": {
-                  "action_lunch_card_toggle": {
+                  "action_lunch_card_action": {
                     "selected_option": { "value": "apply" }
                   }
                 }
@@ -67,7 +67,7 @@ class LunchCardModalSubmitTest {
                   "action_lunch_card_date": { "selected_date": "2026-04-19" }
                 },
                 "block_lunch_card_action": {
-                  "action_lunch_card_toggle": {
+                  "action_lunch_card_action": {
                     "selected_option": { "value": "cancel" }
                   }
                 }
@@ -118,7 +118,7 @@ class LunchCardModalSubmitTest {
                   "action_lunch_card_date": { "selected_date": "2026-04-20" }
                 },
                 "block_lunch_card_action": {
-                  "action_lunch_card_toggle": {
+                  "action_lunch_card_action": {
                     "selected_option": { "value": "invalid" }
                   }
                 }

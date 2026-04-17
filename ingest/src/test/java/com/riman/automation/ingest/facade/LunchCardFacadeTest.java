@@ -74,7 +74,7 @@ class LunchCardFacadeTest {
                     "action_lunch_card_date": {}
                   },
                   "block_lunch_card_action": {
-                    "action_lunch_card_toggle": {
+                    "action_lunch_card_action": {
                       "selected_option": { "value": "apply" }
                     }
                   }
@@ -107,7 +107,7 @@ class LunchCardFacadeTest {
                     "action_lunch_card_date": { "selected_date": "2026-04-18" }
                   },
                   "block_lunch_card_action": {
-                    "action_lunch_card_toggle": {
+                    "action_lunch_card_action": {
                       "selected_option": { "value": "invalid" }
                     }
                   }
