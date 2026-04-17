@@ -621,7 +621,7 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 
 ## Phase N18: 점심카드 — 문서 갱신 (#42)
 
-- [x] Phase N18 완료 (PR #TBD)
+- [x] Phase N18 완료 (PR #47)
 
 ### 오버뷰
 CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
