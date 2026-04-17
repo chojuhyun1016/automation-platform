@@ -870,6 +870,81 @@ Google Calendar API `setQ()` 검색이 이벤트를 누락하여 주간/월간 �
 
 ---
 
+## Phase N25: 점심카드 — 체크박스 제거 + config.json 기반 설정 + UI 개선 (#60)
+
+- [ ] Phase N25 완료
+
+### 오버뷰
+SELF_REGISTERED 체크박스 해제 후 신청 가능한 버그 수정, 알림 미전송 버그 수정, UI 개선을 한 Phase로 처리한다. checkboxes 제거 → action을 private_metadata 인코딩, ingest의 LUNCH_CARD_CALENDAR_ID 환경변수 → config.json 기반으로 변경, worker 알림의 SLACK_BOT_TOKEN → Secrets Manager(config.json routing의 slack_bot_token_secret) 기반으로 변경.
+
+### 메타
+- **라벨**: bug
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [x] Phase N24 완료
+
+### 수정/개선
+
+#### A. 체크박스 제거 + action 서버 결정 (ingest)
+- [ ] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
+    - [ ] `buildView()`: private_metadata에 action 인코딩 (`userId|userName|apply` 또는 `userId|userName|cancel`)
+    - [ ] `addApplyBlock()` / `addCancelBlock()` → 텍스트 섹션으로 교체 (checkboxes 제거)
+        - UNREGISTERED: `"✅ 사용 신청이 적용됩니다"`
+        - SELF_REGISTERED: `"❌ 취소가 적용됩니다"`
+    - [ ] OTHER_REGISTERED: submit 버튼 없음 유지 (기존대로)
+    - [ ] 백틱 하이라이트 → bold 처리 (당일 사용자 `*이름*`)
+    - [ ] 카운트 포맷 심플화 (`📊 주간 사용: *N*회` → 간결한 표기)
+- [ ] **`ingest/src/main/java/.../dto/slack/LunchCardModalSubmit.java`**
+    - [ ] action 파싱: checkboxes `selected_options` → private_metadata 세 번째 필드
+    - [ ] checkboxes 관련 파싱 코드 제거
+
+#### B. ingest Calendar ID — config.json 기반 (환경변수 제거)
+- [ ] **`ingest/src/main/java/.../facade/LunchCardFacade.java`**
+    - [ ] `LUNCH_CARD_CALENDAR_ID` 환경변수 → S3 config.json의 `lunchCard.calendar_id` 로드
+    - [ ] 기존 `loadTeamMemberMap()` 패턴 참고하여 config.json 로드 + 캐싱
+    - [ ] `handleBlockAction()`: 3-segment private_metadata 파싱 호환
+
+#### C. worker 알림 — Secrets Manager 기반 Bot 토큰 (환경변수 제거)
+- [ ] **`worker/src/main/java/.../service/LunchCardNotificationService.java`**
+    - [ ] `SLACK_BOT_TOKEN` 환경변수 → Secrets Manager 조회로 변경
+    - [ ] config.json routing 섹션의 `slack_bot_token_secret` 사용 (기존 `SlackNotificationService.getBotToken()` 패턴 참고)
+    - [ ] 생성자에 `secretName` 파라미터 추가 (또는 `ConfigService`에서 조회)
+- [ ] **`worker/src/main/java/.../handler/WorkerHandler.java`**
+    - [ ] LunchCardNotificationService 생성 시 `slack_bot_token_secret` 전달
+    - [ ] ConfigService 또는 config.json routing에서 CCE의 `slack_bot_token_secret` 조회
+
+#### D. 테스트
+- [ ] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
+    - [ ] checkboxes → 텍스트 섹션 검증으로 변경
+    - [ ] private_metadata 3-segment 포맷 검증
+- [ ] **`ingest/src/test/java/.../dto/slack/LunchCardModalSubmitTest.java`**
+    - [ ] private_metadata 기반 action 파싱 테스트
+
+### 참고: config.json 관련 기존 코드
+- `config/config.json` (라인 77-80): lunchCard.calendar_id, lunchCard.notification_channel_id
+- `config/config.json` routing.CCE: slack_bot_token_secret = "automation-slack-bot-token"
+- `worker/.../service/ConfigService.java` (라인 130-159): getLunchCardCalendarId(), getLunchCardNotificationChannelId()
+- `worker/.../service/SlackNotificationService.java` (라인 225-246): getBotToken() — Secrets Manager 조회 + 5분 캐시 패턴
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [ ] `./gradlew :worker:compileJava` 빌드 성공
+- [ ] `./gradlew :worker:test` 전체 테스트 통과
+- [ ] 배포 후 UNREGISTERED: 신청 텍스트 + 신청 버튼 → apply
+- [ ] 배포 후 SELF_REGISTERED: 취소 텍스트 + 신청 버튼 → cancel (조작 불가)
+- [ ] 배포 후 OTHER_REGISTERED: 안내 문구 + 닫기만
+- [ ] 배포 후 팀 채널 알림 전송 확인 (CCE - Team Bot)
+
+### 주의사항
+- private_metadata 포맷 변경 시 `handleBlockAction()`의 2-segment 파싱도 호환 유지
+- ingest에서 config.json 로드 시 기존 `loadTeamMemberMap()` 동일 S3Client 캐싱 사용
+- `LUNCH_CARD_CALENDAR_ID` 환경변수는 제거 가능 (config.json으로 완전 대체)
+
+---
+
 ## 실행 가이드
 
 Phase 작업을 시작하려면:
@@ -904,6 +979,7 @@ Phase 작업을 시작하려면:
 | N22 | #53 | feat | `source scripts/create-worktree.sh feat 53 lunch-card-button-state` |
 | N23 | #54 | chore | `source scripts/create-worktree.sh chore 54 lunch-card-notification-test` |
 | N24 | #58 | fix | `source scripts/create-worktree.sh fix 58 lunch-card-calendar-query-fix` |
+| N25 | #60 | fix | `source scripts/create-worktree.sh fix 60 lunch-card-checkbox-config-ui` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
 > 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`
