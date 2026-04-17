@@ -947,7 +947,7 @@ SELF_REGISTERED 체크박스 해제 후 신청 가능한 버그 수정, 알림 �
 
 ## Phase N26: 점심카드 — worker Calendar searchQuery 버그 수정 + 날짜 로직 전면 점검 (#62)
 
-- [ ] Phase N26 완료
+- [x] Phase N26 완료
 
 ### 오버뷰
 worker `LunchCardService`가 여전히 `q="점심카드"` searchQuery를 사용하여 Calendar 조회 결과가 불안정. ingest Phase N24에서 수정된 동일 패턴(null + Java 필터링)을 worker에도 적용하고, 날짜 필터링/매칭 로직을 전면 점검한다.
@@ -963,33 +963,33 @@ worker `LunchCardService`가 여전히 `q="점심카드"` searchQuery를 사용�
 ### 수정/개선
 
 #### A. worker searchQuery 제거 (핵심)
-- [ ] **`worker/src/main/java/.../service/LunchCardService.java`**
-    - [ ] `findLunchCardEvents()`: `SEARCH_QUERY` → `null` + Java 필터링 (`summary.startsWith("점심카드")`)
-    - [ ] `findLunchCardEvent()`: 위 수정에 맞춰 조정
-    - [ ] `applyLunchCard()` / `cancelLunchCard()` 동작 확인
-- [ ] **`worker/src/main/java/.../service/CalendarService.java`** — 변경 없음 확인 (listCalendarEvents는 그대로)
+- [x] **`worker/src/main/java/.../service/LunchCardService.java`**
+    - [x] `findLunchCardEvents()`: `SEARCH_QUERY` → `null` + Java 필터링 (`summary.startsWith("점심카드")`)
+    - [x] `findLunchCardEvent()`: 위 수정에 맞춰 조정
+    - [x] `applyLunchCard()` / `cancelLunchCard()` 동작 확인
+- [x] **`worker/src/main/java/.../service/CalendarService.java`** — 변경 없음 확인 (listCalendarEvents는 그대로)
 
 #### B. 날짜 로직 점검 (ingest)
-- [ ] **`ingest/src/main/java/.../facade/LunchCardFacade.java`**
-    - [ ] `queryWeekEvents()`: 주간 범위 (월~토 00:00) 정확성 확인
-    - [ ] `queryMonthEvents()`: 월간 범위 정확성 확인
-    - [ ] `filterEventsByDate()`: all-day 이벤트 날짜 매칭 확인
-    - [ ] `extractEventDate()`: all-day vs dateTime 분기 정확성 확인
-    - [ ] `determineStatus()`: UNREGISTERED/SELF_REGISTERED/OTHER_REGISTERED 판별 정확성 확인
-    - [ ] `buildDayOfWeekMap()`: 요일별 사용자 매핑 정확성 확인
+- [x] **`ingest/src/main/java/.../facade/LunchCardFacade.java`**
+    - [x] `queryWeekEvents()`: 주간 범위 (월~토 00:00) 정확성 확인
+    - [x] `queryMonthEvents()`: 월간 범위 정확성 확인
+    - [x] `filterEventsByDate()`: all-day 이벤트 날짜 매칭 확인
+    - [x] `extractEventDate()`: all-day vs dateTime 분기 정확성 확인
+    - [x] `determineStatus()`: UNREGISTERED/SELF_REGISTERED/OTHER_REGISTERED 판별 정확성 확인
+    - [x] `buildDayOfWeekMap()`: 요일별 사용자 매핑 정확성 확인
 
 #### C. 테스트
-- [ ] **`worker/src/test/java/.../service/LunchCardServiceTest.java`** (신규 또는 기존 보강)
-    - [ ] searchQuery=null + Java 필터링 동작 검증
-    - [ ] applyLunchCard 멱등 체크 검증
-    - [ ] cancelLunchCard 이벤트 찾기/삭제 검증
-- [ ] **`ingest/src/test/java/.../facade/LunchCardFacadeTest.java`**
-    - [ ] 날짜 필터링 edge case 검증 (all-day 이벤트)
+- [x] **`worker/src/test/java/.../service/LunchCardServiceTest.java`** (신규 또는 기존 보강)
+    - [x] searchQuery=null + Java 필터링 동작 검증
+    - [x] applyLunchCard 멱등 체크 검증
+    - [x] cancelLunchCard 이벤트 찾기/삭제 검증
+- [x] **`ingest/src/test/java/.../facade/LunchCardFacadeTest.java`**
+    - [x] 날짜 필터링 edge case 검증 (all-day 이벤트)
 
 ### 검증
-- [ ] `./gradlew :worker:compileJava` 빌드 성공
-- [ ] `./gradlew :worker:test` 전체 테스트 통과
-- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [x] `./gradlew :worker:compileJava` 빌드 성공
+- [x] `./gradlew :worker:test` 전체 테스트 통과
+- [x] `./gradlew :ingest:test` 전체 테스트 통과
 - [ ] 배포 후 신청 → 재조회 시 즉시 표시 확인
 - [ ] 배포 후 취소 → 재조회 시 즉시 반영 확인
 - [ ] 배포 후 다른 날짜 이벤트 영향 없음 확인
