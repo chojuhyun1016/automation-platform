@@ -103,6 +103,43 @@ class LunchCardModalBuilderTest {
       assertThat(jsonStr).contains("홍길동");
       assertThat(jsonStr).contains("김철수");
     }
+
+    @Test
+    @DisplayName("헤더 텍스트 — '이번 주 사용자 현황'")
+    void build_weekHeaderText() throws Exception {
+      String json = LunchCardModalBuilder.build(
+          "T123", dataWithStatus(Status.UNREGISTERED, null));
+
+      String jsonStr = OM.readTree(json).path("view").path("blocks").toString();
+      assertThat(jsonStr).contains("이번 주 사용자 현황");
+      assertThat(jsonStr).doesNotContain("이번 주 사용 현황");
+    }
+
+    @Test
+    @DisplayName("선택 요일 사용자 백틱 하이라이트 — 2026-04-20(월) 선택 시 월요일 사용자에 백틱")
+    void build_selectedDayUsersHighlighted() throws Exception {
+      // 2026-04-20 = 월요일 → "월" 요일의 사용자 "홍길동"이 백틱 처리
+      String json = LunchCardModalBuilder.build(
+          "T123", dataWithStatus(Status.UNREGISTERED, null));
+
+      String jsonStr = OM.readTree(json).path("view").path("blocks").toString();
+      assertThat(jsonStr).contains("`홍길동`");
+    }
+
+    @Test
+    @DisplayName("비선택 요일 사용자 — 백틱 없음")
+    void build_nonSelectedDayUsersNotHighlighted() throws Exception {
+      // 2026-04-20 = 월요일 → "화" 요일의 사용자는 백틱 없이 표시
+      String json = LunchCardModalBuilder.build(
+          "T123", dataWithStatus(Status.UNREGISTERED, null));
+
+      String jsonStr = OM.readTree(json).path("view").path("blocks").toString();
+      // 화요일 사용자는 백틱 없이 표시
+      assertThat(jsonStr).contains("김철수");
+      assertThat(jsonStr).doesNotContain("`김철수`");
+      assertThat(jsonStr).contains("이영희");
+      assertThat(jsonStr).doesNotContain("`이영희`");
+    }
   }
 
   @Nested

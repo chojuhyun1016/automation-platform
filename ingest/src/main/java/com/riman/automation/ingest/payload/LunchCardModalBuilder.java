@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.riman.automation.common.slack.SlackBlockBuilder;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -118,14 +120,23 @@ public class LunchCardModalBuilder {
 
     // 4. 요일별 사용자 목록
     ObjectNode weekHeader = OM.createObjectNode().put("type", "section");
-    weekHeader.set("text", mrkdwn("📋 *이번 주 사용 현황*"));
+    weekHeader.set("text", mrkdwn("📋 *이번 주 사용자 현황*"));
     blocks.add(weekHeader);
 
     if (data.dayOfWeekMap() != null) {
+      String selectedDayLabel = selectedDayLabel(data.selectedDate());
       for (Map.Entry<String, List<String>> entry : data.dayOfWeekMap().entrySet()) {
         String day = entry.getKey();
         List<String> users = entry.getValue();
-        String userText = users.isEmpty() ? "_없음_" : String.join(", ", users);
+        boolean highlight = day.equals(selectedDayLabel);
+        String userText;
+        if (users.isEmpty()) {
+          userText = "_없음_";
+        } else if (highlight) {
+          userText = users.stream().map(n -> "`" + n + "`").collect(java.util.stream.Collectors.joining(", "));
+        } else {
+          userText = String.join(", ", users);
+        }
         ObjectNode daySection = OM.createObjectNode().put("type", "section");
         daySection.set("text", mrkdwn("*" + day + "* — " + userText));
         blocks.add(daySection);
@@ -184,6 +195,21 @@ public class LunchCardModalBuilder {
     node.set("text", textNode);
     node.put("value", value);
     return node;
+  }
+
+  /** selectedDate(yyyy-MM-dd)의 요일을 "월"~"일" 한글 라벨로 변환. */
+  static String selectedDayLabel(String selectedDate) {
+    if (selectedDate == null) return "";
+    DayOfWeek dow = LocalDate.parse(selectedDate).getDayOfWeek();
+    return switch (dow) {
+      case MONDAY -> "월";
+      case TUESDAY -> "화";
+      case WEDNESDAY -> "수";
+      case THURSDAY -> "목";
+      case FRIDAY -> "금";
+      case SATURDAY -> "토";
+      case SUNDAY -> "일";
+    };
   }
 
   private static ObjectNode plainText(String text) {
