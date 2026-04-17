@@ -20,7 +20,9 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -264,6 +266,16 @@ public class LunchCardFacade {
     int weeklyCount = countEvents(weekEvents);
     int monthlyCount = countEvents(monthEvents);
 
+    log.debug("점심카드 조회 결과: selectedDate={}, weekEvents={}, monthEvents={}",
+        selectedDate, weeklyCount, monthlyCount);
+    for (Event event : weekEvents) {
+      log.debug("점심카드 이벤트: summary={}, date={}, dateTime={}, extractedDate={}",
+          event.getSummary(),
+          event.getStart() != null ? event.getStart().getDate() : null,
+          event.getStart() != null ? event.getStart().getDateTime() : null,
+          extractEventDate(event));
+    }
+
     List<Event> dayEvents = filterEventsByDate(weekEvents, date);
 
     Status status = determineStatus(dayEvents, requesterName);
@@ -366,13 +378,18 @@ public class LunchCardFacade {
     return m.find() ? m.group(1) : null;
   }
 
-  private static String extractEventDate(Event event) {
+  static String extractEventDate(Event event) {
     if (event.getStart() == null) return "";
     if (event.getStart().getDate() != null) {
       return event.getStart().getDate().toStringRfc3339().substring(0, 10);
     }
     if (event.getStart().getDateTime() != null) {
-      return event.getStart().getDateTime().toStringRfc3339().substring(0, 10);
+      // dateTime 이벤트는 타임존 포함 → KST 기준 날짜로 변환
+      long millis = event.getStart().getDateTime().getValue();
+      return Instant.ofEpochMilli(millis)
+          .atZone(ZoneId.of("Asia/Seoul"))
+          .toLocalDate()
+          .toString();
     }
     return "";
   }
