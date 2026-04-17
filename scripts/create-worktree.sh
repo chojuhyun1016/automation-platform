@@ -52,9 +52,10 @@ if [ $# -lt 3 ]; then
     return 1
 fi
 
-# 프로젝트 루트 확인
-if [ ! -f "CLAUDE.md" ]; then
-    echo "❌ 프로젝트 루트에서 실행하세요."
+# 프로젝트 루트를 절대 경로로 확보 (워크트리 내에서도 동작)
+PROJECT_ROOT="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null | sed 's|/\.git$||')"
+if [ -z "$PROJECT_ROOT" ] || [ ! -f "$PROJECT_ROOT/CLAUDE.md" ]; then
+    echo "❌ git 저장소의 프로젝트 루트를 찾을 수 없습니다."
     echo "   cd /Users/r00365/Work/workspace/automation-platform"
     return 1
 fi
@@ -64,7 +65,7 @@ ISSUE_NUMBER=$2
 DESCRIPTION=$3
 BRANCH_NAME="${TYPE}/${ISSUE_NUMBER}-${DESCRIPTION}"
 WORKTREE_DIR="${TYPE}-${ISSUE_NUMBER}-${DESCRIPTION}"
-WORKTREE_PATH="../worktree/${WORKTREE_DIR}"
+WORKTREE_PATH="$(dirname "$PROJECT_ROOT")/worktree/${WORKTREE_DIR}"
 
 # 타입 유효성 확인
 case "$TYPE" in
@@ -87,16 +88,17 @@ if ! gh issue view "$ISSUE_NUMBER" &>/dev/null; then
     fi
 fi
 
-# 이미 존재하는 워크트리 처리
-if [ -d "$WORKTREE_PATH" ]; then
-    echo "ℹ️  워크트리 이미 존재: $WORKTREE_PATH — 이동합니다."
-    cd "$WORKTREE_PATH" || return 1
+# 이미 등록된 워크트리인지 확인 (git worktree list 기반 — 경로 무관하게 동작)
+EXISTING_WT="$(git worktree list --porcelain | grep "worktree.*${WORKTREE_DIR}$" | head -1 | sed 's/^worktree //')"
+if [ -n "$EXISTING_WT" ] && [ -d "$EXISTING_WT" ]; then
+    echo "ℹ️  워크트리 이미 존재: $EXISTING_WT — 이동합니다."
+    cd "$EXISTING_WT" || return 1
     echo "➡️  $(pwd)"
     echo "🔀 브랜치: $BRANCH_NAME"
     echo ""
     echo "🚀 Claude 실행 중... /resolve-issue $ISSUE_NUMBER 로 시작하세요."
     echo ""
-    claude --dangerously-skip-permissions -c
+    claude --dangerously-skip-permissions
     return 0
 fi
 
