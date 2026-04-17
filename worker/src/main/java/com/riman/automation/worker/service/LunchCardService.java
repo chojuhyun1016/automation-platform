@@ -6,6 +6,7 @@ import com.google.api.services.calendar.model.EventDateTime;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,7 +17,6 @@ import java.util.List;
 @Slf4j
 public class LunchCardService {
 
-  private static final String SEARCH_QUERY = "점심카드";
   private static final String SUMMARY_PREFIX = "점심카드";
 
   private final CalendarService calendarService;
@@ -35,7 +35,23 @@ public class LunchCardService {
   public List<Event> findLunchCardEvents(String calendarId, String date) {
     String timeMin = date + "T00:00:00+09:00";
     String timeMax = date + "T23:59:59+09:00";
-    return calendarService.listCalendarEvents(calendarId, timeMin, timeMax, SEARCH_QUERY);
+    List<Event> allEvents = calendarService.listCalendarEvents(calendarId, timeMin, timeMax, null);
+    return filterByLunchCardSummary(allEvents);
+  }
+
+  /**
+   * summary가 "점심카드"로 시작하는 이벤트만 필터링한다.
+   * Google Calendar API의 q 파라미터가 결과를 누락하는 문제를 우회하기 위해 Java에서 필터링한다.
+   */
+  static List<Event> filterByLunchCardSummary(List<Event> events) {
+    List<Event> result = new ArrayList<>();
+    for (Event event : events) {
+      String summary = event.getSummary();
+      if (summary != null && summary.startsWith(SUMMARY_PREFIX)) {
+        result.add(event);
+      }
+    }
+    return result;
   }
 
   /**
