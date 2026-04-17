@@ -9,7 +9,7 @@ PRD: `automation-platform-prd.md` 참조.
 ### 현재 상태
 
 - **인프라**: Lambda 4개(ingest, worker, scheduler, groupware) + ECS Fargate 1개(groupware-bot)
-- **Slack 커맨드**: /부재등록, /재택근무, /계정관리, /일정등록, /현재티켓 (5개 완료), /점심카드 (Phase N14~N18 진행 중)
+- **Slack 커맨드**: /부재등록, /재택근무, /계정관리, /일정등록, /현재티켓, /점심카드 (6개 완료)
 - **Jira 동기화**: CREATE/UPDATE/DELETE → Calendar 자동 반영
 - **보고서**: Daily(Slack DM), Weekly/Monthly(Confluence + Excel)
 - **그룹웨어**: Playwright 브라우저 자동화 (EKP 부재 신청)
@@ -632,7 +632,7 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 - **병렬 가능**: 아니오
 
 ### 전제조건
-- [x] Phase N17 완료 (PR #47)
+- [x] Phase N17 완료
 
 ### 수정/개선
 - [x] **`CLAUDE.md`** (루트) — Slack 커맨드 테이블에 `/점심카드` 추가
