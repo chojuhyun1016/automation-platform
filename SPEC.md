@@ -647,6 +647,76 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 
 ---
 
+## Phase N19: 점심카드 — 주/월 토글 제거 + 카운트 동시 표시 (#48)
+
+- [ ] Phase N19 완료
+
+### 오버뷰
+불필요한 "조회 기간" 주간/월간 라디오 버튼을 제거하고, 날짜 선택 시 주간/월간 카운트를 동시에 표시한다.
+
+### 메타
+- **라벨**: enhancement
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [x] Phase N18 완료
+
+### 수정/개선
+- [ ] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`** — 주/월 토글 블록 제거, 카운트 동시 표시
+    - [ ] `ViewData` record에서 `periodMode`, `dailyCount` 필드 제거
+    - [ ] 주/월 토글 radio_buttons 블록 (block_lunch_card_period) 삭제
+    - [ ] 카운트 표시를 "주간 사용: *N*회" + "월간 사용: *N*회" 동시 표시로 변경
+- [ ] **`ingest/src/main/java/.../facade/LunchCardFacade.java`** — periodMode 관련 로직 정리
+    - [ ] `ACTION_TOGGLE_ID`, `DEFAULT_PERIOD` 상수 제거
+    - [ ] `buildViewData()`에서 `periodMode` 파라미터 및 `dailyCount` 제거
+    - [ ] `extractPeriodMode()` 메서드 삭제
+    - [ ] `handleBlockAction()`에서 periodMode 변수 제거
+- [ ] **`ingest/src/main/java/.../facade/SlackFacade.java`** — toggle action 라우팅 제거
+    - [ ] `"action_lunch_card_toggle"` 조건 제거
+- [ ] **`ingest/src/test/.../payload/LunchCardModalBuilderTest.java`** — 테스트 업데이트
+    - [ ] `dataWithStatus()` ViewData 생성 수정
+    - [ ] `build_hasPeriodToggle()` 테스트 삭제
+    - [ ] `build_hasCountDisplay()` 주간+월간 둘 다 검증으로 수정
+- [ ] **문서 업데이트** — `ingest/CLAUDE.md`, `.claude/rules/ingest.md`
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+
+---
+
+## Phase N20: 점심카드 — 이번주 사용 현황 이름 미표시 버그 수정 (#49)
+
+- [ ] Phase N20 완료
+
+### 오버뷰
+"이번주 사용 현황" 요일별 사용자 목록에서 이름이 표시되지 않는 버그를 수정한다.
+
+### 메타
+- **라벨**: bug
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [ ] Phase N19 완료
+
+### 수정/개선
+- [ ] **`ingest/src/main/java/.../facade/LunchCardFacade.java`** — 이름 미표시 버그 수정
+    - [ ] `extractEventDate()` 접근 제한자 `private static` → `static` (package-private) 변경
+    - [ ] `buildDayOfWeekMap()`/`buildViewData()`에 디버그 로그 추가
+    - [ ] Google Calendar all-day event 날짜 파싱 로직 점검 및 수정
+- [ ] **`ingest/src/test/.../facade/LunchCardFacadeLogicTest.java`** — 테스트 보강
+    - [ ] `ExtractEventDate` 테스트 클래스 추가 (all-day, dateTime, null 케이스)
+    - [ ] `BuildDayOfWeekMap` 테스트 보강
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [ ] 실제 Slack `/점심카드` 실행 시 이름 정상 표시
+
+---
+
 ## 실행 가이드
 
 Phase 작업을 시작하려면:
@@ -675,6 +745,8 @@ Phase 작업을 시작하려면:
 | N16 | #40 | feat | `source scripts/create-worktree.sh feat 40 lunch-card-modal-ui` |
 | N17 | #41 | feat | `source scripts/create-worktree.sh feat 41 lunch-card-submit` |
 | N18 | #42 | docs | `source scripts/create-worktree.sh docs 42 lunch-card-docs` |
+| N19 | #48 | feat | `source scripts/create-worktree.sh feat 48 lunch-card-toggle-remove` |
+| N20 | #49 | fix | `source scripts/create-worktree.sh fix 49 lunch-card-name-display` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
 > 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`

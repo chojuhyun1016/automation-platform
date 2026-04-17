@@ -15,8 +15,9 @@
 #   feat      새 기능
 #   fix       버그 수정
 #   refactor  리팩터링
-#   chore     설정/문서/빌드
+#   chore     설정/빌드
 #   hotfix    긴급 수정
+#   docs      문서
 #
 # 예시:
 #   source scripts/create-worktree.sh feat 12 add-schedule-repeat
@@ -43,7 +44,7 @@
 if [ $# -lt 3 ]; then
     echo "❌ 사용법: source scripts/create-worktree.sh <타입> <이슈번호> <설명>"
     echo ""
-    echo "타입: feat | fix | refactor | chore | hotfix"
+    echo "타입: feat | fix | refactor | chore | hotfix | docs"
     echo ""
     echo "예시:"
     echo "  source scripts/create-worktree.sh feat 12 add-schedule-repeat"
@@ -67,10 +68,10 @@ WORKTREE_PATH="../worktree/${WORKTREE_DIR}"
 
 # 타입 유효성 확인
 case "$TYPE" in
-    feat|fix|refactor|chore|hotfix) ;;
+    feat|fix|refactor|chore|hotfix|docs) ;;
     *)
         echo "❌ 유효하지 않은 타입: $TYPE"
-        echo "허용: feat | fix | refactor | chore | hotfix"
+        echo "허용: feat | fix | refactor | chore | hotfix | docs"
         return 1
         ;;
 esac
