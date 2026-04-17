@@ -28,6 +28,7 @@ public class WorkerMessageService {
   private static final String MESSAGE_TYPE_REMOTE_WORK = "remote_work";
   private static final String MESSAGE_TYPE_ABSENCE = "absence";
   private static final String MESSAGE_TYPE_SCHEDULE = "schedule";
+  private static final String MESSAGE_TYPE_LUNCH_CARD = "lunch_card";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
       .registerModule(new JavaTimeModule());
@@ -227,6 +228,39 @@ public class WorkerMessageService {
       log.error("일정 삭제 SQS 전송 실패: user={}, calendarEventId={}",
           slackUserId, calendarEventId, e);
       throw new ExternalApiClientException("SQS", "일정 삭제 전송 실패", e);
+    }
+  }
+
+  /**
+   * 점심카드 신청/취소 메시지를 SQS 로 전송한다.
+   */
+  public String sendLunchCard(
+      String slackUserId, String userName, String date, String action) {
+    try {
+      ObjectNode message = OBJECT_MAPPER.createObjectNode();
+      message.put("messageType", MESSAGE_TYPE_LUNCH_CARD);
+      message.put("eventId", UUID.randomUUID().toString());
+      message.put("receivedAt", Instant.now().toString());
+      message.put("action", action);
+      message.put("name", userName);
+      message.put("date", date);
+      message.put("slack_user_id", slackUserId);
+
+      SendMessageRequest request = SendMessageRequest.builder()
+          .queueUrl(queueUrl)
+          .messageBody(message.toString())
+          .messageAttributes(Map.of(
+              "messageType", attr(MESSAGE_TYPE_LUNCH_CARD)
+          ))
+          .build();
+      String messageId = send(request);
+      log.debug("점심카드 전송: messageId={}, user={}, date={}", messageId, userName, date);
+      return messageId;
+    } catch (ExternalApiClientException e) {
+      throw e;
+    } catch (Exception e) {
+      log.error("점심카드 SQS 전송 실패: user={}", userName, e);
+      throw new ExternalApiClientException("SQS", "점심카드 전송 실패", e);
     }
   }
 

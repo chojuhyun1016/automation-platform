@@ -24,10 +24,11 @@ import java.util.concurrent.Executors;
  * Slack 요청 전체를 수신하는 Facade (재시도 감지, 서명 검증, 커맨드/모달 라우팅).
  *
  * 분기 규칙:
- * - Slash Command → /재택근무, /부재등록, /계정관리, /일정등록, /현재티켓
+ * - Slash Command → /재택근무, /부재등록, /계정관리, /일정등록, /현재티켓, /점심카드
  * - Modal Submit  → callback_id 기반 (remote_work_submit, absence_submit,
- *   account_manage_submit, schedule_submit, current_ticket_submit)
- * - Block Actions → action_id 기반 (action_account_delete, action_schedule_delete)
+ *   account_manage_submit, schedule_submit, current_ticket_submit, lunch_card_submit)
+ * - Block Actions → action_id 기반 (action_account_delete, action_schedule_delete,
+ *   action_lunch_card_date, action_lunch_card_toggle)
  *
  * CurrentTicketFacade 는 {@link GoogleCalendarClient} 가 필요하나 실제 초기화는
  * 모달 제출 시점으로 지연된다. Google 인증 키는 S3 (환경변수
@@ -44,6 +45,7 @@ public class SlackFacade {
   private static final String CALLBACK_ACCOUNT = "account_manage_submit";
   private static final String CALLBACK_SCHEDULE = "schedule_submit";
   private static final String CALLBACK_CURRENT_TICKET = "current_ticket_submit";
+  private static final String CALLBACK_LUNCH_CARD = "lunch_card_submit";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -57,20 +59,22 @@ public class SlackFacade {
    * CurrentTicket Facade. SlackClient 만으로 항상 생성 가능하며 GoogleCalendarClient 는 lazy 초기화된다.
    */
   private final CurrentTicketFacade currentTicketFacade;
+  private final LunchCardFacade lunchCardFacade;
 
   /**
    * 의존 Facade/Service 를 병렬로 초기화한다.
    *
    * ForkJoinPool.commonPool() 은 Lambda 환경에서 스레드 수가 제한되어 같은 스레드가 재사용되며
-   * 순차 실행될 수 있으므로, 확실한 병렬성을 위해 고정 5개 풀을 명시적으로 생성한다.
+   * 순차 실행될 수 있으므로, 확실한 병렬성을 위해 고정 6개 풀을 명시적으로 생성한다.
    * 초기화 비용은 WorkerMessageService ~661ms, SlackApiService ~904ms, AccountManageFacade ~268ms,
-   * ScheduleManageFacade ~747ms (DynamoDB pre-warm 포함), CurrentTicketFacade ~5ms 이며
-   * 병렬화 시 최댓값(~904ms)으로 수렴한다. 순차 합계 ~2585ms 대비 약 1680ms 를 단축한다.
+   * ScheduleManageFacade ~747ms (DynamoDB pre-warm 포함), CurrentTicketFacade ~5ms,
+   * LunchCardFacade ~5ms 이며 병렬화 시 최댓값(~904ms)으로 수렴한다.
+   * 순차 합계 ~2590ms 대비 약 1685ms 를 단축한다.
    */
   public SlackFacade() {
     this.verifier = new SlackSignatureVerifier();
 
-    ExecutorService pool = Executors.newFixedThreadPool(5);
+    ExecutorService pool = Executors.newFixedThreadPool(6);
     try {
       CompletableFuture<Void> workerFuture = CompletableFuture
           .runAsync(WorkerMessageService::getInstance, pool);
@@ -90,18 +94,22 @@ public class SlackFacade {
       CompletableFuture<CurrentTicketFacade> ticketFuture = CompletableFuture
           .supplyAsync(() -> new CurrentTicketFacade(svc.getSlackClient()), pool);
 
+      CompletableFuture<LunchCardFacade> lunchCardFuture = CompletableFuture
+          .supplyAsync(() -> new LunchCardFacade(svc), pool);
+
       workerFuture.join();
       this.slackApiService = svc;
       this.accountManageFacade = accountFuture.join();
       this.scheduleManageFacade = scheduleFuture.join();
       this.currentTicketFacade = ticketFuture.join();
+      this.lunchCardFacade = lunchCardFuture.join();
 
     } finally {
       // 초기화 완료 후 풀을 반납하여 스레드 리소스 누수를 방지한다.
       pool.shutdown();
     }
 
-    log.info("SlackFacade initialized (currentTicket=활성)");
+    log.info("SlackFacade initialized (currentTicket=활성, lunchCard=활성)");
   }
 
   /**
@@ -190,6 +198,11 @@ public class SlackFacade {
           cmd.getTriggerId(), cmd.getUserId(), cmd.getUserName());
     }
 
+    if (cmd.isLunchCardCommand()) {
+      return lunchCardFacade.handleCommand(
+          cmd.getTriggerId(), cmd.getUserId(), cmd.getUserName());
+    }
+
     log.warn("등록되지 않은 커맨드: [{}]", cmd.getCommand());
     return HttpResponse.ok("");
   }
@@ -212,6 +225,10 @@ public class SlackFacade {
 
     if (CALLBACK_CURRENT_TICKET.equals(callbackId)) {
       return currentTicketFacade.handleModalSubmit(body);
+    }
+
+    if (CALLBACK_LUNCH_CARD.equals(callbackId)) {
+      return lunchCardFacade.handleModalSubmit(body);
     }
 
     if (CALLBACK_ABSENCE.equals(callbackId)) {
@@ -237,6 +254,10 @@ public class SlackFacade {
 
     if ("action_schedule_delete".equals(actionId)) {
       return scheduleManageFacade.handleBlockAction(body);
+    }
+
+    if ("action_lunch_card_date".equals(actionId) || "action_lunch_card_toggle".equals(actionId)) {
+      return lunchCardFacade.handleBlockAction(body);
     }
 
     return HttpResponse.ok("");

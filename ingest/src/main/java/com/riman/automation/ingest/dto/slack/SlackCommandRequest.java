@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * Slack Slash Command 요청 파싱 결과 VO.
- * 지원 커맨드: /재택근무, /부재등록, /계정관리, /일정등록, /현재티켓.
+ * 지원 커맨드: /재택근무, /부재등록, /계정관리, /일정등록, /현재티켓, /점심카드.
  */
 @Getter
 public class SlackCommandRequest {
@@ -19,6 +19,7 @@ public class SlackCommandRequest {
   private static final String ACCOUNT_MANAGE_COMMAND = "/계정관리";
   private static final String SCHEDULE_COMMAND = "/일정등록";
   private static final String CURRENT_TICKET_COMMAND = "/현재티켓";
+  private static final String LUNCH_CARD_COMMAND = "/점심카드";
 
   private final String command;
   private final String triggerId;
@@ -57,6 +58,10 @@ public class SlackCommandRequest {
 
   public boolean isCurrentTicketCommand() {
     return CURRENT_TICKET_COMMAND.equals(command);
+  }
+
+  public boolean isLunchCardCommand() {
+    return LUNCH_CARD_COMMAND.equals(command);
   }
 
   private static Map<String, String> parseUrlEncoded(String body) {
