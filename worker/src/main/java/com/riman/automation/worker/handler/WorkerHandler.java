@@ -71,8 +71,10 @@ public class WorkerHandler implements RequestHandler<SQSEvent, Void> {
         configService, calendarService, dedupeService, scheduleMappingService);
 
     String lunchCardChannelId = configService.getLunchCardNotificationChannelId();
+    ConfigService.ProjectRouting cceRouting = configService.getRoutingConfig("CCE");
+    String lunchCardTokenSecret = (cceRouting != null) ? cceRouting.getSlackBotTokenSecret() : null;
     LunchCardNotificationService lunchCardNotificationService =
-        new LunchCardNotificationService(lunchCardChannelId);
+        new LunchCardNotificationService(lunchCardChannelId, lunchCardTokenSecret);
     this.lunchCardFacade = new LunchCardFacade(
         configService, calendarService, teamMemberService, dedupeService,
         lunchCardNotificationService);

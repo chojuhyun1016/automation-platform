@@ -52,22 +52,17 @@ class LunchCardFacadeTest {
           "user": { "id": "U001", "username": "testuser" },
           "view": {
             "callback_id": "lunch_card_submit",
-            "private_metadata": "U001|홍길동",
+            "private_metadata": "U001|홍길동|%s",
             "state": {
               "values": {
                 "block_lunch_card_date": {
                   "action_lunch_card_date": { "selected_date": "%s" }
-                },
-                "block_lunch_card_action": {
-                  "action_lunch_card_action": {
-                    "selected_options": [{ "value": "%s" }]
-                  }
                 }
               }
             }
           }
         }
-        """.formatted(date, action);
+        """.formatted(action, date);
   }
 
   @Nested
@@ -97,16 +92,11 @@ class LunchCardFacadeTest {
             "user": { "id": "U001", "username": "testuser" },
             "view": {
               "callback_id": "lunch_card_submit",
-              "private_metadata": "",
+              "private_metadata": "U001|testuser|apply",
               "state": {
                 "values": {
                   "block_lunch_card_date": {
                     "action_lunch_card_date": {}
-                  },
-                  "block_lunch_card_action": {
-                    "action_lunch_card_action": {
-                      "selected_options": [{ "value": "apply" }]
-                    }
                   }
                 }
               }
@@ -130,16 +120,11 @@ class LunchCardFacadeTest {
             "user": { "id": "U001", "username": "testuser" },
             "view": {
               "callback_id": "lunch_card_submit",
-              "private_metadata": "",
+              "private_metadata": "U001|testuser|invalid",
               "state": {
                 "values": {
                   "block_lunch_card_date": {
                     "action_lunch_card_date": { "selected_date": "2026-04-18" }
-                  },
-                  "block_lunch_card_action": {
-                    "action_lunch_card_action": {
-                      "selected_options": [{ "value": "invalid" }]
-                    }
                   }
                 }
               }
