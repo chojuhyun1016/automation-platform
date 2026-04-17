@@ -872,7 +872,7 @@ Google Calendar API `setQ()` 검색이 이벤트를 누락하여 주간/월간 �
 
 ## Phase N25: 점심카드 — 체크박스 제거 + config.json 기반 설정 + UI 개선 (#60)
 
-- [x] Phase N25 완료 (PR #TBD)
+- [x] Phase N25 완료 (PR #61)
 
 ### 오버뷰
 SELF_REGISTERED 체크박스 해제 후 신청 가능한 버그 수정, 알림 미전송 버그 수정, UI 개선을 한 Phase로 처리한다. checkboxes 제거 → action을 private_metadata 인코딩, ingest의 LUNCH_CARD_CALENDAR_ID 환경변수 → config.json 기반으로 변경, worker 알림의 SLACK_BOT_TOKEN → Secrets Manager(config.json routing의 slack_bot_token_secret) 기반으로 변경.
