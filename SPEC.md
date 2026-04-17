@@ -592,7 +592,7 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 
 ## Phase N17: 점심카드 — submit 응답 + 결과 팝업 (#41)
 
-- [ ] Phase N17 완료
+- [x] Phase N17 완료 (PR #46)
 
 ### 오버뷰
 신청/취소 submit 후 결과 팝업(modalResult) 표시를 완성한다.
@@ -606,16 +606,16 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 - [x] Phase N16 완료 (PR #45)
 
 ### 수정/개선
-- [ ] **`ingest/.../facade/LunchCardFacade.java`** — handleModalSubmit 완성
-    - [ ] SQS 위임 + join() + modalResult 응답
-    - [ ] 유효성 검증: date/action 빈값 → modalError
-- [ ] **`ingest/.../dto/slack/LunchCardModalSubmit.java`** — 유효성 검증 강화
-- [ ] **테스트**
-    - [ ] `LunchCardFacadeTest(ingest).java` — submit 응답 + SQS 전송 검증
+- [x] **`ingest/.../facade/LunchCardFacade.java`** — handleModalSubmit 완성
+    - [x] SQS 위임 + join() + modalResult 응답
+    - [x] 유효성 검증: date/action 빈값 → modalError
+- [x] **`ingest/.../dto/slack/LunchCardModalSubmit.java`** — 유효성 검증 강화
+- [x] **테스트**
+    - [x] `LunchCardFacadeTest(ingest).java` — submit 응답 + SQS 전송 검증
 
 ### 검증
-- [ ] `./gradlew build` 전체 빌드 성공
-- [ ] `./gradlew test` 전체 테스트 통과
+- [x] `./gradlew build` 전체 빌드 성공
+- [x] `./gradlew test` 전체 테스트 통과
 
 ---
 
