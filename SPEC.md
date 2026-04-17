@@ -801,7 +801,7 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 
 ## Phase N23: 점심카드 — 팀 채널 알림 검증 + 문서 갱신 (#54)
 
-- [ ] Phase N23 완료
+- [x] Phase N23 완료 (PR #57)
 
 ### 오버뷰
 worker 모듈의 `LunchCardNotificationService`가 신청/취소 시 팀 채널에 알림을 전송하는지 검증하고, 테스트를 보강한다. Phase N21~N22 변경사항을 문서에 반영한다.
@@ -815,17 +815,17 @@ worker 모듈의 `LunchCardNotificationService`가 신청/취소 시 팀 채널�
 - 없음 (worker 모듈은 독립)
 
 ### 수정/개선
-- [ ] **`worker/src/main/java/.../service/LunchCardNotificationService.java`**
-    - [ ] 동작 확인 (SLACK_BOT_TOKEN + NOTIFICATION_CHANNEL_ID 환경변수 필수)
-    - [ ] 봇 이름은 Slack App 설정에서 "C.C.E - Team Bot"으로 관리 (코드 변경 불필요)
-- [ ] **`worker/src/test/java/.../service/LunchCardNotificationServiceTest.java`** (신규)
-    - [ ] apply 시 SlackClient.postMessage() 호출 검증
-    - [ ] cancel 시 메시지 포맷 검증
-    - [ ] disabled 상태 (botToken 미설정) 시 무동작 검증
+- [x] **`worker/src/main/java/.../service/LunchCardNotificationService.java`**
+    - [x] 동작 확인 (SLACK_BOT_TOKEN + NOTIFICATION_CHANNEL_ID 환경변수 필수)
+    - [x] 봇 이름은 Slack App 설정에서 "C.C.E - Team Bot"으로 관리 (코드 변경 불필요)
+- [x] **`worker/src/test/java/.../service/LunchCardNotificationServiceTest.java`** (신규)
+    - [x] apply 시 SlackClient.postMessage() 호출 검증
+    - [x] cancel 시 메시지 포맷 검증
+    - [x] disabled 상태 (botToken 미설정) 시 무동작 검증
 
 ### 검증
-- [ ] `./gradlew :worker:compileJava` 빌드 성공
-- [ ] `./gradlew :worker:test` 전체 테스트 통과
+- [x] `./gradlew :worker:compileJava` 빌드 성공
+- [x] `./gradlew :worker:test` 전체 테스트 통과
 
 ---
 
