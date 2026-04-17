@@ -829,6 +829,47 @@ worker 모듈의 `LunchCardNotificationService`가 신청/취소 시 팀 채널�
 
 ---
 
+## Phase N24: 점심카드 — Calendar 조회 버그 수정 (카운트/사용자/상태 판별 전면 수정) (#58)
+
+- [ ] Phase N24 완료
+
+### 오버뷰
+Google Calendar API `setQ()` 검색이 이벤트를 누락하여 주간/월간 카운트=0, 사용자 현황 미표시, 상태 판별 실패(항상 UNREGISTERED) 버그를 수정한다. `searchQuery=null`로 전체 이벤트 fetch 후 Java에서 summary 기반 필터링하는 패턴을 적용한다.
+
+### 메타
+- **라벨**: bug
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [x] Phase N21~N23 완료
+
+### 근본 원인
+- `.claude/rules/ingest.md`에 문서화된 알려진 이슈: "Google Calendar API `searchQuery`는 결과 누락 가능 → 전체 이벤트 fetch 후 Java에서 필터링할 것"
+- `CurrentTicketFacade`에서는 이 패턴을 적용했으나, `LunchCardFacade`에서는 미적용
+- `queryWeekEvents()` / `queryMonthEvents()`가 `SEARCH_QUERY = "점심카드"`로 `setQ()` 호출 → Google Calendar API가 이벤트 누락 → 빈 리스트 반환
+- 빈 리스트 → `weeklyCount=0`, `monthlyCount=0`, `dayOfWeekMap` 비어있음, `status=UNREGISTERED`
+
+### 수정/개선
+- [ ] **`ingest/src/main/java/.../facade/LunchCardFacade.java`**
+    - [ ] `queryWeekEvents()` (라인 300): `SEARCH_QUERY` → `null`로 변경 (전체 이벤트 fetch)
+    - [ ] `queryMonthEvents()` (라인 308): `SEARCH_QUERY` → `null`로 변경
+    - [ ] 전체 이벤트 fetch 후 Java에서 summary가 "점심카드"로 시작하는 이벤트만 필터링하는 헬퍼 추가
+    - [ ] `buildViewData()` 내 디버그 로그를 `info`로 상향 (운영 디버깅용, 1회성)
+- [ ] **`ingest/src/test/java/.../facade/LunchCardFacadeLogicTest.java`**
+    - [ ] summary 필터링 헬퍼 테스트 추가 ("점심카드(홍길동)" 포함, "회의" 미포함)
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [ ] 배포 후 `/점심카드` 실행 시:
+    - [ ] 주간/월간 카운트가 정확히 표시
+    - [ ] 이번 주 사용자 현황에 이름 표시
+    - [ ] 본인 등록 시 SELF_REGISTERED (취소 체크박스)
+    - [ ] 타인 등록 시 OTHER_REGISTERED (안내 문구 + 신청 버튼 없음)
+
+---
+
 ## 실행 가이드
 
 Phase 작업을 시작하려면:
@@ -862,6 +903,7 @@ Phase 작업을 시작하려면:
 | N21 | #52 | feat | `source scripts/create-worktree.sh feat 52 lunch-card-ui-highlight` |
 | N22 | #53 | feat | `source scripts/create-worktree.sh feat 53 lunch-card-button-state` |
 | N23 | #54 | chore | `source scripts/create-worktree.sh chore 54 lunch-card-notification-test` |
+| N24 | #58 | fix | `source scripts/create-worktree.sh fix 58 lunch-card-calendar-query-fix` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
 > 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`
