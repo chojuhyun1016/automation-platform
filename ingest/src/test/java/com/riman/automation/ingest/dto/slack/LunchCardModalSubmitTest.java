@@ -31,7 +31,7 @@ class LunchCardModalSubmitTest {
                 },
                 "block_lunch_card_action": {
                   "action_lunch_card_action": {
-                    "selected_option": { "value": "apply" }
+                    "selected_options": [{ "value": "apply" }]
                   }
                 }
               }
@@ -68,7 +68,7 @@ class LunchCardModalSubmitTest {
                 },
                 "block_lunch_card_action": {
                   "action_lunch_card_action": {
-                    "selected_option": { "value": "cancel" }
+                    "selected_options": [{ "value": "cancel" }]
                   }
                 }
               }
@@ -119,7 +119,7 @@ class LunchCardModalSubmitTest {
                 },
                 "block_lunch_card_action": {
                   "action_lunch_card_action": {
-                    "selected_option": { "value": "invalid" }
+                    "selected_options": [{ "value": "invalid" }]
                   }
                 }
               }
@@ -152,6 +152,38 @@ class LunchCardModalSubmitTest {
     assertThat(modal.getDate()).isEmpty();
     assertThat(modal.getAction()).isEmpty();
     assertThat(modal.isValidAction()).isFalse();
+  }
+
+  @Test
+  @DisplayName("checkboxes 해제 — selected_options 빈 배열이면 action 빈 문자열")
+  void parse_emptySelectedOptions_returnsEmptyAction() throws Exception {
+    String json = """
+        {
+          "type": "view_submission",
+          "user": { "id": "U006", "username": "user6" },
+          "view": {
+            "private_metadata": "",
+            "state": {
+              "values": {
+                "block_lunch_card_date": {
+                  "action_lunch_card_date": { "selected_date": "2026-04-18" }
+                },
+                "block_lunch_card_action": {
+                  "action_lunch_card_action": {
+                    "selected_options": []
+                  }
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    LunchCardModalSubmit modal = LunchCardModalSubmit.parse(makePayloadBody(json));
+
+    assertThat(modal.getAction()).isEmpty();
+    assertThat(modal.isValidAction()).isFalse();
+    assertThat(modal.hasAction()).isFalse();
   }
 
   @Test
@@ -202,7 +234,7 @@ class LunchCardModalSubmitTest {
               "values": {
                 "block_lunch_card_action": {
                   "action_lunch_card_action": {
-                    "selected_option": { "value": "apply" }
+                    "selected_options": [{ "value": "apply" }]
                   }
                 }
               }
@@ -239,7 +271,7 @@ class LunchCardModalSubmitTest {
               "values": {
                 "block_lunch_card_action": {
                   "action_lunch_card_action": {
-                    "selected_option": { "value": "apply" }
+                    "selected_options": [{ "value": "apply" }]
                   }
                 }
               }
@@ -258,7 +290,7 @@ class LunchCardModalSubmitTest {
               "values": {
                 "block_lunch_card_action": {
                   "action_lunch_card_action": {
-                    "selected_option": { "value": "cancel" }
+                    "selected_options": [{ "value": "cancel" }]
                   }
                 }
               }

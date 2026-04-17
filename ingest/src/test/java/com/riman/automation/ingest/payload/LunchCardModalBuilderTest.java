@@ -164,7 +164,7 @@ class LunchCardModalBuilderTest {
   class StatusBranching {
 
     @Test
-    @DisplayName("미등록 — submit 버튼 존재 + 사용(apply) 기본 선택")
+    @DisplayName("미등록 — submit 버튼 존재 + checkboxes 사용(apply) 자동선택")
     void unregistered_hasSubmitAndApplyDefault() throws Exception {
       String json = LunchCardModalBuilder.build(
           "T123", dataWithStatus(Status.UNREGISTERED, null));
@@ -176,18 +176,27 @@ class LunchCardModalBuilderTest {
       assertThat(view.has("submit")).isTrue();
       assertThat(view.path("submit").path("text").asText()).isNotEmpty();
 
-      // 사용/취소 라디오 블록
+      // checkboxes 블록
       JsonNode blocks = view.path("blocks");
       JsonNode actionBlock = findBlockById(blocks, "block_lunch_card_action");
       assertThat(actionBlock).isNotNull();
 
-      // apply 기본 선택
-      JsonNode initialOption = actionBlock.path("element").path("initial_option");
-      assertThat(initialOption.path("value").asText()).isEqualTo("apply");
+      JsonNode element = actionBlock.path("element");
+      assertThat(element.path("type").asText()).isEqualTo("checkboxes");
+
+      // 옵션 1개 — "사용"
+      JsonNode options = element.path("options");
+      assertThat(options).hasSize(1);
+      assertThat(options.get(0).path("value").asText()).isEqualTo("apply");
+
+      // initial_options 배열로 자동선택
+      JsonNode initialOptions = element.path("initial_options");
+      assertThat(initialOptions).hasSize(1);
+      assertThat(initialOptions.get(0).path("value").asText()).isEqualTo("apply");
     }
 
     @Test
-    @DisplayName("본인 등록 — submit 버튼 존재 + 취소(cancel) 기본 선택")
+    @DisplayName("본인 등록 — submit 버튼 존재 + checkboxes 취소(cancel) 자동선택")
     void selfRegistered_hasSubmitAndCancelDefault() throws Exception {
       String json = LunchCardModalBuilder.build(
           "T123", dataWithStatus(Status.SELF_REGISTERED, "testuser"));
@@ -198,17 +207,27 @@ class LunchCardModalBuilderTest {
       // submit 버튼 존재
       assertThat(view.has("submit")).isTrue();
 
-      // 취소 기본 선택
+      // checkboxes 블록
       JsonNode blocks = view.path("blocks");
       JsonNode actionBlock = findBlockById(blocks, "block_lunch_card_action");
       assertThat(actionBlock).isNotNull();
 
-      JsonNode initialOption = actionBlock.path("element").path("initial_option");
-      assertThat(initialOption.path("value").asText()).isEqualTo("cancel");
+      JsonNode element = actionBlock.path("element");
+      assertThat(element.path("type").asText()).isEqualTo("checkboxes");
+
+      // 옵션 1개 — "취소"
+      JsonNode options = element.path("options");
+      assertThat(options).hasSize(1);
+      assertThat(options.get(0).path("value").asText()).isEqualTo("cancel");
+
+      // initial_options 배열로 자동선택
+      JsonNode initialOptions = element.path("initial_options");
+      assertThat(initialOptions).hasSize(1);
+      assertThat(initialOptions.get(0).path("value").asText()).isEqualTo("cancel");
     }
 
     @Test
-    @DisplayName("타인 등록 — submit 버튼 없음 + 안내 텍스트 표시")
+    @DisplayName("타인 등록 — submit 버튼 없음 + 백틱 안내 텍스트 표시")
     void otherRegistered_noSubmitAndWarning() throws Exception {
       String json = LunchCardModalBuilder.build(
           "T123", dataWithStatus(Status.OTHER_REGISTERED, "김철수"));
@@ -219,11 +238,11 @@ class LunchCardModalBuilderTest {
       // submit 버튼 없음
       assertThat(view.has("submit")).isFalse();
 
-      // 안내 텍스트 존재
+      // 백틱 안내 텍스트 존재
       String blocksJson = view.path("blocks").toString();
-      assertThat(blocksJson).contains("김철수");
+      assertThat(blocksJson).contains("`김철수`");
 
-      // 사용/취소 라디오 블록 없음
+      // checkboxes 블록 없음
       JsonNode actionBlock = findBlockById(view.path("blocks"), "block_lunch_card_action");
       assertThat(actionBlock).isNull();
     }
