@@ -9,6 +9,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * /점심카드 Slack Modal Block Kit JSON 빌더.
@@ -133,7 +134,7 @@ public class LunchCardModalBuilder {
         if (users.isEmpty()) {
           userText = "_없음_";
         } else if (highlight) {
-          userText = users.stream().map(n -> "`" + n + "`").collect(java.util.stream.Collectors.joining(", "));
+          userText = users.stream().map(n -> "`" + n + "`").collect(Collectors.joining(", "));
         } else {
           userText = String.join(", ", users);
         }

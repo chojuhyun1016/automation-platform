@@ -34,6 +34,12 @@ class LunchCardModalBuilderTest {
         status, registeredUser, 3, 10, sampleDayMap());
   }
 
+  private static ViewData dataWithDate(String selectedDate) {
+    return new ViewData(
+        "testuser", "U001", selectedDate,
+        Status.UNREGISTERED, null, 3, 10, sampleDayMap());
+  }
+
   @Nested
   @DisplayName("build (views.open)")
   class Build {
@@ -119,22 +125,33 @@ class LunchCardModalBuilderTest {
     @DisplayName("선택 요일 사용자 백틱 하이라이트 — 2026-04-20(월) 선택 시 월요일 사용자에 백틱")
     void build_selectedDayUsersHighlighted() throws Exception {
       // 2026-04-20 = 월요일 → "월" 요일의 사용자 "홍길동"이 백틱 처리
-      String json = LunchCardModalBuilder.build(
-          "T123", dataWithStatus(Status.UNREGISTERED, null));
+      String json = LunchCardModalBuilder.build("T123", dataWithDate("2026-04-20"));
 
       String jsonStr = OM.readTree(json).path("view").path("blocks").toString();
       assertThat(jsonStr).contains("`홍길동`");
+      assertThat(jsonStr).doesNotContain("`김철수`");
+      assertThat(jsonStr).doesNotContain("`이영희`");
+    }
+
+    @Test
+    @DisplayName("화요일 선택 시 화요일 사용자에 백틱")
+    void build_selectedDayUsersHighlighted_tuesday() throws Exception {
+      // 2026-04-21 = 화요일 → "화" 요일의 "김철수", "이영희"에 백틱
+      String json = LunchCardModalBuilder.build("T123", dataWithDate("2026-04-21"));
+
+      String jsonStr = OM.readTree(json).path("view").path("blocks").toString();
+      assertThat(jsonStr).contains("`김철수`");
+      assertThat(jsonStr).contains("`이영희`");
+      assertThat(jsonStr).doesNotContain("`홍길동`");
     }
 
     @Test
     @DisplayName("비선택 요일 사용자 — 백틱 없음")
     void build_nonSelectedDayUsersNotHighlighted() throws Exception {
       // 2026-04-20 = 월요일 → "화" 요일의 사용자는 백틱 없이 표시
-      String json = LunchCardModalBuilder.build(
-          "T123", dataWithStatus(Status.UNREGISTERED, null));
+      String json = LunchCardModalBuilder.build("T123", dataWithDate("2026-04-20"));
 
       String jsonStr = OM.readTree(json).path("view").path("blocks").toString();
-      // 화요일 사용자는 백틱 없이 표시
       assertThat(jsonStr).contains("김철수");
       assertThat(jsonStr).doesNotContain("`김철수`");
       assertThat(jsonStr).contains("이영희");
