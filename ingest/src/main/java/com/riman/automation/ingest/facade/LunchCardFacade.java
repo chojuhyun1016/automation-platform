@@ -266,10 +266,10 @@ public class LunchCardFacade {
     int weeklyCount = countEvents(weekEvents);
     int monthlyCount = countEvents(monthEvents);
 
-    log.debug("점심카드 조회 결과: selectedDate={}, weekEvents={}, monthEvents={}",
+    log.info("점심카드 조회 결과: selectedDate={}, weekEvents={}, monthEvents={}",
         selectedDate, weeklyCount, monthlyCount);
     for (Event event : weekEvents) {
-      log.debug("점심카드 이벤트: summary={}, date={}, dateTime={}, extractedDate={}",
+      log.info("점심카드 이벤트: summary={}, date={}, dateTime={}, extractedDate={}",
           event.getSummary(),
           event.getStart() != null ? event.getStart().getDate() : null,
           event.getStart() != null ? event.getStart().getDateTime() : null,
@@ -297,7 +297,8 @@ public class LunchCardFacade {
     LocalDate weekEnd = weekStart.plusDays(5); // 금요일 다음날
     String timeMin = weekStart + "T00:00:00+09:00";
     String timeMax = weekEnd + "T00:00:00+09:00";
-    return client.listEvents(lunchCardCalendarId, timeMin, timeMax, SEARCH_QUERY);
+    return filterByLunchCardSummary(
+        client.listEvents(lunchCardCalendarId, timeMin, timeMax, null));
   }
 
   private List<Event> queryMonthEvents(GoogleCalendarClient client, LocalDate date) {
@@ -305,7 +306,23 @@ public class LunchCardFacade {
     LocalDate monthEnd = date.with(TemporalAdjusters.lastDayOfMonth()).plusDays(1);
     String timeMin = monthStart + "T00:00:00+09:00";
     String timeMax = monthEnd + "T00:00:00+09:00";
-    return client.listEvents(lunchCardCalendarId, timeMin, timeMax, SEARCH_QUERY);
+    return filterByLunchCardSummary(
+        client.listEvents(lunchCardCalendarId, timeMin, timeMax, null));
+  }
+
+  /**
+   * summary가 "점심카드"로 시작하는 이벤트만 필터링한다.
+   * Google Calendar API searchQuery(setQ)는 결과 누락 가능 → 전체 fetch 후 Java에서 필터링.
+   */
+  static List<Event> filterByLunchCardSummary(List<Event> events) {
+    List<Event> result = new ArrayList<>();
+    for (Event event : events) {
+      String summary = event.getSummary();
+      if (summary != null && summary.startsWith(SEARCH_QUERY)) {
+        result.add(event);
+      }
+    }
+    return result;
   }
 
   // ── 카운트 헬퍼 ──

@@ -193,6 +193,48 @@ class LunchCardFacadeLogicTest {
   }
 
   @Nested
+  @DisplayName("filterByLunchCardSummary")
+  class FilterByLunchCardSummary {
+
+    @Test
+    @DisplayName("점심카드 이벤트만 필터링 — 점심카드(홍길동) 포함, 회의 미포함")
+    void filtersLunchCardOnly() {
+      List<Event> events = List.of(
+          createEvent("점심카드(홍길동)", "2026-04-20"),
+          createEvent("회의", "2026-04-20"),
+          createEvent("점심카드(김철수)", "2026-04-21"),
+          createEvent("[Jira] CCE-123 (이영희)", "2026-04-22"));
+
+      List<Event> filtered = LunchCardFacade.filterByLunchCardSummary(events);
+
+      assertThat(filtered).hasSize(2);
+      assertThat(filtered).extracting(Event::getSummary)
+          .containsExactly("점심카드(홍길동)", "점심카드(김철수)");
+    }
+
+    @Test
+    @DisplayName("빈 리스트 → 빈 리스트")
+    void emptyList() {
+      assertThat(LunchCardFacade.filterByLunchCardSummary(List.of())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("summary null 이벤트 제외")
+    void nullSummaryExcluded() {
+      Event nullSummary = new Event();
+      nullSummary.setStart(new EventDateTime().setDate(new DateTime("2026-04-20")));
+      List<Event> events = List.of(
+          nullSummary,
+          createEvent("점심카드(홍길동)", "2026-04-20"));
+
+      List<Event> filtered = LunchCardFacade.filterByLunchCardSummary(events);
+
+      assertThat(filtered).hasSize(1);
+      assertThat(filtered.get(0).getSummary()).isEqualTo("점심카드(홍길동)");
+    }
+  }
+
+  @Nested
   @DisplayName("buildDayOfWeekMap")
   class BuildDayOfWeekMap {
 

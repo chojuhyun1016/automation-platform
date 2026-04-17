@@ -831,7 +831,7 @@ worker 모듈의 `LunchCardNotificationService`가 신청/취소 시 팀 채널�
 
 ## Phase N24: 점심카드 — Calendar 조회 버그 수정 (카운트/사용자/상태 판별 전면 수정) (#58)
 
-- [ ] Phase N24 완료
+- [x] Phase N24 완료 (PR #59)
 
 ### 오버뷰
 Google Calendar API `setQ()` 검색이 이벤트를 누락하여 주간/월간 카운트=0, 사용자 현황 미표시, 상태 판별 실패(항상 UNREGISTERED) 버그를 수정한다. `searchQuery=null`로 전체 이벤트 fetch 후 Java에서 summary 기반 필터링하는 패턴을 적용한다.
@@ -851,17 +851,17 @@ Google Calendar API `setQ()` 검색이 이벤트를 누락하여 주간/월간 �
 - 빈 리스트 → `weeklyCount=0`, `monthlyCount=0`, `dayOfWeekMap` 비어있음, `status=UNREGISTERED`
 
 ### 수정/개선
-- [ ] **`ingest/src/main/java/.../facade/LunchCardFacade.java`**
-    - [ ] `queryWeekEvents()` (라인 300): `SEARCH_QUERY` → `null`로 변경 (전체 이벤트 fetch)
-    - [ ] `queryMonthEvents()` (라인 308): `SEARCH_QUERY` → `null`로 변경
-    - [ ] 전체 이벤트 fetch 후 Java에서 summary가 "점심카드"로 시작하는 이벤트만 필터링하는 헬퍼 추가
-    - [ ] `buildViewData()` 내 디버그 로그를 `info`로 상향 (운영 디버깅용, 1회성)
-- [ ] **`ingest/src/test/java/.../facade/LunchCardFacadeLogicTest.java`**
-    - [ ] summary 필터링 헬퍼 테스트 추가 ("점심카드(홍길동)" 포함, "회의" 미포함)
+- [x] **`ingest/src/main/java/.../facade/LunchCardFacade.java`**
+    - [x] `queryWeekEvents()` (라인 300): `SEARCH_QUERY` → `null`로 변경 (전체 이벤트 fetch)
+    - [x] `queryMonthEvents()` (라인 308): `SEARCH_QUERY` → `null`로 변경
+    - [x] 전체 이벤트 fetch 후 Java에서 summary가 "점심카드"로 시작하는 이벤트만 필터링하는 헬퍼 추가
+    - [x] `buildViewData()` 내 디버그 로그를 `info`로 상향 (운영 디버깅용, 1회성)
+- [x] **`ingest/src/test/java/.../facade/LunchCardFacadeLogicTest.java`**
+    - [x] summary 필터링 헬퍼 테스트 추가 ("점심카드(홍길동)" 포함, "회의" 미포함)
 
 ### 검증
-- [ ] `./gradlew :ingest:compileJava` 빌드 성공
-- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 전체 테스트 통과
 - [ ] 배포 후 `/점심카드` 실행 시:
     - [ ] 주간/월간 카운트가 정확히 표시
     - [ ] 이번 주 사용자 현황에 이름 표시
