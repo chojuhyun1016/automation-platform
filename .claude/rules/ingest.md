@@ -49,6 +49,24 @@ return HttpResponse.ok("");
 ### Block Actions 처리
 - HTTP 응답으로는 모달을 업데이트할 수 없음 → `views.update` API를 직접 호출 후 200 반환
 
+## LunchCardFacade
+
+### 3개 진입점
+- `handleCommand()`: `/점심카드` 슬래시 커맨드 → Calendar 조회 후 모달 오픈
+- `handleModalSubmit()`: callback_id=`lunch_card_submit` → 날짜+신청/취소 검증 → SQS 위임 (`join(2500)`) → `modalResult` 반환
+- `handleBlockAction()`: `action_lunch_card_date` (날짜 변경) / `action_lunch_card_toggle` (주/월 토글) → Calendar 재조회 → `views.update` API 호출
+
+### Static Volatile 캐싱
+```java
+private static volatile S3Client cachedS3Client;
+private static volatile GoogleCalendarClient cachedCalendarClient;
+private static volatile Map<String, String> cachedTeamMemberMap;
+```
+
+### SQS 메시지
+- messageType: `lunch_card`
+- 필드: eventId, action(`apply`/`cancel`), name, date, slackUserId
+
 ## CurrentTicketFacade (특수 패턴)
 
 ### Static Volatile 캐싱

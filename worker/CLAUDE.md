@@ -7,16 +7,17 @@ SQS 소비자. Jira-Calendar 동기화, 부재/재택/일정 처리를 담당한
 ```
 com.riman.automation.worker
 ├── handler/    WorkerHandler (SQSEvent → Void), DlqAlertHandler (DLQ → Slack 알림)
-├── facade/     AbsenceFacade, RemoteWorkFacade, ScheduleFacade, JiraIssueFacade
+├── facade/     AbsenceFacade, RemoteWorkFacade, ScheduleFacade, LunchCardFacade, JiraIssueFacade
 ├── dto/
-│   ├── sqs/    RemoteWorkMessage, AbsenceMessage, ScheduleMessage
+│   ├── sqs/    RemoteWorkMessage, AbsenceMessage, ScheduleMessage, LunchCardMessage
 │   ├── jira/   JiraWebhookEvent
 │   └── s3/     TeamMember
 ├── payload/    JiraSlackMessageBuilder, SlackTimeHeaderBuilder
 └── service/    CalendarService, ConfigService, DedupeService, TeamMemberService,
                 JiraCalendarMappingService, ScheduleEventMappingService,
                 SlackNotificationService, GroupwareMessageService,
-                MonitoringAlertService, AbsenceService, RemoteWorkService
+                MonitoringAlertService, AbsenceService, RemoteWorkService,
+                LunchCardService, LunchCardNotificationService
 ```
 
 ## 메시지 디스패치
@@ -27,6 +28,7 @@ WorkerHandler
 ├── remote_work   → RemoteWorkFacade
 ├── absence       → AbsenceFacade
 ├── schedule      → ScheduleFacade
+├── lunch_card    → LunchCardFacade
 └── (default)     → JiraIssueFacade
 ```
 
@@ -37,6 +39,7 @@ ConfigService → CalendarService
              → AbsenceFacade(ConfigService, CalendarService, TeamMemberService, DedupeService)
              → RemoteWorkFacade(ConfigService, CalendarService)
              → ScheduleFacade(ConfigService, CalendarService, DedupeService, ScheduleEventMappingService)
+             → LunchCardFacade(ConfigService, LunchCardService, LunchCardNotificationService, TeamMemberService, DedupeService)
              → JiraIssueFacade(CalendarService, SlackNotificationService)
 ```
 
@@ -62,7 +65,7 @@ ConfigService → CalendarService
 | 서비스 | 테이블 | PK / SK | 용도 |
 |--------|--------|---------|------|
 | DedupeService | `DYNAMODB_TABLE` | eventId / timestamp | Jira 중복 방지 |
-| DedupeService | `DYNAMODB_TABLE` | `{PREFIX}#{eventId}` / — | 기능별 중복 (REMOTE#, ABSENCE#, SCHEDULE#) |
+| DedupeService | `DYNAMODB_TABLE` | `{PREFIX}#{eventId}` / — | 기능별 중복 (REMOTE#, ABSENCE#, SCHEDULE#, LUNCH_CARD#) |
 | JiraCalendarMappingService | `CALENDAR_MAPPING_TABLE` | issueKey / calendarId | Jira↔Calendar 매핑 |
 | ScheduleEventMappingService | `SCHEDULE_MAPPING_TABLE` | slackUserId / eventId | 일정↔Calendar 매핑 |
 
@@ -82,6 +85,7 @@ ConfigService → CalendarService
 | 재택 | `재택(홍길동)` |
 | 부재 | `연차(홍길동)`, `오전 반차(김철수)` |
 | 일정 | `[일정] 제목` |
+| 점심카드 | `점심카드(홍길동)` |
 
 ## 싱글톤
 
