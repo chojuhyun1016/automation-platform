@@ -520,7 +520,7 @@ scheduler 모듈 하위 레이어(16파일)와 groupware 모듈(4파일)의 주�
 
 ## Phase N15: 점심카드 — ingest 라우팅 + SQS 전송 + DTO (#39)
 
-- [ ] Phase N15 완료
+- [x] Phase N15 완료 (PR #44)
 
 ### 오버뷰
 ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모달 제출 파싱 DTO를 추가한다.
@@ -534,21 +534,21 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 - [x] Phase N14 완료 (PR #43)
 
 ### 수정/개선
-- [ ] **`ingest/.../dto/slack/SlackCommandRequest.java`** — `/점심카드` 커맨드 판별 추가
-    - [ ] `LUNCH_CARD_COMMAND = "/점심카드"`, `isLunchCardCommand()`
-- [ ] **`ingest/.../dto/slack/LunchCardModalSubmit.java`** — view_submission 파싱 DTO (신규)
-    - [ ] `parse(String body)`, private_metadata: `userId|displayName|date`
-- [ ] **`ingest/.../service/WorkerMessageService.java`** — `sendLunchCard()` 메서드 추가
-- [ ] **`ingest/.../facade/LunchCardFacade.java`** — ingest Facade (신규, stub)
-    - [ ] `handleCommand()`, `handleModalSubmit()`, `handleBlockAction()` stub
-    - [ ] static volatile 캐싱: S3Client, GoogleCalendarClient, TeamMemberMap
-- [ ] **`ingest/.../facade/SlackFacade.java`** — 라우팅 추가
-    - [ ] `CALLBACK_LUNCH_CARD = "lunch_card_submit"`, 풀 크기 5→6
-    - [ ] handleSlashCommand, handleModalSubmit, handleBlockActions 분기 추가
+- [x] **`ingest/.../dto/slack/SlackCommandRequest.java`** — `/점심카드` 커맨드 판별 추가
+    - [x] `LUNCH_CARD_COMMAND = "/점심카드"`, `isLunchCardCommand()`
+- [x] **`ingest/.../dto/slack/LunchCardModalSubmit.java`** — view_submission 파싱 DTO (신규)
+    - [x] `parse(String body)`, private_metadata: `userId|displayName|date`
+- [x] **`ingest/.../service/WorkerMessageService.java`** — `sendLunchCard()` 메서드 추가
+- [x] **`ingest/.../facade/LunchCardFacade.java`** — ingest Facade (신규, stub)
+    - [x] `handleCommand()`, `handleModalSubmit()`, `handleBlockAction()` stub
+    - [x] static volatile 캐싱: S3Client, GoogleCalendarClient, TeamMemberMap
+- [x] **`ingest/.../facade/SlackFacade.java`** — 라우팅 추가
+    - [x] `CALLBACK_LUNCH_CARD = "lunch_card_submit"`, 풀 크기 5→6
+    - [x] handleSlashCommand, handleModalSubmit, handleBlockActions 분기 추가
 
 ### 검증
-- [ ] `./gradlew :ingest:compileJava` 빌드 성공
-- [ ] `./gradlew :ingest:test` 테스트 통과
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 테스트 통과
 
 ---
 
@@ -565,7 +565,7 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 - **병렬 가능**: 아니오
 
 ### 전제조건
-- [ ] Phase N15 완료
+- [x] Phase N15 완료 (PR #44)
 
 ### 수정/개선
 - [ ] **`ingest/.../payload/LunchCardModalBuilder.java`** — 모달 JSON 빌더 (신규)
