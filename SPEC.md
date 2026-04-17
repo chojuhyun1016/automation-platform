@@ -750,7 +750,7 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 
 ## Phase N22: 점심카드 — 버튼 상태 로직 개선 (#53)
 
-- [ ] Phase N22 완료
+- [x] Phase N22 완료 (PR #56)
 
 ### 오버뷰
 현재 라디오 버튼(사용/취소 모두 선택 가능)을 상태별 단일 체크박스로 변경하여 요구사항의 활성/비활성 조건을 정확히 반영한다.
@@ -771,27 +771,27 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 | OTHER_REGISTERED (타인) | 비활성 | 비활성 | 비활성 | `` `이름` 님이 이미 사용 중 `` |
 
 ### 수정/개선
-- [ ] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
-    - [ ] `addActionBlock()` 메서드를 2개로 분리:
+- [x] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
+    - [x] `addActionBlock()` 메서드를 2개로 분리:
         - `addApplyBlock(blocks)`: UNREGISTERED — 체크박스 1개 (value="apply", text="사용"), `initial_options`로 자동선택
         - `addCancelBlock(blocks)`: SELF_REGISTERED — 체크박스 1개 (value="cancel", text="자동 취소"), `initial_options`로 자동선택
-    - [ ] Slack Block Kit 타입: `radio_buttons` → `checkboxes` (1개 옵션만)
-    - [ ] block_id=`block_lunch_card_action`, action_id=`action_lunch_card_action` 유지 (submit 파싱 호환)
-    - [ ] switch 분기(138-142) 변경
-    - [ ] `addOtherRegisteredNotice()`: 안내 문구에 백틱 적용 — `` ⚠️ `이름` 님이 이미 사용 중입니다 ``
-- [ ] **`ingest/src/main/java/.../dto/slack/LunchCardModalSubmit.java`**
-    - [ ] `radio_buttons`의 `selected_option.value` → `checkboxes`의 `selected_options[0].value` 파싱 변경
-    - [ ] 체크박스 해제 시 `selected_options` 빈 배열 → 유효성 검증 처리
-- [ ] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
-    - [ ] UNREGISTERED: checkboxes type + initial_options "apply" + submit 존재
-    - [ ] SELF_REGISTERED: checkboxes type + initial_options "cancel" + submit 존재
-    - [ ] OTHER_REGISTERED: 백틱 안내 문구 + submit 없음
-- [ ] **`ingest/src/test/java/.../dto/slack/LunchCardModalSubmitTest.java`**
-    - [ ] checkboxes 파싱 테스트 (selected_options 배열)
+    - [x] Slack Block Kit 타입: `radio_buttons` → `checkboxes` (1개 옵션만)
+    - [x] block_id=`block_lunch_card_action`, action_id=`action_lunch_card_action` 유지 (submit 파싱 호환)
+    - [x] switch 분기(138-142) 변경
+    - [x] `addOtherRegisteredNotice()`: 안내 문구에 백틱 적용 — `` ⚠️ `이름` 님이 이미 사용 중입니다 ``
+- [x] **`ingest/src/main/java/.../dto/slack/LunchCardModalSubmit.java`**
+    - [x] `radio_buttons`의 `selected_option.value` → `checkboxes`의 `selected_options[0].value` 파싱 변경
+    - [x] 체크박스 해제 시 `selected_options` 빈 배열 → 유효성 검증 처리
+- [x] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
+    - [x] UNREGISTERED: checkboxes type + initial_options "apply" + submit 존재
+    - [x] SELF_REGISTERED: checkboxes type + initial_options "cancel" + submit 존재
+    - [x] OTHER_REGISTERED: 백틱 안내 문구 + submit 없음
+- [x] **`ingest/src/test/java/.../dto/slack/LunchCardModalSubmitTest.java`**
+    - [x] checkboxes 파싱 테스트 (selected_options 배열)
 
 ### 검증
-- [ ] `./gradlew :ingest:compileJava` 빌드 성공
-- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 전체 테스트 통과
 
 ### 주의사항
 - `LunchCardModalSubmit` 파싱이 `selected_option` (단수) → `selected_options` (복수, 배열)로 바뀜
