@@ -57,4 +57,20 @@ public class LunchCardModalSubmit {
   public boolean isValidAction() {
     return "apply".equals(action) || "cancel".equals(action);
   }
+
+  public boolean hasDate() {
+    return date != null && !date.isEmpty();
+  }
+
+  public boolean hasAction() {
+    return action != null && !action.isEmpty();
+  }
+
+  public boolean isApply() {
+    return "apply".equals(action);
+  }
+
+  public boolean isCancel() {
+    return "cancel".equals(action);
+  }
 }
