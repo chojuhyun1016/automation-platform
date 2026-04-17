@@ -554,7 +554,7 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 
 ## Phase N16: 점심카드 — 모달 UI 구축 (LunchCardModalBuilder + 동적 갱신) (#40)
 
-- [x] Phase N16 완료 (PR #TBD)
+- [x] Phase N16 완료 (PR #45)
 
 ### 오버뷰
 점심카드 모달의 Block Kit JSON 빌드를 구현한다. 날짜별 사용 현황 조회, 주간/월간 카운트, 상태별 UI 분기를 처리한다.
@@ -603,7 +603,7 @@ ingest 모듈에 `/점심카드` 커맨드 라우팅, SQS 전송 메서드, 모�
 - **병렬 가능**: 아니오
 
 ### 전제조건
-- [x] Phase N16 완료 (PR #TBD)
+- [x] Phase N16 완료 (PR #45)
 
 ### 수정/개선
 - [ ] **`ingest/.../facade/LunchCardFacade.java`** — handleModalSubmit 완성
