@@ -153,4 +153,126 @@ class LunchCardModalSubmitTest {
     assertThat(modal.getAction()).isEmpty();
     assertThat(modal.isValidAction()).isFalse();
   }
+
+  @Test
+  @DisplayName("hasDate — 날짜가 있으면 true, 빈값이면 false")
+  void hasDate_returnsCorrectResult() throws Exception {
+    String withDate = """
+        {
+          "type": "view_submission",
+          "user": { "id": "U001", "username": "user1" },
+          "view": {
+            "private_metadata": "",
+            "state": {
+              "values": {
+                "block_lunch_card_date": {
+                  "action_lunch_card_date": { "selected_date": "2026-04-18" }
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    String withoutDate = """
+        {
+          "type": "view_submission",
+          "user": { "id": "U001", "username": "user1" },
+          "view": {
+            "private_metadata": "",
+            "state": { "values": {} }
+          }
+        }
+        """;
+
+    assertThat(LunchCardModalSubmit.parse(makePayloadBody(withDate)).hasDate()).isTrue();
+    assertThat(LunchCardModalSubmit.parse(makePayloadBody(withoutDate)).hasDate()).isFalse();
+  }
+
+  @Test
+  @DisplayName("hasAction — 액션이 있으면 true, 빈값이면 false")
+  void hasAction_returnsCorrectResult() throws Exception {
+    String withAction = """
+        {
+          "type": "view_submission",
+          "user": { "id": "U001", "username": "user1" },
+          "view": {
+            "private_metadata": "",
+            "state": {
+              "values": {
+                "block_lunch_card_action": {
+                  "action_lunch_card_action": {
+                    "selected_option": { "value": "apply" }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    String withoutAction = """
+        {
+          "type": "view_submission",
+          "user": { "id": "U001", "username": "user1" },
+          "view": {
+            "private_metadata": "",
+            "state": { "values": {} }
+          }
+        }
+        """;
+
+    assertThat(LunchCardModalSubmit.parse(makePayloadBody(withAction)).hasAction()).isTrue();
+    assertThat(LunchCardModalSubmit.parse(makePayloadBody(withoutAction)).hasAction()).isFalse();
+  }
+
+  @Test
+  @DisplayName("isApply/isCancel — 액션 타입별 판별")
+  void isApply_isCancel_returnsCorrectResult() throws Exception {
+    String applyJson = """
+        {
+          "type": "view_submission",
+          "user": { "id": "U001", "username": "user1" },
+          "view": {
+            "private_metadata": "",
+            "state": {
+              "values": {
+                "block_lunch_card_action": {
+                  "action_lunch_card_action": {
+                    "selected_option": { "value": "apply" }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    String cancelJson = """
+        {
+          "type": "view_submission",
+          "user": { "id": "U001", "username": "user1" },
+          "view": {
+            "private_metadata": "",
+            "state": {
+              "values": {
+                "block_lunch_card_action": {
+                  "action_lunch_card_action": {
+                    "selected_option": { "value": "cancel" }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    LunchCardModalSubmit applyModal = LunchCardModalSubmit.parse(makePayloadBody(applyJson));
+    assertThat(applyModal.isApply()).isTrue();
+    assertThat(applyModal.isCancel()).isFalse();
+
+    LunchCardModalSubmit cancelModal = LunchCardModalSubmit.parse(makePayloadBody(cancelJson));
+    assertThat(cancelModal.isApply()).isFalse();
+    assertThat(cancelModal.isCancel()).isTrue();
+  }
 }

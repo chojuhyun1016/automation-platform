@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,6 +45,7 @@ public class LunchCardFacade {
   static final String CALLBACK_ID = "lunch_card_submit";
   static final String ACTION_DATE_ID = "action_lunch_card_date";
   static final String ACTION_TOGGLE_ID = "action_lunch_card_toggle";
+  static final String MODAL_TITLE = "점심카드";
 
   private static final ObjectMapper OM = new ObjectMapper();
   private static final String SEARCH_QUERY = "점심카드";
@@ -110,6 +112,7 @@ public class LunchCardFacade {
   /**
    * 점심카드 모달 submit 처리.
    * SQS 위임 + join() 패턴으로 Lambda freeze 전에 전송을 보장한다.
+   * 전송 결과에 따라 modalResult 로 성공/실패 팝업을 반환한다.
    */
   public APIGatewayProxyResponseEvent handleModalSubmit(String body) {
     LunchCardModalSubmit modal;
@@ -117,7 +120,7 @@ public class LunchCardFacade {
       modal = LunchCardModalSubmit.parse(body);
     } catch (Exception e) {
       log.warn("점심카드 모달 페이로드 파싱 실패: {}", e.getMessage());
-      return HttpResponse.ok("");
+      return HttpResponse.modalResult(false, "요청을 처리할 수 없습니다.", MODAL_TITLE);
     }
 
     if (!modal.isViewSubmission()) {
@@ -128,20 +131,21 @@ public class LunchCardFacade {
     log.info("점심카드 submit: user={}, date={}, action={}",
         modal.getUserName(), modal.getDate(), modal.getAction());
 
-    if (modal.getDate().isEmpty()) {
+    if (!modal.hasDate()) {
       return HttpResponse.modalError("block_lunch_card_date", "날짜를 선택해주세요.");
     }
     if (!modal.isValidAction()) {
       return HttpResponse.modalError("block_lunch_card_action", "신청 또는 취소를 선택해주세요.");
     }
 
+    AtomicBoolean success = new AtomicBoolean(false);
+
     Thread sqsThread = new Thread(() -> {
       try {
-        String messageId = workerMessageService.sendLunchCard(
-            modal.getUserId(), modal.getUserName(),
-            modal.getDate(), modal.getAction());
+        String messageId = sendLunchCardToWorker(modal);
         log.info("점심카드 SQS 전송 완료: messageId={}, user={}, date={}, action={}",
             messageId, modal.getUserName(), modal.getDate(), modal.getAction());
+        success.set(true);
       } catch (Exception e) {
         log.error("점심카드 SQS 전송 실패: user={}, date={}, action={}",
             modal.getUserName(), modal.getDate(), modal.getAction(), e);
@@ -152,14 +156,27 @@ public class LunchCardFacade {
     try {
       sqsThread.join(2500);
       if (sqsThread.isAlive()) {
+        sqsThread.interrupt();
         log.warn("점심카드 SQS 전송 타임아웃 (2500ms): user={}", modal.getUserName());
+        return HttpResponse.modalResult(false,
+            "처리 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.", MODAL_TITLE);
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       log.warn("점심카드 SQS 전송 스레드 인터럽트: user={}", modal.getUserName());
+      return HttpResponse.modalResult(false,
+          "처리가 중단되었습니다. 잠시 후 다시 시도해주세요.", MODAL_TITLE);
     }
 
-    return HttpResponse.ok("");
+    if (success.get()) {
+      String msg = modal.isApply()
+          ? "점심카드 신청이 완료되었습니다."
+          : "점심카드 취소가 완료되었습니다.";
+      return HttpResponse.modalResult(true, msg, MODAL_TITLE);
+    } else {
+      return HttpResponse.modalResult(false,
+          "점심카드 처리에 실패했습니다. 잠시 후 다시 시도해주세요.", MODAL_TITLE);
+    }
   }
 
   /**
@@ -213,6 +230,16 @@ public class LunchCardFacade {
     }
 
     return HttpResponse.ok("");
+  }
+
+  /**
+   * SQS 를 통해 worker 에 점심카드 처리를 위임한다.
+   * 테스트에서 spy 로 오버라이드할 수 있도록 package-private 으로 분리한다.
+   */
+  String sendLunchCardToWorker(LunchCardModalSubmit modal) {
+    return workerMessageService.sendLunchCard(
+        modal.getUserId(), modal.getUserName(),
+        modal.getDate(), modal.getAction());
   }
 
   // ── Calendar 조회 + ViewData 구성 ──

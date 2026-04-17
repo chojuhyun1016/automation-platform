@@ -1,6 +1,7 @@
 package com.riman.automation.ingest.facade;
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.riman.automation.ingest.dto.slack.LunchCardModalSubmit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -12,10 +13,14 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 
 /**
- * LunchCardFacade 순수 로직 테스트.
- * 외부 의존성(SQS, Slack API)을 필요로 하지 않는 검증 로직만 테스트한다.
+ * LunchCardFacade 테스트.
+ * 검증 로직 + submit 응답(modalResult) + SQS 전송 검증.
  */
 class LunchCardFacadeTest {
 
@@ -38,6 +43,31 @@ class LunchCardFacadeTest {
 
   private static String makePayloadBody(String json) {
     return "payload=" + URLEncoder.encode(json, StandardCharsets.UTF_8);
+  }
+
+  private static String makeValidSubmitJson(String date, String action) {
+    return """
+        {
+          "type": "view_submission",
+          "user": { "id": "U001", "username": "testuser" },
+          "view": {
+            "callback_id": "lunch_card_submit",
+            "private_metadata": "U001|홍길동",
+            "state": {
+              "values": {
+                "block_lunch_card_date": {
+                  "action_lunch_card_date": { "selected_date": "%s" }
+                },
+                "block_lunch_card_action": {
+                  "action_lunch_card_action": {
+                    "selected_option": { "value": "%s" }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """.formatted(date, action);
   }
 
   @Nested
@@ -145,11 +175,66 @@ class LunchCardFacadeTest {
     }
 
     @Test
-    @DisplayName("잘못된 페이로드 — 파싱 실패 시 200 반환")
-    void handleModalSubmit_invalidPayload_returnsOk() {
+    @DisplayName("잘못된 페이로드 — 파싱 실패 시 실패 modalResult 반환")
+    void handleModalSubmit_invalidPayload_returnsFailureModalResult() {
       APIGatewayProxyResponseEvent response = facade.handleModalSubmit("payload=invalid_json");
 
       assertThat(response.getStatusCode()).isEqualTo(200);
+      assertThat(response.getBody()).contains("response_action");
+      assertThat(response.getBody()).contains("update");
+    }
+  }
+
+  @Nested
+  @DisplayName("handleModalSubmit — SQS 전송 + modalResult 응답")
+  class HandleModalSubmitResult {
+
+    private LunchCardFacade spyFacade;
+
+    @BeforeEach
+    void setUpSpy() throws Exception {
+      spyFacade = spy(createBareInstance());
+    }
+
+    @Test
+    @DisplayName("신청 성공 — 성공 modalResult + 신청 메시지")
+    void handleModalSubmit_applySuccess_returnsSuccessModalResult() {
+      doReturn("msg-123").when(spyFacade).sendLunchCardToWorker(any(LunchCardModalSubmit.class));
+
+      String json = makeValidSubmitJson("2026-04-18", "apply");
+      APIGatewayProxyResponseEvent response = spyFacade.handleModalSubmit(makePayloadBody(json));
+
+      assertThat(response.getStatusCode()).isEqualTo(200);
+      assertThat(response.getBody()).contains("response_action");
+      assertThat(response.getBody()).contains("update");
+      assertThat(response.getBody()).contains("신청이 완료되었습니다");
+    }
+
+    @Test
+    @DisplayName("취소 성공 — 성공 modalResult + 취소 메시지")
+    void handleModalSubmit_cancelSuccess_returnsSuccessModalResult() {
+      doReturn("msg-456").when(spyFacade).sendLunchCardToWorker(any(LunchCardModalSubmit.class));
+
+      String json = makeValidSubmitJson("2026-04-18", "cancel");
+      APIGatewayProxyResponseEvent response = spyFacade.handleModalSubmit(makePayloadBody(json));
+
+      assertThat(response.getStatusCode()).isEqualTo(200);
+      assertThat(response.getBody()).contains("취소가 완료되었습니다");
+    }
+
+    @Test
+    @DisplayName("SQS 전송 실패 — 실패 modalResult")
+    void handleModalSubmit_sqsFailure_returnsFailureModalResult() {
+      doThrow(new RuntimeException("SQS connection error"))
+          .when(spyFacade).sendLunchCardToWorker(any(LunchCardModalSubmit.class));
+
+      String json = makeValidSubmitJson("2026-04-18", "apply");
+      APIGatewayProxyResponseEvent response = spyFacade.handleModalSubmit(makePayloadBody(json));
+
+      assertThat(response.getStatusCode()).isEqualTo(200);
+      assertThat(response.getBody()).contains("response_action");
+      assertThat(response.getBody()).contains("update");
+      assertThat(response.getBody()).contains("실패했습니다");
     }
   }
 
