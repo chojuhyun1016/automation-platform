@@ -719,7 +719,7 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 
 ## Phase N21: 점심카드 — UI 텍스트 변경 + 선택 요일 백틱 하이라이트 (#52)
 
-- [ ] Phase N21 완료
+- [x] Phase N21 완료 (PR #55)
 
 ### 오버뷰
 "이번 주 사용 현황" → "이번 주 사용자 현황" 텍스트 변경, 선택 날짜 요일의 사용자 이름을 백틱(`` ` ``)으로 하이라이트하여 Slack에서 다른 색상으로 표현한다.
@@ -733,18 +733,18 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 - 없음
 
 ### 수정/개선
-- [ ] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
-    - [ ] 라인 121: `"📋 *이번 주 사용 현황*"` → `"📋 *이번 주 사용자 현황*"`
-    - [ ] `buildBlocks()` 요일별 렌더링 루프(124-133)에서 selectedDate의 요일 판별
-    - [ ] 선택 요일의 사용자 이름을 `` `이름` `` 으로 감싸기 (Slack mrkdwn 코드 스타일 = 빨간 배경)
-    - [ ] 요일 판별 헬퍼: `selectedDayLabel(String selectedDate)` — `LocalDate.parse().getDayOfWeek()` → "월"~"금" 매핑
-- [ ] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
-    - [ ] "이번 주 사용자 현황" 텍스트 검증
-    - [ ] 선택 요일 사용자 백틱 하이라이트 테스트 추가
+- [x] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
+    - [x] 라인 121: `"📋 *이번 주 사용 현황*"` → `"📋 *이번 주 사용자 현황*"`
+    - [x] `buildBlocks()` 요일별 렌더링 루프(124-133)에서 selectedDate의 요일 판별
+    - [x] 선택 요일의 사용자 이름을 `` `이름` `` 으로 감싸기 (Slack mrkdwn 코드 스타일 = 빨간 배경)
+    - [x] 요일 판별 헬퍼: `selectedDayLabel(String selectedDate)` — `LocalDate.parse().getDayOfWeek()` → "월"~"금" 매핑
+- [x] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
+    - [x] "이번 주 사용자 현황" 텍스트 검증
+    - [x] 선택 요일 사용자 백틱 하이라이트 테스트 추가
 
 ### 검증
-- [ ] `./gradlew :ingest:compileJava` 빌드 성공
-- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 전체 테스트 통과
 
 ---
 
