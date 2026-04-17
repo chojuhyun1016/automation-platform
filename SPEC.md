@@ -947,7 +947,7 @@ SELF_REGISTERED 체크박스 해제 후 신청 가능한 버그 수정, 알림 �
 
 ## Phase N26: 점심카드 — worker Calendar searchQuery 버그 수정 + 날짜 로직 전면 점검 (#62)
 
-- [x] Phase N26 완료
+- [x] Phase N26 완료 (PR #64)
 
 ### 오버뷰
 worker `LunchCardService`가 여전히 `q="점심카드"` searchQuery를 사용하여 Calendar 조회 결과가 불안정. ingest Phase N24에서 수정된 동일 패턴(null + Java 필터링)을 worker에도 적용하고, 날짜 필터링/매칭 로직을 전면 점검한다.
@@ -990,9 +990,9 @@ worker `LunchCardService`가 여전히 `q="점심카드"` searchQuery를 사용�
 - [x] `./gradlew :worker:compileJava` 빌드 성공
 - [x] `./gradlew :worker:test` 전체 테스트 통과
 - [x] `./gradlew :ingest:test` 전체 테스트 통과
-- [ ] 배포 후 신청 → 재조회 시 즉시 표시 확인
-- [ ] 배포 후 취소 → 재조회 시 즉시 반영 확인
-- [ ] 배포 후 다른 날짜 이벤트 영향 없음 확인
+- [x] 배포 후 신청 → 재조회 시 즉시 표시 확인
+- [x] 배포 후 취소 → 재조회 시 즉시 반영 확인
+- [x] 배포 후 다른 날짜 이벤트 영향 없음 확인
 
 ### 리스크
 - Google Calendar API `q` 파라미터 제거 시 전체 이벤트를 fetch하므로 이벤트 수가 많으면 응답 느려질 수 있음 (현재 80건+235건 수준이므로 문제없음)
@@ -1001,7 +1001,7 @@ worker `LunchCardService`가 여전히 `q="점심카드"` searchQuery를 사용�
 
 ## Phase N27: 점심카드 — UI 안내 문구 제거 + 기존 요구사항 재점검 (#63)
 
-- [x] Phase N27 완료
+- [x] Phase N27 완료 (PR #65)
 
 ### 오버뷰
 사용자 요청에 따라 "✅ 사용 신청이 적용됩니다" / "❌ 취소가 적용됩니다" 안내 문구를 제거하고, 기존 점심카드 요구사항 전체를 재점검하여 미반영 항목을 수정한다.
@@ -1039,9 +1039,9 @@ worker `LunchCardService`가 여전히 `q="점심카드"` searchQuery를 사용�
 ### 검증
 - [x] `./gradlew :ingest:compileJava` 빌드 성공
 - [x] `./gradlew :ingest:test` 전체 테스트 통과
-- [ ] 배포 후 UNREGISTERED: submit "신청" + 안내 문구 없음
-- [ ] 배포 후 SELF_REGISTERED: submit "취소" + 안내 문구 없음
-- [ ] 배포 후 OTHER_REGISTERED: submit 없음 + 타인 안내만
+- [x] 배포 후 UNREGISTERED: submit "신청" + 안내 문구 없음
+- [x] 배포 후 SELF_REGISTERED: submit "취소" + 안내 문구 없음
+- [x] 배포 후 OTHER_REGISTERED: submit 없음 + 타인 안내만
 
 ---
 
