@@ -30,8 +30,8 @@ class LunchCardModalBuilderTest {
 
   private static ViewData dataWithStatus(Status status, String registeredUser) {
     return new ViewData(
-        "testuser", "U001", "2026-04-20", "weekly",
-        status, registeredUser, 3, 10, 1, sampleDayMap());
+        "testuser", "U001", "2026-04-20",
+        status, registeredUser, 3, 10, sampleDayMap());
   }
 
   @Nested
@@ -71,29 +71,26 @@ class LunchCardModalBuilderTest {
     }
 
     @Test
-    @DisplayName("주/월 토글 블록 — block_lunch_card_period / action_lunch_card_toggle")
-    void build_hasPeriodToggle() throws Exception {
+    @DisplayName("토글 블록 없음 — block_lunch_card_period 제거됨")
+    void build_noPeriodToggle() throws Exception {
       String json = LunchCardModalBuilder.build(
           "T123", dataWithStatus(Status.UNREGISTERED, null));
 
       JsonNode blocks = OM.readTree(json).path("view").path("blocks");
       JsonNode periodBlock = findBlockById(blocks, "block_lunch_card_period");
 
-      assertThat(periodBlock).isNotNull();
-      assertThat(periodBlock.path("element").path("action_id").asText())
-          .isEqualTo("action_lunch_card_toggle");
-      assertThat(periodBlock.path("dispatch_action").asBoolean()).isTrue();
+      assertThat(periodBlock).isNull();
     }
 
     @Test
-    @DisplayName("카운트 표시 — 주간/월간 + 오늘 사용")
+    @DisplayName("카운트 표시 — 주간 + 월간 동시 표시")
     void build_hasCountDisplay() throws Exception {
       String json = LunchCardModalBuilder.build(
           "T123", dataWithStatus(Status.UNREGISTERED, null));
 
       String jsonStr = OM.readTree(json).path("view").path("blocks").toString();
-      assertThat(jsonStr).contains("3"); // weeklyCount
-      assertThat(jsonStr).contains("1"); // dailyCount
+      assertThat(jsonStr).contains("주간 사용: *3*회");
+      assertThat(jsonStr).contains("월간 사용: *10*회");
     }
 
     @Test

@@ -649,7 +649,7 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 
 ## Phase N19: 점심카드 — 주/월 토글 제거 + 카운트 동시 표시 (#48)
 
-- [ ] Phase N19 완료
+- [x] Phase N19 완료 (PR #50)
 
 ### 오버뷰
 불필요한 "조회 기간" 주간/월간 라디오 버튼을 제거하고, 날짜 선택 시 주간/월간 카운트를 동시에 표시한다.
@@ -663,26 +663,26 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 - [x] Phase N18 완료
 
 ### 수정/개선
-- [ ] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`** — 주/월 토글 블록 제거, 카운트 동시 표시
-    - [ ] `ViewData` record에서 `periodMode`, `dailyCount` 필드 제거
-    - [ ] 주/월 토글 radio_buttons 블록 (block_lunch_card_period) 삭제
-    - [ ] 카운트 표시를 "주간 사용: *N*회" + "월간 사용: *N*회" 동시 표시로 변경
-- [ ] **`ingest/src/main/java/.../facade/LunchCardFacade.java`** — periodMode 관련 로직 정리
-    - [ ] `ACTION_TOGGLE_ID`, `DEFAULT_PERIOD` 상수 제거
-    - [ ] `buildViewData()`에서 `periodMode` 파라미터 및 `dailyCount` 제거
-    - [ ] `extractPeriodMode()` 메서드 삭제
-    - [ ] `handleBlockAction()`에서 periodMode 변수 제거
-- [ ] **`ingest/src/main/java/.../facade/SlackFacade.java`** — toggle action 라우팅 제거
-    - [ ] `"action_lunch_card_toggle"` 조건 제거
-- [ ] **`ingest/src/test/.../payload/LunchCardModalBuilderTest.java`** — 테스트 업데이트
-    - [ ] `dataWithStatus()` ViewData 생성 수정
-    - [ ] `build_hasPeriodToggle()` 테스트 삭제
-    - [ ] `build_hasCountDisplay()` 주간+월간 둘 다 검증으로 수정
-- [ ] **문서 업데이트** — `ingest/CLAUDE.md`, `.claude/rules/ingest.md`
+- [x] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`** — 주/월 토글 블록 제거, 카운트 동시 표시
+    - [x] `ViewData` record에서 `periodMode`, `dailyCount` 필드 제거
+    - [x] 주/월 토글 radio_buttons 블록 (block_lunch_card_period) 삭제
+    - [x] 카운트 표시를 "주간 사용: *N*회" + "월간 사용: *N*회" 동시 표시로 변경
+- [x] **`ingest/src/main/java/.../facade/LunchCardFacade.java`** — periodMode 관련 로직 정리
+    - [x] `ACTION_TOGGLE_ID`, `DEFAULT_PERIOD` 상수 제거
+    - [x] `buildViewData()`에서 `periodMode` 파라미터 및 `dailyCount` 제거
+    - [x] `extractPeriodMode()` 메서드 삭제
+    - [x] `handleBlockAction()`에서 periodMode 변수 제거
+- [x] **`ingest/src/main/java/.../facade/SlackFacade.java`** — toggle action 라우팅 제거
+    - [x] `"action_lunch_card_toggle"` 조건 제거
+- [x] **`ingest/src/test/.../payload/LunchCardModalBuilderTest.java`** — 테스트 업데이트
+    - [x] `dataWithStatus()` ViewData 생성 수정
+    - [x] `build_hasPeriodToggle()` 테스트 삭제
+    - [x] `build_hasCountDisplay()` 주간+월간 둘 다 검증으로 수정
+- [x] **문서 업데이트** — `ingest/CLAUDE.md`, `.claude/rules/ingest.md`
 
 ### 검증
-- [ ] `./gradlew :ingest:compileJava` 빌드 성공
-- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 전체 테스트 통과
 
 ---
 
