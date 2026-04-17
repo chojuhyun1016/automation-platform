@@ -44,14 +44,11 @@ public class LunchCardFacade {
   static final String SLASH_COMMAND = "/점심카드";
   static final String CALLBACK_ID = "lunch_card_submit";
   static final String ACTION_DATE_ID = "action_lunch_card_date";
-  static final String ACTION_TOGGLE_ID = "action_lunch_card_toggle";
   static final String MODAL_TITLE = "점심카드";
 
   private static final ObjectMapper OM = new ObjectMapper();
   private static final String SEARCH_QUERY = "점심카드";
   private static final Pattern NAME_PATTERN = Pattern.compile("점심카드\\(([^)]+)\\)");
-  private static final String DEFAULT_PERIOD = "weekly";
-
   private static final String[] DAY_LABELS = {"월", "화", "수", "목", "금"};
   private static final DayOfWeek[] DAY_OF_WEEKS = {
       DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
@@ -98,7 +95,7 @@ public class LunchCardFacade {
 
       String today = DateTimeUtil.formatDate(DateTimeUtil.todayKst());
       String requesterName = resolveRequesterName(userId, userName);
-      ViewData viewData = buildViewData(userName, userId, today, DEFAULT_PERIOD, requesterName);
+      ViewData viewData = buildViewData(userName, userId, today, requesterName);
 
       slackApiService.openLunchCardModal(triggerId, viewData);
       log.info("점심카드 모달 열기 완료: userId={}", userId);
@@ -181,8 +178,7 @@ public class LunchCardFacade {
 
   /**
    * 점심카드 모달의 block_actions 처리.
-   * 날짜 변경(action_lunch_card_date) 또는 주/월 토글(action_lunch_card_toggle) 시
-   * Calendar 재조회 후 views.update 로 모달을 갱신한다.
+   * 날짜 변경(action_lunch_card_date) 시 Calendar 재조회 후 views.update 로 모달을 갱신한다.
    *
    * Calendar 조회 + views.update 를 별도 스레드에서 실행하고 join(2500) 으로
    * Lambda freeze 전에 완료를 보장한다. 3초 제한 내에 200 반환을 확보한다.
@@ -199,15 +195,14 @@ public class LunchCardFacade {
       String userName = meta.contains("|") ? meta.split("\\|", 2)[1] : "";
 
       String selectedDate = extractSelectedDate(payload);
-      String periodMode = extractPeriodMode(payload);
 
-      log.info("점심카드 block_action: userId={}, date={}, period={}", userId, selectedDate, periodMode);
+      log.info("점심카드 block_action: userId={}, date={}", userId, selectedDate);
 
       // Calendar 조회 + views.update 를 별도 스레드에서 실행 (3초 제한 내 완료 보장)
       Thread updateThread = new Thread(() -> {
         try {
           String requesterName = resolveRequesterName(userId, userName);
-          ViewData viewData = buildViewData(userName, userId, selectedDate, periodMode, requesterName);
+          ViewData viewData = buildViewData(userName, userId, selectedDate, requesterName);
           slackApiService.updateLunchCardView(viewId, viewData);
           log.info("점심카드 모달 갱신 완료: userId={}, date={}", userId, selectedDate);
         } catch (Exception e) {
@@ -249,8 +244,7 @@ public class LunchCardFacade {
    * Calendar 조회 실패 시 빈 데이터로 구성한다.
    */
   ViewData buildViewData(String userName, String userId,
-                         String selectedDate, String periodMode,
-                         String requesterName) {
+                         String selectedDate, String requesterName) {
     LocalDate date = LocalDate.parse(selectedDate);
     List<Event> weekEvents = List.of();
     List<Event> monthEvents = List.of();
@@ -271,7 +265,6 @@ public class LunchCardFacade {
     int monthlyCount = countEvents(monthEvents);
 
     List<Event> dayEvents = filterEventsByDate(weekEvents, date);
-    int dailyCount = dayEvents.size();
 
     Status status = determineStatus(dayEvents, requesterName);
     String registeredUserName = (status == Status.OTHER_REGISTERED)
@@ -280,9 +273,9 @@ public class LunchCardFacade {
     Map<String, List<String>> dayOfWeekMap = buildDayOfWeekMap(weekEvents, date);
 
     return new ViewData(
-        userName, userId, selectedDate, periodMode,
+        userName, userId, selectedDate,
         status, registeredUserName,
-        weeklyCount, monthlyCount, dailyCount, dayOfWeekMap);
+        weeklyCount, monthlyCount, dayOfWeekMap);
   }
 
   // ── Calendar 쿼리 ──
@@ -396,20 +389,6 @@ public class LunchCardFacade {
     return payload.path("view").path("state").path("values")
         .path("block_lunch_card_date").path("action_lunch_card_date")
         .path("selected_date").asText(DateTimeUtil.formatDate(DateTimeUtil.todayKst()));
-  }
-
-  private String extractPeriodMode(JsonNode payload) {
-    JsonNode actions = payload.path("actions");
-    for (JsonNode action : actions) {
-      if ("action_lunch_card_toggle".equals(action.path("action_id").asText())) {
-        String value = action.path("selected_option").path("value").asText("");
-        if (!value.isEmpty()) return value;
-      }
-    }
-    // 토글 변경이 아닌 경우 현재 view state 에서 추출
-    return payload.path("view").path("state").path("values")
-        .path("block_lunch_card_period").path("action_lunch_card_toggle")
-        .path("selected_option").path("value").asText(DEFAULT_PERIOD);
   }
 
   /**

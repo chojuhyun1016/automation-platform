@@ -38,8 +38,7 @@ IngestHandler (Map<String, Object>)
 │   │   ├── current_ticket_submit  → CurrentTicketFacade
 │   │   └── lunch_card_submit      → LunchCardFacade (SQS)
 │   ├── block_actions → action_id 라우팅
-│   │   ├── action_lunch_card_date   → LunchCardFacade (날짜 변경 → views.update)
-│   │   └── action_lunch_card_toggle → LunchCardFacade (주/월 토글 → views.update)
+│   │   └── action_lunch_card_date   → LunchCardFacade (날짜 변경 → views.update)
 │   └── 슬래시 커맨드 → 모달 열기
 ├── /webhook/jira    → JiraWebhookFacade.handle() (SQS)
 └── 기타             → 404

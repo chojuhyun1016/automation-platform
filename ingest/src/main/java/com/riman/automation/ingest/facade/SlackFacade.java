@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
  * - Modal Submit  → callback_id 기반 (remote_work_submit, absence_submit,
  *   account_manage_submit, schedule_submit, current_ticket_submit, lunch_card_submit)
  * - Block Actions → action_id 기반 (action_account_delete, action_schedule_delete,
- *   action_lunch_card_date, action_lunch_card_toggle)
+ *   action_lunch_card_date)
  *
  * CurrentTicketFacade 는 {@link GoogleCalendarClient} 가 필요하나 실제 초기화는
  * 모달 제출 시점으로 지연된다. Google 인증 키는 S3 (환경변수
@@ -256,7 +256,7 @@ public class SlackFacade {
       return scheduleManageFacade.handleBlockAction(body);
     }
 
-    if ("action_lunch_card_date".equals(actionId) || "action_lunch_card_toggle".equals(actionId)) {
+    if ("action_lunch_card_date".equals(actionId)) {
       return lunchCardFacade.handleBlockAction(body);
     }
 

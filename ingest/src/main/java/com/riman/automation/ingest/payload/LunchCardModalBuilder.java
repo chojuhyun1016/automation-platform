@@ -15,10 +15,9 @@ import java.util.Map;
  * 블록 구성:
  * 1. 인사 섹션
  * 2. Datepicker (dispatch_action — 날짜 변경 시 views.update)
- * 3. 주/월 토글 (dispatch_action — 기간 변경 시 views.update)
- * 4. 카운트 표시 (주간/월간 + 오늘 사용)
- * 5. 요일별 사용자 목록 (월~금)
- * 6. 상태별 액션 영역:
+ * 3. 카운트 표시 (주간 + 월간 동시 표시)
+ * 4. 요일별 사용자 목록 (월~금)
+ * 5. 상태별 액션 영역:
  *    - UNREGISTERED: 사용/취소 라디오 (사용 기본) + submit 버튼
  *    - SELF_REGISTERED: 사용/취소 라디오 (취소 기본) + submit 버튼
  *    - OTHER_REGISTERED: 안내 텍스트 + submit 버튼 없음
@@ -43,12 +42,10 @@ public class LunchCardModalBuilder {
       String userName,
       String userId,
       String selectedDate,
-      String periodMode,
       Status status,
       String registeredUserName,
       int weeklyCount,
       int monthlyCount,
-      int dailyCount,
       Map<String, List<String>> dayOfWeekMap
   ) {}
 
@@ -109,36 +106,17 @@ public class LunchCardModalBuilder {
     dateBlock.put("dispatch_action", true);
     blocks.add(dateBlock);
 
-    // 3. 주/월 토글 (dispatch_action)
-    ObjectNode weeklyOpt = option(plainText("주간"), "weekly");
-    ObjectNode monthlyOpt = option(plainText("월간"), "monthly");
-
-    ObjectNode periodRadio = OM.createObjectNode()
-        .put("type", "radio_buttons")
-        .put("action_id", "action_lunch_card_toggle");
-    periodRadio.set("options", OM.createArrayNode().add(weeklyOpt).add(monthlyOpt));
-    periodRadio.set("initial_option",
-        "monthly".equals(data.periodMode()) ? monthlyOpt : weeklyOpt);
-    ObjectNode periodBlock = inputBlock(
-        "block_lunch_card_period", "조회 기간", periodRadio, false);
-    periodBlock.put("dispatch_action", true);
-    blocks.add(periodBlock);
-
-    // 4. 카운트 표시
-    String periodLabel = "monthly".equals(data.periodMode()) ? "월간" : "주간";
-    int periodCount = "monthly".equals(data.periodMode())
-        ? data.monthlyCount() : data.weeklyCount();
-
+    // 3. 카운트 표시 (주간 + 월간 동시)
     ObjectNode countSection = OM.createObjectNode().put("type", "section");
     ArrayNode fields = OM.createArrayNode();
-    fields.add(mrkdwn("📊 " + periodLabel + " 사용: *" + periodCount + "*회"));
-    fields.add(mrkdwn("📅 오늘 사용: *" + data.dailyCount() + "*명"));
+    fields.add(mrkdwn("📊 주간 사용: *" + data.weeklyCount() + "*회"));
+    fields.add(mrkdwn("📊 월간 사용: *" + data.monthlyCount() + "*회"));
     countSection.set("fields", fields);
     blocks.add(countSection);
 
     blocks.add(divider());
 
-    // 5. 요일별 사용자 목록
+    // 4. 요일별 사용자 목록
     ObjectNode weekHeader = OM.createObjectNode().put("type", "section");
     weekHeader.set("text", mrkdwn("📋 *이번 주 사용 현황*"));
     blocks.add(weekHeader);
@@ -156,7 +134,7 @@ public class LunchCardModalBuilder {
 
     blocks.add(divider());
 
-    // 6. 상태별 액션 영역
+    // 5. 상태별 액션 영역
     switch (data.status()) {
       case UNREGISTERED -> addActionBlock(blocks, "apply");
       case SELF_REGISTERED -> addActionBlock(blocks, "cancel");
