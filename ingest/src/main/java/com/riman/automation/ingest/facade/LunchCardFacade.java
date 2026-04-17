@@ -137,7 +137,7 @@ public class LunchCardFacade {
       return HttpResponse.modalError("block_lunch_card_date", "날짜를 선택해주세요.");
     }
     if (!modal.isValidAction()) {
-      return HttpResponse.modalError("block_lunch_card_action", "신청 또는 취소를 선택해주세요.");
+      return HttpResponse.modalError("block_lunch_card_date", "올바른 요청이 아닙니다. 모달을 다시 열어주세요.");
     }
 
     AtomicBoolean success = new AtomicBoolean(false);

@@ -160,21 +160,21 @@ class LunchCardModalBuilderTest {
   class StatusBranching {
 
     @Test
-    @DisplayName("미등록 — submit 버튼 존재 + 안내 텍스트 + metadata에 apply 인코딩")
-    void unregistered_hasSubmitAndApplyText() throws Exception {
+    @DisplayName("미등록 — submit 버튼 '신청' + 안내 문구 없음 + metadata에 apply 인코딩")
+    void unregistered_hasSubmitAndNoNotice() throws Exception {
       String json = LunchCardModalBuilder.build(
           "T123", dataWithStatus(Status.UNREGISTERED, null));
 
       JsonNode root = OM.readTree(json);
       JsonNode view = root.path("view");
 
-      // submit 버튼 존재
+      // submit 버튼 "신청"
       assertThat(view.has("submit")).isTrue();
-      assertThat(view.path("submit").path("text").asText()).isNotEmpty();
+      assertThat(view.path("submit").path("text").asText()).isEqualTo("신청");
 
-      // 안내 텍스트 섹션
+      // 안내 문구 없음
       String blocksJson = view.path("blocks").toString();
-      assertThat(blocksJson).contains("✅ 사용 신청이 적용됩니다");
+      assertThat(blocksJson).doesNotContain("사용 신청이 적용됩니다");
 
       // checkboxes 블록 없음
       JsonNode actionBlock = findBlockById(view.path("blocks"), "block_lunch_card_action");
@@ -185,20 +185,21 @@ class LunchCardModalBuilderTest {
     }
 
     @Test
-    @DisplayName("본인 등록 — submit 버튼 존재 + 안내 텍스트 + metadata에 cancel 인코딩")
-    void selfRegistered_hasSubmitAndCancelText() throws Exception {
+    @DisplayName("본인 등록 — submit 버튼 '취소' + 안내 문구 없음 + metadata에 cancel 인코딩")
+    void selfRegistered_hasSubmitCancelAndNoNotice() throws Exception {
       String json = LunchCardModalBuilder.build(
           "T123", dataWithStatus(Status.SELF_REGISTERED, "testuser"));
 
       JsonNode root = OM.readTree(json);
       JsonNode view = root.path("view");
 
-      // submit 버튼 존재
+      // submit 버튼 "취소"
       assertThat(view.has("submit")).isTrue();
+      assertThat(view.path("submit").path("text").asText()).isEqualTo("취소");
 
-      // 안내 텍스트 섹션
+      // 안내 문구 없음
       String blocksJson = view.path("blocks").toString();
-      assertThat(blocksJson).contains("❌ 취소가 적용됩니다");
+      assertThat(blocksJson).doesNotContain("취소가 적용됩니다");
 
       // checkboxes 블록 없음
       JsonNode actionBlock = findBlockById(view.path("blocks"), "block_lunch_card_action");

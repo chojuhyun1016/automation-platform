@@ -1001,7 +1001,7 @@ worker `LunchCardService`가 여전히 `q="점심카드"` searchQuery를 사용�
 
 ## Phase N27: 점심카드 — UI 안내 문구 제거 + 기존 요구사항 재점검 (#63)
 
-- [ ] Phase N27 완료
+- [x] Phase N27 완료
 
 ### 오버뷰
 사용자 요청에 따라 "✅ 사용 신청이 적용됩니다" / "❌ 취소가 적용됩니다" 안내 문구를 제거하고, 기존 점심카드 요구사항 전체를 재점검하여 미반영 항목을 수정한다.
@@ -1012,33 +1012,33 @@ worker `LunchCardService`가 여전히 `q="점심카드"` searchQuery를 사용�
 - **병렬 가능**: Phase N26과 병렬 가능 (수정 파일 겹치지 않음)
 
 ### 전제조건
-- [ ] 없음 (Phase N26과 병렬 가능)
+- [x] 없음 (Phase N26과 병렬 가능)
 
 ### 수정/개선
 
 #### A. UI 안내 문구 제거
-- [ ] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
-    - [ ] `addApplyBlock()`: "✅ 사용 신청이 적용됩니다" 텍스트 제거 (빈 블록 또는 메서드 자체 제거)
-    - [ ] `addCancelBlock()`: "❌ 취소가 적용됩니다" 텍스트 제거
-    - [ ] 상태별 submit 버튼 라벨로 충분히 구분: UNREGISTERED → "신청", SELF_REGISTERED → "취소"
-- [ ] **submit 버튼 텍스트 변경 검토**
-    - [ ] UNREGISTERED: submit 버튼 "신청"
-    - [ ] SELF_REGISTERED: submit 버튼 "취소" (현재는 둘 다 "신청"으로 되어 있음 — 수정 필요)
+- [x] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
+    - [x] `addApplyBlock()`: "✅ 사용 신청이 적용됩니다" 텍스트 제거 (빈 블록 또는 메서드 자체 제거)
+    - [x] `addCancelBlock()`: "❌ 취소가 적용됩니다" 텍스트 제거
+    - [x] 상태별 submit 버튼 라벨로 충분히 구분: UNREGISTERED → "신청", SELF_REGISTERED → "취소"
+- [x] **submit 버튼 텍스트 변경 검토**
+    - [x] UNREGISTERED: submit 버튼 "신청"
+    - [x] SELF_REGISTERED: submit 버튼 "취소" (현재는 둘 다 "신청"으로 되어 있음 — 수정 필요)
 
 #### B. 기존 요구사항 재점검
-- [ ] **카운트 표시 재확인**: 주간/월간 카운트가 해당 사용자가 아닌 전체 사용을 의미하는지 확인
-- [ ] **요일별 사용자 현황**: 선택 날짜의 요일에 bold 처리가 정상 동작하는지 확인
-- [ ] **OTHER_REGISTERED 상태**: 타인 등록 시 안내 + submit 버튼 미표시 정상 동작 확인
-- [ ] **팀 채널 알림**: worker에서 신청/취소 시 알림 전송 정상 동작 확인
+- [x] **카운트 표시 재확인**: 주간/월간 카운트가 해당 사용자가 아닌 전체 사용을 의미하는지 확인
+- [x] **요일별 사용자 현황**: 선택 날짜의 요일에 bold 처리가 정상 동작하는지 확인
+- [x] **OTHER_REGISTERED 상태**: 타인 등록 시 안내 + submit 버튼 미표시 정상 동작 확인
+- [x] **팀 채널 알림**: worker에서 신청/취소 시 알림 전송 정상 동작 확인
 
 #### C. 테스트
-- [ ] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
-    - [ ] 안내 문구 제거 검증
-    - [ ] submit 버튼 텍스트 검증 (신청/취소 분리)
+- [x] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
+    - [x] 안내 문구 제거 검증
+    - [x] submit 버튼 텍스트 검증 (신청/취소 분리)
 
 ### 검증
-- [ ] `./gradlew :ingest:compileJava` 빌드 성공
-- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 전체 테스트 통과
 - [ ] 배포 후 UNREGISTERED: submit "신청" + 안내 문구 없음
 - [ ] 배포 후 SELF_REGISTERED: submit "취소" + 안내 문구 없음
 - [ ] 배포 후 OTHER_REGISTERED: submit 없음 + 타인 안내만
