@@ -22,6 +22,7 @@ worker는 SQS 소비자로서 Jira-Calendar 동기화, 부재/재택/일정 처�
 | `remote_work` | RemoteWorkFacade | 재택근무 캘린더 등록/취소 |
 | `absence` | AbsenceFacade | 부재 캘린더 + 그룹웨어 연동 |
 | `schedule` | ScheduleFacade | 일정 캘린더 CRUD |
+| `lunch_card` | LunchCardFacade | 점심카드 신청/취소 (Calendar + 팀 채널 알림) |
 | (default) | JiraIssueFacade | Jira 웹훅 처리 |
 
 ## 생성자 DI 구조
@@ -64,6 +65,17 @@ public WorkerHandler() {
 7. apply인 경우 GroupwareMessageService → GROUPWARE_SQS_QUEUE_URL
 8. 캘린더 처리 실패 시 예외를 throw하지 말 것 (DLQ 방지)
 
+## LunchCardFacade 처리 파이프라인
+
+1. JSON → LunchCardMessage 파싱
+2. TeamMemberService로 한글 이름 resolve (fallback: msg.getName())
+3. 유효성 검증 (name/date/action 누락 시 스킵)
+4. DedupeService 중복 확인 (`LUNCH_CARD#` + eventId)
+5. LunchCardService → Calendar 처리 (apply: 이벤트 생성, cancel: 이벤트 삭제)
+6. LunchCardNotificationService → 팀 채널 알림
+7. DedupeService.saveEventKey()
+- 캘린더/알림 실패 시 예외를 throw하지 말 것 (DLQ 방지)
+
 ## ScheduleFacade
 
 - register: DedupeService → CalendarService.insert → ScheduleEventMappingService.save
@@ -85,7 +97,7 @@ public WorkerHandler() {
 ### DedupeService
 - **테이블**: `DYNAMODB_TABLE`
 - **Jira 중복**: composite key (eventId + timestamp)
-- **기능별 중복**: prefix key (`REMOTE#`, `ABSENCE#`, `SCHEDULE#` + eventId)
+- **기능별 중복**: prefix key (`REMOTE#`, `ABSENCE#`, `SCHEDULE#`, `LUNCH_CARD#` + eventId)
 
 ## SlackNotificationService
 
@@ -117,4 +129,5 @@ absence.calendar_id → remoteWork.calendar_id → routing["CCE"].calendar_id �
 | 재택 | `재택(홍길동)` |
 | 부재 | `연차(홍길동)`, `오전 반차(김철수)` |
 | 일정 | `[일정] 제목` |
+| 점심카드 | `점심카드(홍길동)` |
 | Jira | `[Jira] CCE-1234 (홍길동)` |

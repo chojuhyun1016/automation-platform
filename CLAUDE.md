@@ -60,6 +60,7 @@ EventBridge → scheduler Lambda → Slack DM / Confluence
 | `/계정관리` | ingest | AccountManageFacade | 그룹웨어 계정 암호화 관리 |
 | `/일정등록` | ingest → worker | ScheduleManageFacade | 일정 캘린더 CRUD + DynamoDB 매핑 |
 | `/현재티켓` | ingest | CurrentTicketFacade | 담당 Jira 티켓 현황 조회 (daily/weekly/monthly/quarterly) |
+| `/점심카드` | ingest → worker | LunchCardFacade | 점심카드 신청/취소 (Calendar + 팀 채널 알림) |
 
 ## 빌드/배포
 
