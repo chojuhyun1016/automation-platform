@@ -717,6 +717,118 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 
 ---
 
+## Phase N21: 점심카드 — UI 텍스트 변경 + 선택 요일 백틱 하이라이트 (#52)
+
+- [ ] Phase N21 완료
+
+### 오버뷰
+"이번 주 사용 현황" → "이번 주 사용자 현황" 텍스트 변경, 선택 날짜 요일의 사용자 이름을 백틱(`` ` ``)으로 하이라이트하여 Slack에서 다른 색상으로 표현한다.
+
+### 메타
+- **라벨**: enhancement
+- **우선순위**: medium
+- **병렬 가능**: 예
+
+### 전제조건
+- 없음
+
+### 수정/개선
+- [ ] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
+    - [ ] 라인 121: `"📋 *이번 주 사용 현황*"` → `"📋 *이번 주 사용자 현황*"`
+    - [ ] `buildBlocks()` 요일별 렌더링 루프(124-133)에서 selectedDate의 요일 판별
+    - [ ] 선택 요일의 사용자 이름을 `` `이름` `` 으로 감싸기 (Slack mrkdwn 코드 스타일 = 빨간 배경)
+    - [ ] 요일 판별 헬퍼: `selectedDayLabel(String selectedDate)` — `LocalDate.parse().getDayOfWeek()` → "월"~"금" 매핑
+- [ ] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
+    - [ ] "이번 주 사용자 현황" 텍스트 검증
+    - [ ] 선택 요일 사용자 백틱 하이라이트 테스트 추가
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+
+---
+
+## Phase N22: 점심카드 — 버튼 상태 로직 개선 (#53)
+
+- [ ] Phase N22 완료
+
+### 오버뷰
+현재 라디오 버튼(사용/취소 모두 선택 가능)을 상태별 단일 체크박스로 변경하여 요구사항의 활성/비활성 조건을 정확히 반영한다.
+
+### 메타
+- **라벨**: enhancement
+- **우선순위**: high
+- **병렬 가능**: 아니오
+
+### 전제조건
+- [ ] Phase N21 완료 (LunchCardModalBuilder 수정 충돌 방지)
+
+### 상태별 UI 요구사항
+| 상태 | 사용 버튼 | 취소 버튼 | 신청 버튼 | 안내 문구 |
+|------|-----------|-----------|-----------|-----------|
+| UNREGISTERED (사용자 없음) | 활성 (자동선택) | 비활성 | 활성 | — |
+| SELF_REGISTERED (본인) | 비활성 | 활성 (자동선택) | 활성 | — |
+| OTHER_REGISTERED (타인) | 비활성 | 비활성 | 비활성 | `` `이름` 님이 이미 사용 중 `` |
+
+### 수정/개선
+- [ ] **`ingest/src/main/java/.../payload/LunchCardModalBuilder.java`**
+    - [ ] `addActionBlock()` 메서드를 2개로 분리:
+        - `addApplyBlock(blocks)`: UNREGISTERED — 체크박스 1개 (value="apply", text="사용"), `initial_options`로 자동선택
+        - `addCancelBlock(blocks)`: SELF_REGISTERED — 체크박스 1개 (value="cancel", text="자동 취소"), `initial_options`로 자동선택
+    - [ ] Slack Block Kit 타입: `radio_buttons` → `checkboxes` (1개 옵션만)
+    - [ ] block_id=`block_lunch_card_action`, action_id=`action_lunch_card_action` 유지 (submit 파싱 호환)
+    - [ ] switch 분기(138-142) 변경
+    - [ ] `addOtherRegisteredNotice()`: 안내 문구에 백틱 적용 — `` ⚠️ `이름` 님이 이미 사용 중입니다 ``
+- [ ] **`ingest/src/main/java/.../dto/slack/LunchCardModalSubmit.java`**
+    - [ ] `radio_buttons`의 `selected_option.value` → `checkboxes`의 `selected_options[0].value` 파싱 변경
+    - [ ] 체크박스 해제 시 `selected_options` 빈 배열 → 유효성 검증 처리
+- [ ] **`ingest/src/test/java/.../payload/LunchCardModalBuilderTest.java`**
+    - [ ] UNREGISTERED: checkboxes type + initial_options "apply" + submit 존재
+    - [ ] SELF_REGISTERED: checkboxes type + initial_options "cancel" + submit 존재
+    - [ ] OTHER_REGISTERED: 백틱 안내 문구 + submit 없음
+- [ ] **`ingest/src/test/java/.../dto/slack/LunchCardModalSubmitTest.java`**
+    - [ ] checkboxes 파싱 테스트 (selected_options 배열)
+
+### 검증
+- [ ] `./gradlew :ingest:compileJava` 빌드 성공
+- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+
+### 주의사항
+- `LunchCardModalSubmit` 파싱이 `selected_option` (단수) → `selected_options` (복수, 배열)로 바뀜
+- block_id, action_id는 기존 값 유지해야 submit 호환
+
+---
+
+## Phase N23: 점심카드 — 팀 채널 알림 검증 + 문서 갱신 (#54)
+
+- [ ] Phase N23 완료
+
+### 오버뷰
+worker 모듈의 `LunchCardNotificationService`가 신청/취소 시 팀 채널에 알림을 전송하는지 검증하고, 테스트를 보강한다. Phase N21~N22 변경사항을 문서에 반영한다.
+
+### 메타
+- **라벨**: chore
+- **우선순위**: low
+- **병렬 가능**: 예 (worker 모듈 독립)
+
+### 전제조건
+- 없음 (worker 모듈은 독립)
+
+### 수정/개선
+- [ ] **`worker/src/main/java/.../service/LunchCardNotificationService.java`**
+    - [ ] 동작 확인 (SLACK_BOT_TOKEN + NOTIFICATION_CHANNEL_ID 환경변수 필수)
+    - [ ] 봇 이름은 Slack App 설정에서 "C.C.E - Team Bot"으로 관리 (코드 변경 불필요)
+- [ ] **`worker/src/test/java/.../service/LunchCardNotificationServiceTest.java`** (신규)
+    - [ ] apply 시 SlackClient.postMessage() 호출 검증
+    - [ ] cancel 시 메시지 포맷 검증
+    - [ ] disabled 상태 (botToken 미설정) 시 무동작 검증
+
+### 검증
+- [ ] `./gradlew :worker:compileJava` 빌드 성공
+- [ ] `./gradlew :worker:test` 전체 테스트 통과
+
+---
+
 ## 실행 가이드
 
 Phase 작업을 시작하려면:
@@ -747,6 +859,9 @@ Phase 작업을 시작하려면:
 | N18 | #42 | docs | `source scripts/create-worktree.sh docs 42 lunch-card-docs` |
 | N19 | #48 | feat | `source scripts/create-worktree.sh feat 48 lunch-card-toggle-remove` |
 | N20 | #49 | fix | `source scripts/create-worktree.sh fix 49 lunch-card-name-display` |
+| N21 | #52 | feat | `source scripts/create-worktree.sh feat 52 lunch-card-ui-highlight` |
+| N22 | #53 | feat | `source scripts/create-worktree.sh feat 53 lunch-card-button-state` |
+| N23 | #54 | chore | `source scripts/create-worktree.sh chore 54 lunch-card-notification-test` |
 
 > `/create-issue Phase N1` 실행 시 이슈 번호와 실행 커맨드가 이 표에 자동 기록됩니다.
 > 예: `| N1 | #12 | feat | source scripts/create-worktree.sh feat 12 unit-test-setup |`
