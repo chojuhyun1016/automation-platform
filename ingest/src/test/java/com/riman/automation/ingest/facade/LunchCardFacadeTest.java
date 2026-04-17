@@ -136,7 +136,7 @@ class LunchCardFacadeTest {
 
       assertThat(response.getStatusCode()).isEqualTo(200);
       assertThat(response.getBody()).contains("errors");
-      assertThat(response.getBody()).contains("block_lunch_card_action");
+      assertThat(response.getBody()).contains("block_lunch_card_date");
     }
 
     @Test

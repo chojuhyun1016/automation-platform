@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
  * 3. 카운트 표시 (주간 + 월간 동시 표시)
  * 4. 요일별 사용자 목록 (월~금)
  * 5. 상태별 액션 영역:
- *    - UNREGISTERED: 안내 텍스트 "✅ 사용 신청이 적용됩니다" + submit 버튼
- *    - SELF_REGISTERED: 안내 텍스트 "❌ 취소가 적용됩니다" + submit 버튼
+ *    - UNREGISTERED: submit 버튼 "신청"
+ *    - SELF_REGISTERED: submit 버튼 "취소"
  *    - OTHER_REGISTERED: 안내 텍스트 + submit 버튼 없음
  *
  * private_metadata 형식: {@code userId|userName|action} (action: apply 또는 cancel)
@@ -87,8 +87,10 @@ public class LunchCardModalBuilder {
     };
     view.put("private_metadata", data.userId() + "|" + data.userName() + "|" + action);
 
-    if (data.status() != Status.OTHER_REGISTERED) {
-      view.set("submit", plainText("신청"));
+    switch (data.status()) {
+      case UNREGISTERED -> view.set("submit", plainText("신청"));
+      case SELF_REGISTERED -> view.set("submit", plainText("취소"));
+      case OTHER_REGISTERED -> {} // submit 버튼 없음
     }
 
     view.set("blocks", buildBlocks(data));
@@ -153,26 +155,12 @@ public class LunchCardModalBuilder {
 
     blocks.add(divider());
 
-    // 5. 상태별 액션 영역
-    switch (data.status()) {
-      case UNREGISTERED -> addApplyBlock(blocks);
-      case SELF_REGISTERED -> addCancelBlock(blocks);
-      case OTHER_REGISTERED -> addOtherRegisteredNotice(blocks, data.registeredUserName());
+    // 5. 상태별 액션 영역 (OTHER_REGISTERED만 안내 텍스트 표시)
+    if (data.status() == Status.OTHER_REGISTERED) {
+      addOtherRegisteredNotice(blocks, data.registeredUserName());
     }
 
     return blocks;
-  }
-
-  private static void addApplyBlock(ArrayNode blocks) {
-    ObjectNode notice = OM.createObjectNode().put("type", "section");
-    notice.set("text", mrkdwn("✅ 사용 신청이 적용됩니다"));
-    blocks.add(notice);
-  }
-
-  private static void addCancelBlock(ArrayNode blocks) {
-    ObjectNode notice = OM.createObjectNode().put("type", "section");
-    notice.set("text", mrkdwn("❌ 취소가 적용됩니다"));
-    blocks.add(notice);
   }
 
   private static void addOtherRegisteredNotice(ArrayNode blocks, String registeredUserName) {
