@@ -171,3 +171,16 @@ gh issue create --title "제목" --label "라벨" --body-file /tmp/issue-body.md
 > 사용자에게 커맨드를 제시하고 직접 실행하도록 안내해라.
 
 사용자가 "다른 Phase"를 원하면 `/create-issue Phase N+1`을 안내.
+
+### 8. 자동 커밋 & 푸시
+
+SPEC.md 역기록이 끝나면, 변경사항을 자동으로 커밋하고 푸시해라:
+
+```bash
+git add SPEC.md
+git commit -m "docs: SPEC.md Phase N{번호} 이슈 #{번호} 역기록"
+git push
+```
+
+- `/feature-breakdown`에서 일괄 호출된 경우: 마지막 Phase 완료 후 `feature-breakdown`이 한 번에 커밋하므로 여기서는 **커밋하지 마라**
+- 단독 `/create-issue` 호출인 경우에만 커밋/푸시 실행

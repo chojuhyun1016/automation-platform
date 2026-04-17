@@ -128,7 +128,20 @@ SPEC.md 기록 완료 후, 사용자에게 물어라:
 
 **거부 시**: 후속 안내만 표시.
 
-### 7. 후속 안내
+### 7. 자동 커밋 & 푸시
+
+모든 이슈 생성 + SPEC.md 역기록이 끝나면, SPEC.md 변경사항을 자동으로 커밋하고 푸시해라:
+
+```bash
+git add SPEC.md
+git commit -m "docs: SPEC.md Phase N{시작}~N{끝} {기능 요약} 추가 (#{이슈1}, #{이슈2}, ...)"
+git push
+```
+
+- 커밋 메시지에 Phase 범위와 이슈 번호를 포함할 것
+- 푸시 실패 시 사용자에게 알려라 (권한/충돌 등)
+
+### 8. 후속 안내
 
 - `source scripts/create-worktree.sh {타입} {이슈번호} {설명}` 으로 워크트리 생성 + Claude 실행
 - 워크트리 Claude에서 `/resolve-issue 이슈번호` 로 구현
