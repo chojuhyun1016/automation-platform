@@ -1,16 +1,41 @@
 package com.riman.automation.ingest.facade;
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.services.calendar.model.Event;
+import com.riman.automation.clients.calendar.GoogleCalendarClient;
 import com.riman.automation.ingest.dto.slack.LunchCardModalSubmit;
+import com.riman.automation.ingest.payload.LunchCardModalBuilder;
+import com.riman.automation.ingest.payload.LunchCardModalBuilder.Status;
+import com.riman.automation.ingest.payload.LunchCardModalBuilder.ViewData;
 import com.riman.automation.ingest.service.SlackApiService;
 import com.riman.automation.ingest.service.WorkerMessageService;
 import com.riman.automation.ingest.util.HttpResponse;
+import com.riman.automation.common.util.DateTimeUtil;
 import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * /점심카드 커맨드 처리 Facade (stub).
+ * /점심카드 커맨드 처리 Facade.
  * 모달 오픈, 모달 submit (SQS 위임), block_actions 3개 진입점을 제공한다.
- * worker 측 처리 로직은 별도 Phase 에서 구현한다.
+ *
+ * 설계 원칙: handleCommand() 에서 Calendar 조회 후 모달을 빌드한다.
+ * GoogleCalendarClient 는 static volatile 캐싱으로 콜드스타트를 완화한다.
  */
 @Slf4j
 public class LunchCardFacade {
@@ -20,35 +45,66 @@ public class LunchCardFacade {
   static final String ACTION_DATE_ID = "action_lunch_card_date";
   static final String ACTION_TOGGLE_ID = "action_lunch_card_toggle";
 
+  private static final ObjectMapper OM = new ObjectMapper();
+  private static final String SEARCH_QUERY = "점심카드";
+  private static final Pattern NAME_PATTERN = Pattern.compile("점심카드\\(([^)]+)\\)");
+  private static final String DEFAULT_PERIOD = "weekly";
+
+  private static final String[] DAY_LABELS = {"월", "화", "수", "목", "금"};
+  private static final DayOfWeek[] DAY_OF_WEEKS = {
+      DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+      DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
+  };
+
+  // Lambda 컨테이너 warm 재사용: S3Client ~300ms, CalendarClient ~1200ms 절약.
+  private static volatile S3Client cachedS3Client;
+  private static volatile GoogleCalendarClient cachedCalendarClient;
+  private static volatile Map<String, String> cachedTeamMemberMap;
+
   private final SlackApiService slackApiService;
   private final WorkerMessageService workerMessageService;
+  private final String lunchCardCalendarId;
+  private final String configBucket;
+  private final String teamMembersKey;
 
-  /**
-   * 독립 사용을 위한 기본 생성자.
-   */
   public LunchCardFacade() {
     this.slackApiService = new SlackApiService();
     this.workerMessageService = WorkerMessageService.getInstance();
+    this.lunchCardCalendarId = System.getenv("LUNCH_CARD_CALENDAR_ID");
+    this.configBucket = System.getenv("CONFIG_BUCKET");
+    String tmKey = System.getenv("TEAM_MEMBERS_KEY");
+    this.teamMembersKey = (tmKey != null && !tmKey.isBlank()) ? tmKey : "team-members.json";
   }
 
-  /**
-   * 공유 SlackApiService 를 주입받는 생성자 (SlackFacade 에서 SlackClient 중복 생성을 방지하기 위함).
-   */
   public LunchCardFacade(SlackApiService slackApiService) {
     this.slackApiService = slackApiService;
     this.workerMessageService = WorkerMessageService.getInstance();
+    this.lunchCardCalendarId = System.getenv("LUNCH_CARD_CALENDAR_ID");
+    this.configBucket = System.getenv("CONFIG_BUCKET");
+    String tmKey = System.getenv("TEAM_MEMBERS_KEY");
+    this.teamMembersKey = (tmKey != null && !tmKey.isBlank()) ? tmKey : "team-members.json";
   }
 
-
   /**
-   * /점심카드 커맨드 수신 시 모달을 연다.
-   * TODO: 모달 빌더(LunchCardModalBuilder) 및 SlackApiService.openLunchCardModal() 은 다음 Phase 에서 구현.
+   * /점심카드 커맨드 수신 시 Calendar 조회 후 모달을 연다.
+   * Calendar 조회 실패 시에도 빈 데이터로 모달을 열어 사용자에게 안내한다.
    */
   public APIGatewayProxyResponseEvent handleCommand(
       String triggerId, String userId, String userName) {
-    log.info("점심카드 커맨드: userId={}, userName={}", userId, userName);
-    // stub: 모달 오픈 로직은 다음 Phase 에서 구현
-    return HttpResponse.ok("");
+    try {
+      log.info("점심카드 커맨드: userId={}, userName={}", userId, userName);
+
+      String today = DateTimeUtil.formatDate(DateTimeUtil.todayKst());
+      String requesterName = resolveRequesterName(userId, userName);
+      ViewData viewData = buildViewData(userName, userId, today, DEFAULT_PERIOD, requesterName);
+
+      slackApiService.openLunchCardModal(triggerId, viewData);
+      log.info("점심카드 모달 열기 완료: userId={}", userId);
+      return HttpResponse.ok("");
+    } catch (Exception e) {
+      log.error("점심카드 커맨드 처리 실패: userId={}", userId, e);
+      return HttpResponse.ok("");
+    }
   }
 
   /**
@@ -108,12 +164,309 @@ public class LunchCardFacade {
 
   /**
    * 점심카드 모달의 block_actions 처리.
-   * 날짜 변경(action_lunch_card_date), 토글(action_lunch_card_toggle) 등의 인터랙션을 처리한다.
-   * TODO: 상세 처리 로직은 다음 Phase 에서 구현.
+   * 날짜 변경(action_lunch_card_date) 또는 주/월 토글(action_lunch_card_toggle) 시
+   * Calendar 재조회 후 views.update 로 모달을 갱신한다.
+   *
+   * Calendar 조회 + views.update 를 별도 스레드에서 실행하고 join(2500) 으로
+   * Lambda freeze 전에 완료를 보장한다. 3초 제한 내에 200 반환을 확보한다.
    */
   public APIGatewayProxyResponseEvent handleBlockAction(String body) {
-    log.info("점심카드 block_action 수신");
-    // stub: 상세 로직은 다음 Phase 에서 구현
+    try {
+      String decoded = URLDecoder.decode(
+          body.substring("payload=".length()), StandardCharsets.UTF_8);
+      JsonNode payload = OM.readTree(decoded);
+
+      String viewId = payload.path("view").path("id").asText("");
+      String userId = payload.path("user").path("id").asText("");
+      String meta = payload.path("view").path("private_metadata").asText("");
+      String userName = meta.contains("|") ? meta.split("\\|", 2)[1] : "";
+
+      String selectedDate = extractSelectedDate(payload);
+      String periodMode = extractPeriodMode(payload);
+
+      log.info("점심카드 block_action: userId={}, date={}, period={}", userId, selectedDate, periodMode);
+
+      // Calendar 조회 + views.update 를 별도 스레드에서 실행 (3초 제한 내 완료 보장)
+      Thread updateThread = new Thread(() -> {
+        try {
+          String requesterName = resolveRequesterName(userId, userName);
+          ViewData viewData = buildViewData(userName, userId, selectedDate, periodMode, requesterName);
+          slackApiService.updateLunchCardView(viewId, viewData);
+          log.info("점심카드 모달 갱신 완료: userId={}, date={}", userId, selectedDate);
+        } catch (Exception e) {
+          log.error("점심카드 모달 갱신 실패: userId={}", userId, e);
+        }
+      }, "lunch-card-view-update");
+      updateThread.start();
+
+      try {
+        updateThread.join(2500);
+        if (updateThread.isAlive()) {
+          log.warn("점심카드 모달 갱신 타임아웃 (2500ms): userId={}", userId);
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        log.warn("점심카드 모달 갱신 스레드 인터럽트: userId={}", userId);
+      }
+    } catch (Exception e) {
+      log.error("점심카드 block_action 페이로드 파싱 실패", e);
+    }
+
     return HttpResponse.ok("");
+  }
+
+  // ── Calendar 조회 + ViewData 구성 ──
+
+  /**
+   * Calendar 이벤트를 조회하여 ViewData 를 구성한다.
+   * Calendar 조회 실패 시 빈 데이터로 구성한다.
+   */
+  ViewData buildViewData(String userName, String userId,
+                         String selectedDate, String periodMode,
+                         String requesterName) {
+    LocalDate date = LocalDate.parse(selectedDate);
+    List<Event> weekEvents = List.of();
+    List<Event> monthEvents = List.of();
+
+    try {
+      GoogleCalendarClient calendarClient = getOrCreateCalendarClient();
+      if (lunchCardCalendarId != null && !lunchCardCalendarId.isBlank()) {
+        weekEvents = queryWeekEvents(calendarClient, date);
+        monthEvents = queryMonthEvents(calendarClient, date);
+      } else {
+        log.warn("LUNCH_CARD_CALENDAR_ID 환경변수 미설정 — 빈 데이터로 모달 표시");
+      }
+    } catch (Exception e) {
+      log.error("점심카드 Calendar 조회 실패 — 빈 데이터로 모달 표시: {}", e.getMessage());
+    }
+
+    int weeklyCount = countEvents(weekEvents);
+    int monthlyCount = countEvents(monthEvents);
+
+    List<Event> dayEvents = filterEventsByDate(weekEvents, date);
+    int dailyCount = dayEvents.size();
+
+    Status status = determineStatus(dayEvents, requesterName);
+    String registeredUserName = (status == Status.OTHER_REGISTERED)
+        ? findRegisteredUserName(dayEvents) : null;
+
+    Map<String, List<String>> dayOfWeekMap = buildDayOfWeekMap(weekEvents, date);
+
+    return new ViewData(
+        userName, userId, selectedDate, periodMode,
+        status, registeredUserName,
+        weeklyCount, monthlyCount, dailyCount, dayOfWeekMap);
+  }
+
+  // ── Calendar 쿼리 ──
+
+  private List<Event> queryWeekEvents(GoogleCalendarClient client, LocalDate date) {
+    LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    LocalDate weekEnd = weekStart.plusDays(5); // 금요일 다음날
+    String timeMin = weekStart + "T00:00:00+09:00";
+    String timeMax = weekEnd + "T00:00:00+09:00";
+    return client.listEvents(lunchCardCalendarId, timeMin, timeMax, SEARCH_QUERY);
+  }
+
+  private List<Event> queryMonthEvents(GoogleCalendarClient client, LocalDate date) {
+    LocalDate monthStart = date.withDayOfMonth(1);
+    LocalDate monthEnd = date.with(TemporalAdjusters.lastDayOfMonth()).plusDays(1);
+    String timeMin = monthStart + "T00:00:00+09:00";
+    String timeMax = monthEnd + "T00:00:00+09:00";
+    return client.listEvents(lunchCardCalendarId, timeMin, timeMax, SEARCH_QUERY);
+  }
+
+  // ── 카운트 헬퍼 ──
+
+  static int countEvents(List<Event> events) {
+    return events.size();
+  }
+
+  static List<Event> filterEventsByDate(List<Event> events, LocalDate date) {
+    String dateStr = date.toString();
+    List<Event> result = new ArrayList<>();
+    for (Event event : events) {
+      String eventDate = extractEventDate(event);
+      if (dateStr.equals(eventDate)) {
+        result.add(event);
+      }
+    }
+    return result;
+  }
+
+  static Map<String, List<String>> buildDayOfWeekMap(List<Event> weekEvents, LocalDate refDate) {
+    LocalDate weekStart = refDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    Map<String, List<String>> map = new LinkedHashMap<>();
+
+    for (int i = 0; i < DAY_LABELS.length; i++) {
+      LocalDate dayDate = weekStart.plusDays(i);
+      List<String> users = new ArrayList<>();
+      for (Event event : weekEvents) {
+        String eventDate = extractEventDate(event);
+        if (dayDate.toString().equals(eventDate)) {
+          String name = extractNameFromSummary(event.getSummary());
+          if (name != null) {
+            users.add(name);
+          }
+        }
+      }
+      map.put(DAY_LABELS[i], users);
+    }
+    return map;
+  }
+
+  // ── 상태 판별 ──
+
+  static Status determineStatus(List<Event> dayEvents, String requesterName) {
+    if (dayEvents.isEmpty()) {
+      return Status.UNREGISTERED;
+    }
+    for (Event event : dayEvents) {
+      String name = extractNameFromSummary(event.getSummary());
+      if (requesterName != null && requesterName.equals(name)) {
+        return Status.SELF_REGISTERED;
+      }
+    }
+    return Status.OTHER_REGISTERED;
+  }
+
+  private static String findRegisteredUserName(List<Event> dayEvents) {
+    for (Event event : dayEvents) {
+      String name = extractNameFromSummary(event.getSummary());
+      if (name != null) return name;
+    }
+    return null;
+  }
+
+  // ── 유틸리티 ──
+
+  static String extractNameFromSummary(String summary) {
+    if (summary == null) return null;
+    Matcher m = NAME_PATTERN.matcher(summary);
+    return m.find() ? m.group(1) : null;
+  }
+
+  private static String extractEventDate(Event event) {
+    if (event.getStart() == null) return "";
+    if (event.getStart().getDate() != null) {
+      return event.getStart().getDate().toStringRfc3339().substring(0, 10);
+    }
+    if (event.getStart().getDateTime() != null) {
+      return event.getStart().getDateTime().toStringRfc3339().substring(0, 10);
+    }
+    return "";
+  }
+
+  private String extractSelectedDate(JsonNode payload) {
+    JsonNode actions = payload.path("actions");
+    for (JsonNode action : actions) {
+      if ("action_lunch_card_date".equals(action.path("action_id").asText())) {
+        String date = action.path("selected_date").asText("");
+        if (!date.isEmpty()) return date;
+      }
+    }
+    // datepicker 변경이 아닌 경우 현재 view state 에서 추출
+    return payload.path("view").path("state").path("values")
+        .path("block_lunch_card_date").path("action_lunch_card_date")
+        .path("selected_date").asText(DateTimeUtil.formatDate(DateTimeUtil.todayKst()));
+  }
+
+  private String extractPeriodMode(JsonNode payload) {
+    JsonNode actions = payload.path("actions");
+    for (JsonNode action : actions) {
+      if ("action_lunch_card_toggle".equals(action.path("action_id").asText())) {
+        String value = action.path("selected_option").path("value").asText("");
+        if (!value.isEmpty()) return value;
+      }
+    }
+    // 토글 변경이 아닌 경우 현재 view state 에서 추출
+    return payload.path("view").path("state").path("values")
+        .path("block_lunch_card_period").path("action_lunch_card_toggle")
+        .path("selected_option").path("value").asText(DEFAULT_PERIOD);
+  }
+
+  /**
+   * 요청자의 한글 이름을 resolve 한다.
+   * team-members.json 에서 slackUserId → name 매핑을 조회한다.
+   * 매핑 실패 시 userName 을 폴백으로 반환한다.
+   */
+  private String resolveRequesterName(String userId, String userName) {
+    Map<String, String> memberMap = loadTeamMemberMap();
+    if (memberMap != null) {
+      String name = memberMap.get(userId);
+      if (name != null && !name.isBlank()) return name;
+    }
+    return userName;
+  }
+
+  // ── static volatile 캐싱 (CurrentTicketFacade 동일 패턴) ──
+
+  private static S3Client getOrCreateS3Client() {
+    S3Client s3 = cachedS3Client;
+    if (s3 == null) {
+      s3 = S3Client.builder().build();
+      cachedS3Client = s3;
+      log.info("[LunchCardFacade] S3Client 생성 완료 (캐시 저장)");
+    }
+    return s3;
+  }
+
+  private static GoogleCalendarClient getOrCreateCalendarClient() throws Exception {
+    GoogleCalendarClient client = cachedCalendarClient;
+    if (client != null) return client;
+
+    String bucket = System.getenv("GOOGLE_CALENDAR_CREDENTIALS_BUCKET");
+    String key = System.getenv("GOOGLE_CALENDAR_CREDENTIALS_KEY");
+    if (key == null || key.isBlank()) key = "google-credentials.json";
+
+    if (bucket == null || bucket.isBlank()) {
+      throw new IllegalStateException("GOOGLE_CALENDAR_CREDENTIALS_BUCKET 환경변수 미설정");
+    }
+
+    byte[] credBytes = getOrCreateS3Client().getObject(
+        GetObjectRequest.builder().bucket(bucket).key(key).build()
+    ).readAllBytes();
+
+    client = new GoogleCalendarClient(credBytes);
+    cachedCalendarClient = client;
+    log.info("[LunchCardFacade] GoogleCalendarClient 초기화 완료 (캐시 저장)");
+    return client;
+  }
+
+  private Map<String, String> loadTeamMemberMap() {
+    Map<String, String> existing = cachedTeamMemberMap;
+    if (existing != null) return existing;
+
+    if (configBucket == null || configBucket.isBlank()) {
+      log.warn("[LunchCardFacade] CONFIG_BUCKET 미설정 — team-members.json 조회 불가");
+      return null;
+    }
+    try {
+      byte[] bytes = getOrCreateS3Client().getObject(
+          GetObjectRequest.builder().bucket(configBucket).key(teamMembersKey).build()
+      ).readAllBytes();
+
+      JsonNode root = OM.readTree(new String(bytes, StandardCharsets.UTF_8));
+      JsonNode members = root.path("members");
+      if (members.isMissingNode() || !members.isArray()) {
+        log.warn("[LunchCardFacade] team-members.json에 'members' 배열 없음");
+        return null;
+      }
+
+      Map<String, String> map = new HashMap<>();
+      for (JsonNode m : members) {
+        String sid = m.path("slack_user_id").asText("");
+        String name = m.path("name").asText("").trim();
+        if (!sid.isEmpty() && !name.isEmpty()) {
+          map.put(sid, name);
+        }
+      }
+      cachedTeamMemberMap = map;
+      log.info("[LunchCardFacade] team-members.json 로드 완료: {}명", map.size());
+      return map;
+    } catch (Exception e) {
+      log.error("[LunchCardFacade] team-members.json 로드 실패", e);
+      return null;
+    }
   }
 }
