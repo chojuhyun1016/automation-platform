@@ -61,18 +61,20 @@ public class LunchCardFacade {
   private static volatile S3Client cachedS3Client;
   private static volatile GoogleCalendarClient cachedCalendarClient;
   private static volatile Map<String, String> cachedTeamMemberMap;
+  private static volatile String cachedLunchCardCalendarId;
 
   private final SlackApiService slackApiService;
   private final WorkerMessageService workerMessageService;
-  private final String lunchCardCalendarId;
   private final String configBucket;
+  private final String configKey;
   private final String teamMembersKey;
 
   public LunchCardFacade() {
     this.slackApiService = new SlackApiService();
     this.workerMessageService = WorkerMessageService.getInstance();
-    this.lunchCardCalendarId = System.getenv("LUNCH_CARD_CALENDAR_ID");
     this.configBucket = System.getenv("CONFIG_BUCKET");
+    String ck = System.getenv("CONFIG_KEY");
+    this.configKey = (ck != null && !ck.isBlank()) ? ck : "config.json";
     String tmKey = System.getenv("TEAM_MEMBERS_KEY");
     this.teamMembersKey = (tmKey != null && !tmKey.isBlank()) ? tmKey : "team-members.json";
   }
@@ -80,8 +82,9 @@ public class LunchCardFacade {
   public LunchCardFacade(SlackApiService slackApiService) {
     this.slackApiService = slackApiService;
     this.workerMessageService = WorkerMessageService.getInstance();
-    this.lunchCardCalendarId = System.getenv("LUNCH_CARD_CALENDAR_ID");
     this.configBucket = System.getenv("CONFIG_BUCKET");
+    String ck = System.getenv("CONFIG_KEY");
+    this.configKey = (ck != null && !ck.isBlank()) ? ck : "config.json";
     String tmKey = System.getenv("TEAM_MEMBERS_KEY");
     this.teamMembersKey = (tmKey != null && !tmKey.isBlank()) ? tmKey : "team-members.json";
   }
@@ -194,7 +197,8 @@ public class LunchCardFacade {
       String viewId = payload.path("view").path("id").asText("");
       String userId = payload.path("user").path("id").asText("");
       String meta = payload.path("view").path("private_metadata").asText("");
-      String userName = meta.contains("|") ? meta.split("\\|", 2)[1] : "";
+      String[] metaParts = meta.split("\\|");
+      String userName = metaParts.length >= 2 ? metaParts[1] : "";
 
       String selectedDate = extractSelectedDate(payload);
 
@@ -253,11 +257,12 @@ public class LunchCardFacade {
 
     try {
       GoogleCalendarClient calendarClient = getOrCreateCalendarClient();
-      if (lunchCardCalendarId != null && !lunchCardCalendarId.isBlank()) {
+      String calendarId = loadLunchCardCalendarId();
+      if (calendarId != null && !calendarId.isBlank()) {
         weekEvents = queryWeekEvents(calendarClient, date);
         monthEvents = queryMonthEvents(calendarClient, date);
       } else {
-        log.warn("LUNCH_CARD_CALENDAR_ID 환경변수 미설정 — 빈 데이터로 모달 표시");
+        log.warn("lunchCard.calendar_id 미설정 — 빈 데이터로 모달 표시");
       }
     } catch (Exception e) {
       log.error("점심카드 Calendar 조회 실패 — 빈 데이터로 모달 표시: {}", e.getMessage());
@@ -298,7 +303,7 @@ public class LunchCardFacade {
     String timeMin = weekStart + "T00:00:00+09:00";
     String timeMax = weekEnd + "T00:00:00+09:00";
     return filterByLunchCardSummary(
-        client.listEvents(lunchCardCalendarId, timeMin, timeMax, null));
+        client.listEvents(loadLunchCardCalendarId(), timeMin, timeMax, null));
   }
 
   private List<Event> queryMonthEvents(GoogleCalendarClient client, LocalDate date) {
@@ -307,7 +312,7 @@ public class LunchCardFacade {
     String timeMin = monthStart + "T00:00:00+09:00";
     String timeMax = monthEnd + "T00:00:00+09:00";
     return filterByLunchCardSummary(
-        client.listEvents(lunchCardCalendarId, timeMin, timeMax, null));
+        client.listEvents(loadLunchCardCalendarId(), timeMin, timeMax, null));
   }
 
   /**
@@ -471,6 +476,37 @@ public class LunchCardFacade {
     cachedCalendarClient = client;
     log.info("[LunchCardFacade] GoogleCalendarClient 초기화 완료 (캐시 저장)");
     return client;
+  }
+
+  /**
+   * S3 config.json에서 lunchCard.calendar_id를 로드한다. static volatile 캐싱을 적용한다.
+   */
+  private String loadLunchCardCalendarId() {
+    String existing = cachedLunchCardCalendarId;
+    if (existing != null) return existing;
+
+    if (configBucket == null || configBucket.isBlank()) {
+      log.warn("[LunchCardFacade] CONFIG_BUCKET 미설정 — config.json 조회 불가");
+      return null;
+    }
+    try {
+      byte[] bytes = getOrCreateS3Client().getObject(
+          GetObjectRequest.builder().bucket(configBucket).key(configKey).build()
+      ).readAllBytes();
+
+      JsonNode root = OM.readTree(new String(bytes, StandardCharsets.UTF_8));
+      String calendarId = root.path("lunchCard").path("calendar_id").asText("");
+      if (calendarId.isEmpty()) {
+        log.warn("[LunchCardFacade] config.json에 lunchCard.calendar_id 미설정");
+        return null;
+      }
+      cachedLunchCardCalendarId = calendarId;
+      log.info("[LunchCardFacade] config.json lunchCard.calendar_id 로드 완료: {}", calendarId);
+      return calendarId;
+    } catch (Exception e) {
+      log.error("[LunchCardFacade] config.json 로드 실패", e);
+      return null;
+    }
   }
 
   private Map<String, String> loadTeamMemberMap() {

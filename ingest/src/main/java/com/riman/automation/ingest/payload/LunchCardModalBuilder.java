@@ -21,9 +21,11 @@ import java.util.stream.Collectors;
  * 3. 카운트 표시 (주간 + 월간 동시 표시)
  * 4. 요일별 사용자 목록 (월~금)
  * 5. 상태별 액션 영역:
- *    - UNREGISTERED: 체크박스 "사용" (자동선택) + submit 버튼
- *    - SELF_REGISTERED: 체크박스 "취소" (자동선택) + submit 버튼
- *    - OTHER_REGISTERED: 백틱 안내 텍스트 + submit 버튼 없음
+ *    - UNREGISTERED: 안내 텍스트 "✅ 사용 신청이 적용됩니다" + submit 버튼
+ *    - SELF_REGISTERED: 안내 텍스트 "❌ 취소가 적용됩니다" + submit 버튼
+ *    - OTHER_REGISTERED: 안내 텍스트 + submit 버튼 없음
+ *
+ * private_metadata 형식: {@code userId|userName|action} (action: apply 또는 cancel)
  */
 public class LunchCardModalBuilder {
 
@@ -78,7 +80,12 @@ public class LunchCardModalBuilder {
     view.put("callback_id", CALLBACK_ID);
     view.set("title", plainText("점심카드"));
     view.set("close", plainText("닫기"));
-    view.put("private_metadata", data.userId() + "|" + data.userName());
+    String action = switch (data.status()) {
+      case UNREGISTERED -> "apply";
+      case SELF_REGISTERED -> "cancel";
+      case OTHER_REGISTERED -> "";
+    };
+    view.put("private_metadata", data.userId() + "|" + data.userName() + "|" + action);
 
     if (data.status() != Status.OTHER_REGISTERED) {
       view.set("submit", plainText("신청"));
@@ -112,8 +119,8 @@ public class LunchCardModalBuilder {
     // 3. 카운트 표시 (주간 + 월간 동시)
     ObjectNode countSection = OM.createObjectNode().put("type", "section");
     ArrayNode fields = OM.createArrayNode();
-    fields.add(mrkdwn("📊 주간 사용: *" + data.weeklyCount() + "*회"));
-    fields.add(mrkdwn("📊 월간 사용: *" + data.monthlyCount() + "*회"));
+    fields.add(mrkdwn("주간 사용: " + data.weeklyCount() + "회"));
+    fields.add(mrkdwn("월간 사용: " + data.monthlyCount() + "회"));
     countSection.set("fields", fields);
     blocks.add(countSection);
 
@@ -134,7 +141,7 @@ public class LunchCardModalBuilder {
         if (users.isEmpty()) {
           userText = "_없음_";
         } else if (highlight) {
-          userText = users.stream().map(n -> "`" + n + "`").collect(Collectors.joining(", "));
+          userText = users.stream().map(n -> "*" + n + "*").collect(Collectors.joining(", "));
         } else {
           userText = String.join(", ", users);
         }
@@ -157,29 +164,21 @@ public class LunchCardModalBuilder {
   }
 
   private static void addApplyBlock(ArrayNode blocks) {
-    ObjectNode applyOpt = option(plainText("사용"), "apply");
-    ObjectNode checkboxes = OM.createObjectNode()
-        .put("type", "checkboxes")
-        .put("action_id", "action_lunch_card_action");
-    checkboxes.set("options", OM.createArrayNode().add(applyOpt));
-    checkboxes.set("initial_options", OM.createArrayNode().add(applyOpt));
-    blocks.add(inputBlock("block_lunch_card_action", "신청/취소", checkboxes, false));
+    ObjectNode notice = OM.createObjectNode().put("type", "section");
+    notice.set("text", mrkdwn("✅ 사용 신청이 적용됩니다"));
+    blocks.add(notice);
   }
 
   private static void addCancelBlock(ArrayNode blocks) {
-    ObjectNode cancelOpt = option(plainText("취소"), "cancel");
-    ObjectNode checkboxes = OM.createObjectNode()
-        .put("type", "checkboxes")
-        .put("action_id", "action_lunch_card_action");
-    checkboxes.set("options", OM.createArrayNode().add(cancelOpt));
-    checkboxes.set("initial_options", OM.createArrayNode().add(cancelOpt));
-    blocks.add(inputBlock("block_lunch_card_action", "신청/취소", checkboxes, false));
+    ObjectNode notice = OM.createObjectNode().put("type", "section");
+    notice.set("text", mrkdwn("❌ 취소가 적용됩니다"));
+    blocks.add(notice);
   }
 
   private static void addOtherRegisteredNotice(ArrayNode blocks, String registeredUserName) {
     String name = (registeredUserName != null) ? registeredUserName : "다른 사용자";
     ObjectNode notice = OM.createObjectNode().put("type", "section");
-    notice.set("text", mrkdwn("⚠️ `" + name + "` 님이 이미 사용 중입니다.\n"
+    notice.set("text", mrkdwn("⚠️ *" + name + "* 님이 이미 사용 중입니다.\n"
         + "취소가 필요하면 해당 사용자에게 요청해 주세요."));
     blocks.add(notice);
   }
@@ -197,13 +196,6 @@ public class LunchCardModalBuilder {
 
   private static ObjectNode divider() {
     return OM.createObjectNode().put("type", "divider");
-  }
-
-  private static ObjectNode option(ObjectNode textNode, String value) {
-    ObjectNode node = OM.createObjectNode();
-    node.set("text", textNode);
-    node.put("value", value);
-    return node;
   }
 
   /** selectedDate(yyyy-MM-dd)의 요일을 "월"~"일" 한글 라벨로 변환. */

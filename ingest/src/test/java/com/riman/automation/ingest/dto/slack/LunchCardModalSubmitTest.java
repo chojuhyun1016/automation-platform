@@ -15,7 +15,7 @@ class LunchCardModalSubmitTest {
   }
 
   @Test
-  @DisplayName("parse — 모든 필드 정상 파싱 (private_metadata 우선)")
+  @DisplayName("parse — 모든 필드 정상 파싱 (private_metadata 3-segment)")
   void parse_allFields_parsedCorrectly() throws Exception {
     String json = """
         {
@@ -23,16 +23,11 @@ class LunchCardModalSubmitTest {
           "user": { "id": "U001", "username": "slack_user" },
           "view": {
             "callback_id": "lunch_card_submit",
-            "private_metadata": "U001|홍길동",
+            "private_metadata": "U001|홍길동|apply",
             "state": {
               "values": {
                 "block_lunch_card_date": {
                   "action_lunch_card_date": { "selected_date": "2026-04-18" }
-                },
-                "block_lunch_card_action": {
-                  "action_lunch_card_action": {
-                    "selected_options": [{ "value": "apply" }]
-                  }
                 }
               }
             }
@@ -52,7 +47,36 @@ class LunchCardModalSubmitTest {
   }
 
   @Test
-  @DisplayName("parse — private_metadata 없으면 username 폴백")
+  @DisplayName("parse — cancel action도 metadata에서 정상 파싱")
+  void parse_cancelAction_parsedFromMetadata() throws Exception {
+    String json = """
+        {
+          "type": "view_submission",
+          "user": { "id": "U002", "username": "slack_user" },
+          "view": {
+            "callback_id": "lunch_card_submit",
+            "private_metadata": "U002|김철수|cancel",
+            "state": {
+              "values": {
+                "block_lunch_card_date": {
+                  "action_lunch_card_date": { "selected_date": "2026-04-19" }
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    LunchCardModalSubmit modal = LunchCardModalSubmit.parse(makePayloadBody(json));
+
+    assertThat(modal.getUserName()).isEqualTo("김철수");
+    assertThat(modal.getAction()).isEqualTo("cancel");
+    assertThat(modal.isValidAction()).isTrue();
+    assertThat(modal.isCancel()).isTrue();
+  }
+
+  @Test
+  @DisplayName("parse — private_metadata 없으면 username 폴백, action 빈 문자열")
   void parse_noMetadata_fallbackToUsername() throws Exception {
     String json = """
         {
@@ -65,11 +89,6 @@ class LunchCardModalSubmitTest {
               "values": {
                 "block_lunch_card_date": {
                   "action_lunch_card_date": { "selected_date": "2026-04-19" }
-                },
-                "block_lunch_card_action": {
-                  "action_lunch_card_action": {
-                    "selected_options": [{ "value": "cancel" }]
-                  }
                 }
               }
             }
@@ -80,8 +99,8 @@ class LunchCardModalSubmitTest {
     LunchCardModalSubmit modal = LunchCardModalSubmit.parse(makePayloadBody(json));
 
     assertThat(modal.getUserName()).isEqualTo("fallback_name");
-    assertThat(modal.getAction()).isEqualTo("cancel");
-    assertThat(modal.isValidAction()).isTrue();
+    assertThat(modal.getAction()).isEmpty();
+    assertThat(modal.isValidAction()).isFalse();
   }
 
   @Test
@@ -104,44 +123,14 @@ class LunchCardModalSubmitTest {
   }
 
   @Test
-  @DisplayName("isValidAction — 잘못된 action 값이면 false")
-  void isValidAction_invalidAction_returnsFalse() throws Exception {
-    String json = """
-        {
-          "type": "view_submission",
-          "user": { "id": "U004", "username": "user4" },
-          "view": {
-            "private_metadata": "",
-            "state": {
-              "values": {
-                "block_lunch_card_date": {
-                  "action_lunch_card_date": { "selected_date": "2026-04-20" }
-                },
-                "block_lunch_card_action": {
-                  "action_lunch_card_action": {
-                    "selected_options": [{ "value": "invalid" }]
-                  }
-                }
-              }
-            }
-          }
-        }
-        """;
-
-    LunchCardModalSubmit modal = LunchCardModalSubmit.parse(makePayloadBody(json));
-
-    assertThat(modal.isValidAction()).isFalse();
-  }
-
-  @Test
-  @DisplayName("parse — 날짜/액션 누락 시 빈 문자열")
-  void parse_missingFields_returnsEmptyStrings() throws Exception {
+  @DisplayName("parse — 날짜 누락 시 빈 문자열")
+  void parse_missingDate_returnsEmptyString() throws Exception {
     String json = """
         {
           "type": "view_submission",
           "user": { "id": "U005", "username": "user5" },
           "view": {
-            "private_metadata": "",
+            "private_metadata": "U005|user5|apply",
             "state": { "values": {} }
           }
         }
@@ -150,28 +139,23 @@ class LunchCardModalSubmitTest {
     LunchCardModalSubmit modal = LunchCardModalSubmit.parse(makePayloadBody(json));
 
     assertThat(modal.getDate()).isEmpty();
-    assertThat(modal.getAction()).isEmpty();
-    assertThat(modal.isValidAction()).isFalse();
+    assertThat(modal.hasDate()).isFalse();
+    assertThat(modal.getAction()).isEqualTo("apply");
   }
 
   @Test
-  @DisplayName("checkboxes 해제 — selected_options 빈 배열이면 action 빈 문자열")
-  void parse_emptySelectedOptions_returnsEmptyAction() throws Exception {
+  @DisplayName("parse — metadata에 action 미포함 시 빈 문자열 (2-segment 호환)")
+  void parse_twoSegmentMetadata_emptyAction() throws Exception {
     String json = """
         {
           "type": "view_submission",
           "user": { "id": "U006", "username": "user6" },
           "view": {
-            "private_metadata": "",
+            "private_metadata": "U006|user6",
             "state": {
               "values": {
                 "block_lunch_card_date": {
                   "action_lunch_card_date": { "selected_date": "2026-04-18" }
-                },
-                "block_lunch_card_action": {
-                  "action_lunch_card_action": {
-                    "selected_options": []
-                  }
                 }
               }
             }
@@ -181,9 +165,9 @@ class LunchCardModalSubmitTest {
 
     LunchCardModalSubmit modal = LunchCardModalSubmit.parse(makePayloadBody(json));
 
+    assertThat(modal.getUserName()).isEqualTo("user6");
     assertThat(modal.getAction()).isEmpty();
     assertThat(modal.isValidAction()).isFalse();
-    assertThat(modal.hasAction()).isFalse();
   }
 
   @Test
@@ -194,7 +178,7 @@ class LunchCardModalSubmitTest {
           "type": "view_submission",
           "user": { "id": "U001", "username": "user1" },
           "view": {
-            "private_metadata": "",
+            "private_metadata": "U001|user1|apply",
             "state": {
               "values": {
                 "block_lunch_card_date": {
@@ -211,7 +195,7 @@ class LunchCardModalSubmitTest {
           "type": "view_submission",
           "user": { "id": "U001", "username": "user1" },
           "view": {
-            "private_metadata": "",
+            "private_metadata": "U001|user1|apply",
             "state": { "values": {} }
           }
         }
@@ -222,23 +206,15 @@ class LunchCardModalSubmitTest {
   }
 
   @Test
-  @DisplayName("hasAction — 액션이 있으면 true, 빈값이면 false")
+  @DisplayName("hasAction — metadata에 action이 있으면 true, 없으면 false")
   void hasAction_returnsCorrectResult() throws Exception {
     String withAction = """
         {
           "type": "view_submission",
           "user": { "id": "U001", "username": "user1" },
           "view": {
-            "private_metadata": "",
-            "state": {
-              "values": {
-                "block_lunch_card_action": {
-                  "action_lunch_card_action": {
-                    "selected_options": [{ "value": "apply" }]
-                  }
-                }
-              }
-            }
+            "private_metadata": "U001|user1|apply",
+            "state": { "values": {} }
           }
         }
         """;
@@ -248,7 +224,7 @@ class LunchCardModalSubmitTest {
           "type": "view_submission",
           "user": { "id": "U001", "username": "user1" },
           "view": {
-            "private_metadata": "",
+            "private_metadata": "U001|user1",
             "state": { "values": {} }
           }
         }
@@ -266,16 +242,8 @@ class LunchCardModalSubmitTest {
           "type": "view_submission",
           "user": { "id": "U001", "username": "user1" },
           "view": {
-            "private_metadata": "",
-            "state": {
-              "values": {
-                "block_lunch_card_action": {
-                  "action_lunch_card_action": {
-                    "selected_options": [{ "value": "apply" }]
-                  }
-                }
-              }
-            }
+            "private_metadata": "U001|user1|apply",
+            "state": { "values": {} }
           }
         }
         """;
@@ -285,16 +253,8 @@ class LunchCardModalSubmitTest {
           "type": "view_submission",
           "user": { "id": "U001", "username": "user1" },
           "view": {
-            "private_metadata": "",
-            "state": {
-              "values": {
-                "block_lunch_card_action": {
-                  "action_lunch_card_action": {
-                    "selected_options": [{ "value": "cancel" }]
-                  }
-                }
-              }
-            }
+            "private_metadata": "U001|user1|cancel",
+            "state": { "values": {} }
           }
         }
         """;

@@ -9,7 +9,8 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Slack 점심카드 Modal Submit 페이로드 파싱 결과 VO.
- * 모달은 날짜(block_lunch_card_date)와 신청/취소 구분(block_lunch_card_action) 2개 필드로 구성된다.
+ * 모달은 날짜(block_lunch_card_date) 1개 필드로 구성되며, action(apply/cancel)은 private_metadata 3번째 필드에서 결정된다.
+ * private_metadata 형식: {@code userId|userName|action}
  */
 @Getter
 public class LunchCardModalSubmit {
@@ -28,20 +29,15 @@ public class LunchCardModalSubmit {
 
     String meta = payload.path("view").path("private_metadata").asText("");
     String rawName = payload.path("user").path("username").asText("");
-    this.userName = meta.contains("|") ? meta.split("\\|", 2)[1] : rawName;
+    String[] metaParts = meta.split("\\|");
+    this.userName = metaParts.length >= 2 ? metaParts[1] : rawName;
+    this.action = metaParts.length >= 3 ? metaParts[2] : "";
 
     JsonNode values = payload.path("view").path("state").path("values");
 
     this.date = values
         .path("block_lunch_card_date").path("action_lunch_card_date")
         .path("selected_date").asText("");
-
-    JsonNode selectedOptions = values
-        .path("block_lunch_card_action").path("action_lunch_card_action")
-        .path("selected_options");
-    this.action = (selectedOptions.isArray() && !selectedOptions.isEmpty())
-        ? selectedOptions.get(0).path("value").asText("")
-        : "";
   }
 
   /**
