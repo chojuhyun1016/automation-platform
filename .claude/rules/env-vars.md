@@ -25,7 +25,8 @@ paths:
 |---------|------|------|
 | `SLACK_SIGNING_SECRET` | 필수 | Slack 요청 서명 검증 |
 | `SQS_QUEUE_URL` | 필수 | Worker SQS 큐 URL |
-| `TICKET_CALENDAR_ID` | 필수 | 티켓 캘린더 ID |
+| `TICKET_CALENDAR_ID` | 필수 | 현재티켓 캘린더 ID |
+| `CONFIG_KEY` | 선택 | S3 설정 파일 키 (기본: config.json) — 점심카드 calendar_id 포함 |
 | `GOOGLE_CALENDAR_CREDENTIALS_BUCKET` | 필수 | Google 자격증명 S3 버킷 |
 | `GOOGLE_CALENDAR_CREDENTIALS_KEY` | 선택 | Google 자격증명 S3 키 (기본: google-credentials.json) |
 | `SCHEDULE_MAPPING_TABLE` | 선택 | DynamoDB 일정 매핑 테이블 |

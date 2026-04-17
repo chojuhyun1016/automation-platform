@@ -69,12 +69,29 @@ ConfigService → CalendarService
 | JiraCalendarMappingService | `CALENDAR_MAPPING_TABLE` | issueKey / calendarId | Jira↔Calendar 매핑 |
 | ScheduleEventMappingService | `SCHEDULE_MAPPING_TABLE` | slackUserId / eventId | 일정↔Calendar 매핑 |
 
+## LunchCardService
+
+점심카드 Google Calendar 처리. 날짜별 1인 1이벤트 모델.
+
+- `findLunchCardEvents()`: `searchQuery=null` + Java 필터링 (`summary.startsWith("점심카드")`)
+  - Google Calendar API `q` 파라미터는 결과 누락 가능 → 전체 fetch 후 Java에서 필터링
+- `applyLunchCard()`: 멱등 — 동일 이벤트 존재 시 무시
+- `cancelLunchCard()`: 이벤트 없으면 DLQ 방지를 위해 조용히 종료
+
+## LunchCardNotificationService
+
+팀 채널 알림. Secrets Manager 기반 Bot 토큰 (5분 TTL 캐시).
+
+- config.json `routing.CCE.slack_bot_token_secret`에서 시크릿명 조회
+- `notification_channel_id`에서 알림 채널 조회
+
 ## 캐싱 & TTL
 
 | 서비스 | TTL | 캐시 대상 |
 |--------|-----|----------|
 | ConfigService | 5분 | S3 config.json |
 | SlackNotificationService | 5분 | Slack Bot 토큰 (Secrets Manager) |
+| LunchCardNotificationService | 5분 | Slack Bot 토큰 (Secrets Manager) |
 | TeamMemberService | 영구 | S3 team-members.json (Lambda 수명) |
 
 ## 이벤트 제목 규칙

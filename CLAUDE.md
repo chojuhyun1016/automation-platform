@@ -70,7 +70,8 @@ make build                          # 전체 shadowJar 빌드 (Java만)
 make build-ingest                   # 모듈별 빌드 (build-worker, build-scheduler, build-groupware)
 make build-bot                      # groupware-bot Docker 빌드
 make clean                          # 빌드 아티팩트 정리
-make deploy-all                     # 전체 배포
+make deploy-config                  # config/ 파일 S3 업로드 (google-credentials.json 제외)
+make deploy-all                     # 전체 배포 (config + Lambda 4개 + Docker)
 make deploy-ingest                  # 모듈별 배포 (deploy-worker, deploy-scheduler, deploy-groupware)
 make push-bot                       # ECR 푸시
 ./gradlew :moduleName:compileJava   # 모듈별 컴파일 검증 (빠른 확인)
@@ -131,7 +132,7 @@ JUnit 5 + Mockito + AssertJ 기반 유닛 테스트 구성 완료.
 
 - `common` — 예외 4종, Enum 6종, SlackBlockBuilder, DateTimeUtil 테스트 (12개 파일)
 - `clients` — BaseHttpClient, ApiResponse, ConfluenceClientRetry 테스트 (3개 파일)
-- `worker` — CalendarService, ConfigService, DedupeService, TeamMemberService, SlackNotificationService, AbsenceFacade 테스트 (6개 파일)
+- `worker` — CalendarService, ConfigService, DedupeService, TeamMemberService, SlackNotificationService, AbsenceFacade, LunchCardService 테스트 (7개 파일)
 - `scheduler` — DailyReportConfig, WeeklyReportConfig, ArchiveConfig, DailyAbsenceCollector, DailyCalendarTicketCollector, CalendarTicketParser, ReportRulesService, ReportArchiveService 테스트 (8개 파일)
 - `groupware` — GroupwareAbsenceFacade 테스트 (1개 파일)
 - CI: PR 생성/업데이트 시 `./gradlew build` 자동 실행 (`.github/workflows/ci-test.yml`)

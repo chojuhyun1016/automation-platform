@@ -131,11 +131,22 @@ deploy-groupware: build-groupware
 	@echo "✅ groupware Lambda 배포 완료"
 
 # ─────────────────────────────────────────────────────────────
+# config 파일 S3 업로드
+# ─────────────────────────────────────────────────────────────
+
+.PHONY: deploy-config
+deploy-config:
+	aws s3 sync config/ s3://$(S3_BUCKET)/ \
+	  --exclude "google-credentials.json" \
+	  --profile $(PROFILE)
+	@echo "✅ config 파일 S3 업로드 완료 (google-credentials.json 제외)"
+
+# ─────────────────────────────────────────────────────────────
 # 전체 배포
 # ─────────────────────────────────────────────────────────────
 
 .PHONY: deploy-all
-deploy-all: deploy-ingest deploy-worker deploy-scheduler deploy-groupware push-bot
+deploy-all: deploy-config deploy-ingest deploy-worker deploy-scheduler deploy-groupware push-bot
 	@echo ""
 	@echo "✅ 전체 배포 완료"
 
@@ -164,7 +175,8 @@ help:
 	@echo "  deploy-scheduler   scheduler Lambda 빌드 + S3 업로드 + Lambda 배포"
 	@echo "  deploy-groupware   groupware Lambda 빌드 + S3 업로드 + Lambda 배포"
 	@echo "  push-bot           groupware-bot Docker 이미지 빌드 + ECR 푸시"
-	@echo "  deploy-all         전체 배포 (Lambda 4개 + Docker)"
+	@echo "  deploy-config      config/ 파일 S3 업로드 (google-credentials.json 제외)"
+	@echo "  deploy-all         전체 배포 (config + Lambda 4개 + Docker)"
 	@echo ""
 	@echo "  [설정값]"
 	@echo "  ACCOUNT_ID  = $(ACCOUNT_ID)"
