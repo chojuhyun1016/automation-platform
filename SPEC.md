@@ -688,7 +688,7 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 
 ## Phase N20: 점심카드 — 이번주 사용 현황 이름 미표시 버그 수정 (#49)
 
-- [ ] Phase N20 완료
+- [x] Phase N20 완료 (PR #51)
 
 ### 오버뷰
 "이번주 사용 현황" 요일별 사용자 목록에서 이름이 표시되지 않는 버그를 수정한다.
@@ -699,20 +699,20 @@ CLAUDE.md, rules, SPEC.md 등 문서를 동기화한다.
 - **병렬 가능**: 아니오
 
 ### 전제조건
-- [ ] Phase N19 완료
+- [x] Phase N19 완료
 
 ### 수정/개선
-- [ ] **`ingest/src/main/java/.../facade/LunchCardFacade.java`** — 이름 미표시 버그 수정
-    - [ ] `extractEventDate()` 접근 제한자 `private static` → `static` (package-private) 변경
-    - [ ] `buildDayOfWeekMap()`/`buildViewData()`에 디버그 로그 추가
-    - [ ] Google Calendar all-day event 날짜 파싱 로직 점검 및 수정
-- [ ] **`ingest/src/test/.../facade/LunchCardFacadeLogicTest.java`** — 테스트 보강
-    - [ ] `ExtractEventDate` 테스트 클래스 추가 (all-day, dateTime, null 케이스)
-    - [ ] `BuildDayOfWeekMap` 테스트 보강
+- [x] **`ingest/src/main/java/.../facade/LunchCardFacade.java`** — 이름 미표시 버그 수정
+    - [x] `extractEventDate()` 접근 제한자 `private static` → `static` (package-private) 변경
+    - [x] `buildDayOfWeekMap()`/`buildViewData()`에 디버그 로그 추가
+    - [x] Google Calendar all-day event 날짜 파싱 로직 점검 및 수정
+- [x] **`ingest/src/test/.../facade/LunchCardFacadeLogicTest.java`** — 테스트 보강
+    - [x] `ExtractEventDate` 테스트 클래스 추가 (all-day, dateTime, null 케이스)
+    - [x] `BuildDayOfWeekMap` 테스트 보강
 
 ### 검증
-- [ ] `./gradlew :ingest:compileJava` 빌드 성공
-- [ ] `./gradlew :ingest:test` 전체 테스트 통과
+- [x] `./gradlew :ingest:compileJava` 빌드 성공
+- [x] `./gradlew :ingest:test` 전체 테스트 통과
 - [ ] 실제 Slack `/점심카드` 실행 시 이름 정상 표시
 
 ---

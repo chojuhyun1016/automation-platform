@@ -28,6 +28,55 @@ class LunchCardFacadeLogicTest {
     return event;
   }
 
+  /** dateTime (시간 포함) 이벤트 생성 헬퍼. */
+  private static Event createDateTimeEvent(String summary, String dateTimeRfc3339) {
+    Event event = new Event().setSummary(summary);
+    event.setStart(new EventDateTime().setDateTime(new DateTime(dateTimeRfc3339)));
+    return event;
+  }
+
+  @Nested
+  @DisplayName("extractEventDate")
+  class ExtractEventDate {
+
+    @Test
+    @DisplayName("all-day 이벤트 — date 필드에서 날짜 추출")
+    void allDayEvent() {
+      Event event = createEvent("점심카드(홍길동)", "2026-04-20");
+      assertThat(LunchCardFacade.extractEventDate(event)).isEqualTo("2026-04-20");
+    }
+
+    @Test
+    @DisplayName("dateTime 이벤트 — KST 시간대에서 날짜 추출")
+    void dateTimeEvent_kst() {
+      Event event = createDateTimeEvent("점심카드(홍길동)", "2026-04-20T12:00:00+09:00");
+      assertThat(LunchCardFacade.extractEventDate(event)).isEqualTo("2026-04-20");
+    }
+
+    @Test
+    @DisplayName("dateTime 이벤트 (UTC 자정 전) — KST 기준 올바른 날짜 반환")
+    void dateTimeEvent_utcMidnight() {
+      // UTC 2026-04-19T15:00:00 = KST 2026-04-20T00:00:00
+      Event event = createDateTimeEvent("점심카드(홍길동)", "2026-04-19T15:00:00.000Z");
+      assertThat(LunchCardFacade.extractEventDate(event)).isEqualTo("2026-04-20");
+    }
+
+    @Test
+    @DisplayName("start null → 빈 문자열")
+    void nullStart() {
+      Event event = new Event().setSummary("점심카드(홍길동)");
+      assertThat(LunchCardFacade.extractEventDate(event)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("start 존재하지만 date/dateTime 모두 null → 빈 문자열")
+    void emptyStart() {
+      Event event = new Event().setSummary("점심카드(홍길동)");
+      event.setStart(new EventDateTime());
+      assertThat(LunchCardFacade.extractEventDate(event)).isEmpty();
+    }
+  }
+
   @Nested
   @DisplayName("extractNameFromSummary")
   class ExtractName {
@@ -174,6 +223,50 @@ class LunchCardFacadeLogicTest {
 
       assertThat(map).hasSize(5);
       map.values().forEach(users -> assertThat(users).isEmpty());
+    }
+
+    @Test
+    @DisplayName("dateTime 이벤트도 올바른 요일에 매핑")
+    void dateTimeEvents_correctMapping() {
+      // 2026-04-20 = 월요일
+      List<Event> events = List.of(
+          createDateTimeEvent("점심카드(홍길동)", "2026-04-20T12:00:00+09:00"),  // 월
+          createDateTimeEvent("점심카드(김철수)", "2026-04-21T09:00:00+09:00")); // 화
+
+      Map<String, List<String>> map = LunchCardFacade.buildDayOfWeekMap(
+          events, LocalDate.of(2026, 4, 20));
+
+      assertThat(map.get("월")).containsExactly("홍길동");
+      assertThat(map.get("화")).containsExactly("김철수");
+      assertThat(map.get("수")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("dateTime UTC 이벤트 — KST 변환 후 올바른 요일에 매핑")
+    void dateTimeUtcEvents_kstConversion() {
+      // UTC 2026-04-19T15:00:00Z = KST 2026-04-20T00:00:00 (월요일)
+      List<Event> events = List.of(
+          createDateTimeEvent("점심카드(홍길동)", "2026-04-19T15:00:00.000Z"));
+
+      Map<String, List<String>> map = LunchCardFacade.buildDayOfWeekMap(
+          events, LocalDate.of(2026, 4, 20));
+
+      assertThat(map.get("월")).containsExactly("홍길동");
+    }
+
+    @Test
+    @DisplayName("all-day + dateTime 혼합 이벤트 매핑")
+    void mixedEvents() {
+      // 2026-04-20 = 월요일
+      List<Event> events = List.of(
+          createEvent("점심카드(홍길동)", "2026-04-20"),                          // all-day 월
+          createDateTimeEvent("점심카드(김철수)", "2026-04-22T11:30:00+09:00"));  // dateTime 수
+
+      Map<String, List<String>> map = LunchCardFacade.buildDayOfWeekMap(
+          events, LocalDate.of(2026, 4, 20));
+
+      assertThat(map.get("월")).containsExactly("홍길동");
+      assertThat(map.get("수")).containsExactly("김철수");
     }
   }
 }
