@@ -60,7 +60,7 @@ class LunchCardFacadeTest {
                 },
                 "block_lunch_card_action": {
                   "action_lunch_card_action": {
-                    "selected_option": { "value": "%s" }
+                    "selected_options": [{ "value": "%s" }]
                   }
                 }
               }
@@ -105,7 +105,7 @@ class LunchCardFacadeTest {
                   },
                   "block_lunch_card_action": {
                     "action_lunch_card_action": {
-                      "selected_option": { "value": "apply" }
+                      "selected_options": [{ "value": "apply" }]
                     }
                   }
                 }
@@ -138,7 +138,7 @@ class LunchCardFacadeTest {
                   },
                   "block_lunch_card_action": {
                     "action_lunch_card_action": {
-                      "selected_option": { "value": "invalid" }
+                      "selected_options": [{ "value": "invalid" }]
                     }
                   }
                 }

@@ -36,9 +36,12 @@ public class LunchCardModalSubmit {
         .path("block_lunch_card_date").path("action_lunch_card_date")
         .path("selected_date").asText("");
 
-    this.action = values
+    JsonNode selectedOptions = values
         .path("block_lunch_card_action").path("action_lunch_card_action")
-        .path("selected_option").path("value").asText("");
+        .path("selected_options");
+    this.action = (selectedOptions.isArray() && !selectedOptions.isEmpty())
+        ? selectedOptions.get(0).path("value").asText("")
+        : "";
   }
 
   /**

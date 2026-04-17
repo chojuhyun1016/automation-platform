@@ -21,9 +21,9 @@ import java.util.stream.Collectors;
  * 3. 카운트 표시 (주간 + 월간 동시 표시)
  * 4. 요일별 사용자 목록 (월~금)
  * 5. 상태별 액션 영역:
- *    - UNREGISTERED: 사용/취소 라디오 (사용 기본) + submit 버튼
- *    - SELF_REGISTERED: 사용/취소 라디오 (취소 기본) + submit 버튼
- *    - OTHER_REGISTERED: 안내 텍스트 + submit 버튼 없음
+ *    - UNREGISTERED: 체크박스 "사용" (자동선택) + submit 버튼
+ *    - SELF_REGISTERED: 체크박스 "취소" (자동선택) + submit 버튼
+ *    - OTHER_REGISTERED: 백틱 안내 텍스트 + submit 버튼 없음
  */
 public class LunchCardModalBuilder {
 
@@ -148,30 +148,38 @@ public class LunchCardModalBuilder {
 
     // 5. 상태별 액션 영역
     switch (data.status()) {
-      case UNREGISTERED -> addActionBlock(blocks, "apply");
-      case SELF_REGISTERED -> addActionBlock(blocks, "cancel");
+      case UNREGISTERED -> addApplyBlock(blocks);
+      case SELF_REGISTERED -> addCancelBlock(blocks);
       case OTHER_REGISTERED -> addOtherRegisteredNotice(blocks, data.registeredUserName());
     }
 
     return blocks;
   }
 
-  private static void addActionBlock(ArrayNode blocks, String initialValue) {
+  private static void addApplyBlock(ArrayNode blocks) {
     ObjectNode applyOpt = option(plainText("사용"), "apply");
-    ObjectNode cancelOpt = option(plainText("취소"), "cancel");
-
-    ObjectNode radioGroup = OM.createObjectNode()
-        .put("type", "radio_buttons")
+    ObjectNode checkboxes = OM.createObjectNode()
+        .put("type", "checkboxes")
         .put("action_id", "action_lunch_card_action");
-    radioGroup.set("options", OM.createArrayNode().add(applyOpt).add(cancelOpt));
-    radioGroup.set("initial_option", "cancel".equals(initialValue) ? cancelOpt : applyOpt);
-    blocks.add(inputBlock("block_lunch_card_action", "신청/취소", radioGroup, false));
+    checkboxes.set("options", OM.createArrayNode().add(applyOpt));
+    checkboxes.set("initial_options", OM.createArrayNode().add(applyOpt));
+    blocks.add(inputBlock("block_lunch_card_action", "신청/취소", checkboxes, false));
+  }
+
+  private static void addCancelBlock(ArrayNode blocks) {
+    ObjectNode cancelOpt = option(plainText("취소"), "cancel");
+    ObjectNode checkboxes = OM.createObjectNode()
+        .put("type", "checkboxes")
+        .put("action_id", "action_lunch_card_action");
+    checkboxes.set("options", OM.createArrayNode().add(cancelOpt));
+    checkboxes.set("initial_options", OM.createArrayNode().add(cancelOpt));
+    blocks.add(inputBlock("block_lunch_card_action", "신청/취소", checkboxes, false));
   }
 
   private static void addOtherRegisteredNotice(ArrayNode blocks, String registeredUserName) {
     String name = (registeredUserName != null) ? registeredUserName : "다른 사용자";
     ObjectNode notice = OM.createObjectNode().put("type", "section");
-    notice.set("text", mrkdwn("⚠️ *" + name + "* 님이 이미 사용 중입니다.\n"
+    notice.set("text", mrkdwn("⚠️ `" + name + "` 님이 이미 사용 중입니다.\n"
         + "취소가 필요하면 해당 사용자에게 요청해 주세요."));
     blocks.add(notice);
   }
