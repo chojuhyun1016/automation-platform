@@ -145,9 +145,9 @@ gh issue create --title "제목" --label "라벨" --body-file /tmp/issue-body.md
 이 매핑이 있어야 `/resolve-issue 12` 실행 시 SPEC.md에서 해당 Phase를 찾을 수 있고,
 사용자가 SPEC.md만 열어도 실행 커맨드를 바로 복사할 수 있다.
 
-### 7. 워크트리 생성 제안
+### 7. 브랜치 생성 + 작업 방식 안내
 
-이슈 생성 직후, 사용자에게 **워크트리 생성 여부를 질문**해라:
+이슈 생성 후 브랜치를 **자동 생성**해라 (checkout은 하지 않음 — 현재 main 작업 유지):
 
 유형에서 브랜치 타입을 매핑:
 
@@ -158,20 +158,24 @@ gh issue create --title "제목" --label "라벨" --body-file /tmp/issue-body.md
 | refactor | `refactor` |
 | chore | `chore` |
 
-**질문 형식**:
+```bash
+git fetch origin main --quiet
+git branch {타입}/{이슈번호}-{설명} origin/main
 ```
-작업을 시작하시겠습니까?
 
-방법 1 (일반 브랜치 — IDE에서 직접):
-  git checkout -b {타입}/{이슈번호}-{설명} origin/main
+사용자에게 **작업 방식 안내**:
+```
+브랜치가 생성되었습니다: {타입}/{이슈번호}-{설명}
+
+방법 1 (일반 — IDE에서 직접):
+  git switch {브랜치명}
   /resolve-issue {이슈번호}
 
 방법 2 (워크트리 — 병렬 작업 시):
   source scripts/create-worktree.sh {타입} {이슈번호} {설명}
   /resolve-issue {이슈번호}
 
-구현 완료 후:
-  /submit-pr {이슈번호}
+구현 완료 후: /submit-pr {이슈번호}
 ```
 
 사용자가 "다른 Phase"를 원하면 `/create-issue Phase N+1`을 안내.

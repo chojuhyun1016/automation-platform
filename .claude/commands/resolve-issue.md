@@ -20,19 +20,15 @@ GitHub 이슈를 가져와 분석하고 해결한다. 구현 + 커밋 + push까�
 ## 사용 방법
 
 ```
-# 워크트리에서:
-/resolve-issue 12
-
-# 일반 브랜치에서도 동일:
-git checkout -b fix/12-desc origin/main
-/resolve-issue 12
+/resolve-issue 12      ← 이슈 #12에 해당하는 브랜치에서 실행
 ```
+
+**전제**: `/create-issue`에서 브랜치가 이미 생성되어 있어야 한다. `git switch` 또는 워크트리로 해당 브랜치에서 실행.
 
 **전체 흐름**:
 ```
-/feature-breakdown                              → SPEC.md에 Phase N1, N2 기록
-/create-issue Phase N1                          → GitHub 이슈 #12 생성
-git checkout -b feat/12-desc origin/main        → 브랜치 생성 (또는 워크트리)
+/create-issue Phase N1                          → 이슈 #12 생성 + 브랜치 자동 생성
+git switch feat/12-desc (또는 워크트리)          → 브랜치 전환
 /resolve-issue 12                               → 구현 + 커밋 + push
   사용자: IDE에서 확인, 테스트, 배포 검증
 /submit-pr 12                                   → Rebase + PR 생성 + SPEC.md 완료
@@ -61,13 +57,14 @@ SPEC.md에서 #$ARGUMENTS에 해당하는 Phase가 있는지 확인해라.
 
 ### 4. 브랜치 확인
 
-현재 브랜치 상태를 확인해라:
-- **main 브랜치인 경우**: 이슈 라벨에서 타입을 추출하여 브랜치 자동 생성
-  ```bash
-  git fetch origin main --quiet
-  git checkout -b {타입}/{이슈번호}-{설명} origin/main
+현재 브랜치가 이슈에 해당하는 feature/fix 브랜치인지 확인해라:
+- **feature/fix 브랜치인 경우**: 그대로 진행
+- **main인 경우**: 중단 + 안내
   ```
-- **feature/fix 브랜치인 경우**: 그대로 진행 (워크트리 또는 일반 브랜치)
+  ⚠️ main 브랜치에서는 실행할 수 없습니다.
+  /create-issue에서 브랜치가 생성되어 있습니다. 전환 후 다시 실행하세요:
+    git switch {브랜치명}
+  ```
 - **기타**: 사용자에게 확인
 
 ### 5. 코드 탐색

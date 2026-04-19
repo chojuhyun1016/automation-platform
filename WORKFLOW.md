@@ -7,10 +7,9 @@
   │  Phase 분해 → SPEC.md 기록
   ▼
 /create-issue Phase N1
-  │  GitHub 이슈 #21 생성 → SPEC.md에 (#21) 역기록
+  │  GitHub 이슈 #21 생성 + 브랜치 자동 생성 → SPEC.md 역기록
   ▼
-source scripts/create-worktree.sh feat 21 current-ticket-monthly
-  │  git worktree + branch feat/21-current-ticket-monthly 생성 → Claude 자동 실행
+git switch feat/21-current-ticket-monthly (또는 워크트리)
   ▼
 /resolve-issue 21
   │  이슈 분석 → 구현 → 리뷰 → 커밋 + push

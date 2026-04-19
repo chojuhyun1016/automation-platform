@@ -143,8 +143,8 @@ git push
 
 ### 8. 후속 안내
 
-- 브랜치 생성: `git checkout -b {타입}/{이슈번호}-{설명} origin/main`
-- 또는 워크트리 (병렬 시): `source scripts/create-worktree.sh {타입} {이슈번호} {설명}`
+- `/create-issue`가 브랜치까지 자동 생성
+- `git switch {브랜치명}` 또는 워크트리 (병렬 시): `source scripts/create-worktree.sh {타입} {이슈번호} {설명}`
 - `/resolve-issue 이슈번호` 로 구현 + 커밋 + push
 - IDE에서 확인/테스트 후 `/submit-pr 이슈번호` 로 PR 생성
 - 병렬 가능 Phase는 동시 진행 가능
