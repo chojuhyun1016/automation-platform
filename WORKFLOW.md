@@ -164,6 +164,7 @@ git worktree prune
 | `/resolve-issue` | 이슈 구현 또는 수정 | `62` (초기) 또는 `62 문제설명` (수정) |
 | `/submit-pr` | Rebase + PR 생성 + SPEC.md 완료 | GitHub 이슈 번호 |
 | `/resolve-conflict` | rebase + 충돌 자동 해결 | 대상 브랜치 (기본: origin/main) |
+| `/update-docs` | 문서 동기화 (SPEC.md, 모듈 CLAUDE.md) | 없음 |
 
 ## 관련 파일
 
@@ -174,5 +175,5 @@ git worktree prune
 | `scripts/create-worktree.sh` | 워크트리 생성 + Claude 실행 |
 | `scripts/cleanup-worktrees.sh` | merge 완료된 워크트리 일괄 정리 |
 | `scripts/check-docs-update.sh` | 세션 종료 시 문서 갱신 안내 (Stop Hook) |
-| `.claude/commands/` | 커맨드 정의 (5개: feature-breakdown, create-issue, resolve-issue, submit-pr, resolve-conflict) |
+| `.claude/commands/` | 커맨드 정의 (6개: feature-breakdown, create-issue, resolve-issue, submit-pr, resolve-conflict, update-docs) |
 | `.claude/rules/` | 파일 경로 매칭 시 자동 로딩 규칙 (9개) |
