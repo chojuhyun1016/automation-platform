@@ -15,11 +15,16 @@ git switch feat/21-current-ticket-monthly (또는 워크트리)
   │  이슈 분석 → 구현 → 리뷰 → 커밋 + push
   ▼
 사용자 확인 (IDE에서 diff, 빌드, 테스트, 배포 검증)
-  ▼
-/submit-pr 21
-  │  Rebase + PR 생성 + SPEC.md 체크박스 완료
-  ▼
-PR merge → bash scripts/cleanup-worktrees.sh
+  │
+  ├─ 문제 발견 → /resolve-issue 21 문제 설명...  ← 수정 루프 (반복 가능)
+  │                │  분석 + 수정 + push
+  │                ▼
+  │            사용자 재확인
+  │
+  └─ 만족 → /submit-pr 21
+               │  Rebase + PR 생성 + SPEC.md 체크박스 완료
+               ▼
+           PR merge → bash scripts/cleanup-worktrees.sh
 ```
 
 ## 브랜치 네이밍
@@ -156,7 +161,7 @@ git worktree prune
 |--------|------|------|
 | `/feature-breakdown` | 기능 → Phase 분해 → SPEC.md | 요구사항 텍스트 |
 | `/create-issue` | Phase → GitHub 이슈 생성 | `Phase N1` 또는 자유 텍스트 |
-| `/resolve-issue` | 이슈 분석 → 구현 → 커밋 + push | GitHub 이슈 번호 |
+| `/resolve-issue` | 이슈 구현 또는 수정 | `62` (초기) 또는 `62 문제설명` (수정) |
 | `/submit-pr` | Rebase + PR 생성 + SPEC.md 완료 | GitHub 이슈 번호 |
 | `/resolve-conflict` | rebase + 충돌 자동 해결 | 대상 브랜치 (기본: origin/main) |
 

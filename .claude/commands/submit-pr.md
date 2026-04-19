@@ -21,9 +21,10 @@
 
 **전체 흐름**:
 ```
-/resolve-issue 12    → 구현 + 커밋 + push
+/resolve-issue 12                → 구현 + 커밋 + push
   사용자 확인/테스트
-/submit-pr 12        → Rebase + PR + SPEC.md 완료 ← 여기
+  문제 발견 시: /resolve-issue 12 문제 설명...  → 수정 + push (반복 가능)
+/submit-pr 12                    → Rebase + PR + SPEC.md 완료 ← 여기
 ```
 
 ---
