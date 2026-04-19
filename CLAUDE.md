@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **PRD**: `automation-platform-prd.md` — 제품 요구사항, 아키텍처, 보안, 데이터 모델
 - **SPEC**: `SPEC.md` — 구현 상태, Phase별 개선 계획, Bugfix 로그
 - **모듈별 CLAUDE.md**: 각 모듈 디렉토리에 `CLAUDE.md`가 있다 (패키지 구조, 핵심 패턴, API)
-- **워크플로우**: `WORKFLOW.md` — 개발 워크플로우 (feature-breakdown → create-issue → resolve-issue)
+- **워크플로우**: `WORKFLOW.md` — 개발 워크플로우 (feature-breakdown → create-issue → resolve-issue → submit-pr / quick-fix)
 - **상세 규칙**: `.claude/rules/`에서 해당 파일 작업 시 자동 로딩
 - **스킬**: `.claude/skills/` — 7개 절차 가이드 (add-slack-command, add-scheduler-report, debug-lambda-timeout, add-dynamodb-table, add-environment-variable, add-api-client, tdd-workflow)
 
