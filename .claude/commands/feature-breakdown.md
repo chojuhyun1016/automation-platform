@@ -48,7 +48,9 @@
 
 ### 3. Phase 분해
 
-**Sequential Thinking MCP를 사용하여 단계별로 분석해라.**
+**planner 에이전트를 실행하여 구현 계획을 수립해라** (복잡 기능, 다모듈 변경, Phase 3개 이상 예상 시).
+planner에게 Step 1-2의 탐색 결과 + 요구사항 + 제약조건을 전달하고, Phase 분해 초안을 받아라.
+단순 작업(1-2 Phase)은 **Sequential Thinking MCP**로 직접 분해해도 무방.
 
 각 Phase 기준:
 - **독립 실행 권장**: 가능하면 이 Phase만으로 빌드 통과

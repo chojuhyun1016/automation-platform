@@ -125,10 +125,11 @@ SPEC.md에서 #{이슈번호}에 해당하는 Phase가 있는지 확인해라.
 ### 8. 구현
 
 - **TDD 적용 기준** (브랜치 타입 확인):
-  - `feat` 브랜치: **테스트 먼저 작성 (TDD 필수)** — skills/tdd-workflow 참조
+  - `feat` 브랜치: **tdd-guide 에이전트를 실행하여 TDD 절차를 따라라** (RED → GREEN → REFACTOR). skills/tdd-workflow 참조.
   - `fix` 브랜치: 버그 재현 테스트 작성 **권장** (강제 아님)
   - `refactor` 브랜치: 기본 불필요. **단, 로직 변경 포함 또는 10개+ 파일 수정 시 TDD 권장**
   - `chore`/`hotfix` 브랜치: TDD 불필요
+- **빌드 실패 시**: **java-build-resolver 에이전트를 실행**하여 자동 해결. 수동 디버깅하지 마라.
 - **이슈 범위만 수정** — 요청하지 않은 리팩터링, 정리, 개선을 포함하지 말 것
 - CLAUDE.md 컨벤션을 따라라
 - 커밋은 작은 단위로 나눠라
@@ -199,7 +200,7 @@ git push -u origin {현재 브랜치}
 
 - **최소 변경 원칙** — 문제 해결에 필요한 최소한만
 - 기존 커밋 위에 **추가 커밋** (amend 금지)
-- 빌드 검증 (`./gradlew :모듈:compileJava`)
+- 빌드 검증 (`./gradlew :모듈:compileJava`) — **빌드 실패 시 java-build-resolver 에이전트 실행**
 - 관련 테스트 실행
 
 ### S4. 자체 리뷰
