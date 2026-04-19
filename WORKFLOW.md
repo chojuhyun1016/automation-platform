@@ -12,7 +12,7 @@
 git switch feat/21-current-ticket-monthly (또는 워크트리)
   ▼
 /resolve-issue 21
-  │  이슈 분석 → 구현 → 리뷰 → 커밋 + push
+  │  이슈 분석 → 구현 → 리뷰 → 커밋 (push 선택)
   ▼
 사용자 확인 (IDE에서 diff, 빌드, 테스트, 배포 검증)
   │
@@ -164,6 +164,7 @@ git worktree prune
 | `/resolve-issue` | 이슈 구현 또는 수정 | `62` (초기) 또는 `62 문제설명` (수정) |
 | `/submit-pr` | Rebase + PR 생성 + SPEC.md 완료 | GitHub 이슈 번호 |
 | `/resolve-conflict` | rebase + 충돌 자동 해결 | 대상 브랜치 (기본: origin/main) |
+| `/quick-fix` | 이슈 없이 즉석 분석 + 수정 | 요구사항 텍스트 |
 | `/update-docs` | 문서 동기화 (SPEC.md, 모듈 CLAUDE.md) | 없음 |
 
 ## 관련 파일
@@ -175,5 +176,5 @@ git worktree prune
 | `scripts/create-worktree.sh` | 워크트리 생성 + Claude 실행 |
 | `scripts/cleanup-worktrees.sh` | merge 완료된 워크트리 일괄 정리 |
 | `scripts/check-docs-update.sh` | 세션 종료 시 문서 갱신 안내 (Stop Hook) |
-| `.claude/commands/` | 커맨드 정의 (6개: feature-breakdown, create-issue, resolve-issue, submit-pr, resolve-conflict, update-docs) |
+| `.claude/commands/` | 커맨드 정의 (7개: feature-breakdown, create-issue, resolve-issue, submit-pr, resolve-conflict, quick-fix, update-docs) |
 | `.claude/rules/` | 파일 경로 매칭 시 자동 로딩 규칙 (9개) |

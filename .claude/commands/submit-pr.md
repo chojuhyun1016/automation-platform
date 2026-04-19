@@ -17,11 +17,11 @@
 /submit-pr 12
 ```
 
-**전제**: 현재 브랜치에 구현이 커밋+push되어 있어야 한다.
+**전제**: 현재 브랜치에 구현이 커밋되어 있어야 한다 (push 안 됐으면 자동 push).
 
 **전체 흐름**:
 ```
-/resolve-issue 12                → 구현 + 커밋 + push
+/resolve-issue 12                → 구현 + 커밋 (push 선택)
   사용자 확인/테스트
   문제 발견 시: /resolve-issue 12 문제 설명...  → 수정 + push (반복 가능)
 /submit-pr 12                    → Rebase + PR + SPEC.md 완료 ← 여기
