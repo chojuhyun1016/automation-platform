@@ -13,7 +13,12 @@ source scripts/create-worktree.sh feat 21 current-ticket-monthly
   │  git worktree + branch feat/21-current-ticket-monthly 생성 → Claude 자동 실행
   ▼
 /resolve-issue 21
-  │  이슈 분석 → 구현 → 리뷰 → PR 생성
+  │  이슈 분석 → 구현 → 리뷰 → 커밋 + push
+  ▼
+사용자 확인 (IDE에서 diff, 빌드, 테스트, 배포 검증)
+  ▼
+/submit-pr 21
+  │  Rebase + PR 생성 + SPEC.md 체크박스 완료
   ▼
 PR merge → bash scripts/cleanup-worktrees.sh
 ```
@@ -152,7 +157,8 @@ git worktree prune
 |--------|------|------|
 | `/feature-breakdown` | 기능 → Phase 분해 → SPEC.md | 요구사항 텍스트 |
 | `/create-issue` | Phase → GitHub 이슈 생성 | `Phase N1` 또는 자유 텍스트 |
-| `/resolve-issue` | 이슈 분석 → 구현 → PR | GitHub 이슈 번호 |
+| `/resolve-issue` | 이슈 분석 → 구현 → 커밋 + push | GitHub 이슈 번호 |
+| `/submit-pr` | Rebase + PR 생성 + SPEC.md 완료 | GitHub 이슈 번호 |
 | `/resolve-conflict` | rebase + 충돌 자동 해결 | 대상 브랜치 (기본: origin/main) |
 
 ## 관련 파일
@@ -164,5 +170,5 @@ git worktree prune
 | `scripts/create-worktree.sh` | 워크트리 생성 + Claude 실행 |
 | `scripts/cleanup-worktrees.sh` | merge 완료된 워크트리 일괄 정리 |
 | `scripts/check-docs-update.sh` | 세션 종료 시 문서 갱신 안내 (Stop Hook) |
-| `.claude/commands/` | 커맨드 정의 (4개) |
+| `.claude/commands/` | 커맨드 정의 (5개: feature-breakdown, create-issue, resolve-issue, submit-pr, resolve-conflict) |
 | `.claude/rules/` | 파일 경로 매칭 시 자동 로딩 규칙 (9개) |

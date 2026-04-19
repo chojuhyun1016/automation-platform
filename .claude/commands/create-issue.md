@@ -23,7 +23,7 @@
 /create-issue 월간 보고서 프로젝트별 분리 기능
 ```
 
-완료 후 → `source scripts/create-worktree.sh {타입} {이슈번호} {설명}` → `/resolve-issue {이슈번호}`
+완료 후 → 브랜치 생성 → `/resolve-issue {이슈번호}` → 확인/테스트 → `/submit-pr {이슈번호}`
 
 > **번호 변환**: `/create-issue Phase N1` 실행 → GitHub이 이슈 번호(#12)를 자동 부여.
 > 이후 워크트리/resolve-issue에서는 Phase 번호가 아닌 **GitHub 이슈 번호**를 사용한다.
@@ -160,15 +160,19 @@ gh issue create --title "제목" --label "라벨" --body-file /tmp/issue-body.md
 
 **질문 형식**:
 ```
-워크트리를 생성하시겠습니까? 아래 커맨드를 터미널에서 실행하세요:
+작업을 시작하시겠습니까?
 
+방법 1 (일반 브랜치 — IDE에서 직접):
+  git checkout -b {타입}/{이슈번호}-{설명} origin/main
+  /resolve-issue {이슈번호}
+
+방법 2 (워크트리 — 병렬 작업 시):
   source scripts/create-worktree.sh {타입} {이슈번호} {설명}
+  /resolve-issue {이슈번호}
 
-워크트리에서 Claude가 자동 실행되며, /resolve-issue {이슈번호} 로 작업을 시작할 수 있습니다.
+구현 완료 후:
+  /submit-pr {이슈번호}
 ```
-
-> `source`는 현재 셸에서 실행해야 하므로 Claude Bash 도구로 실행 불가.
-> 사용자에게 커맨드를 제시하고 직접 실행하도록 안내해라.
 
 사용자가 "다른 Phase"를 원하면 `/create-issue Phase N+1`을 안내.
 

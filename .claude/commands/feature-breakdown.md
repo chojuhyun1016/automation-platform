@@ -19,7 +19,7 @@
 /feature-breakdown Sprint 변경 이벤트 웹훅 처리
 ```
 
-완료 후 → `/create-issue Phase N` → GitHub 이슈 #번호 생성 → `source scripts/create-worktree.sh {타입} {번호} {설명}` → `/resolve-issue {번호}`
+완료 후 → `/create-issue Phase N` → GitHub 이슈 #번호 생성 → 브랜치 생성 → `/resolve-issue {번호}` → 확인/테스트 → `/submit-pr {번호}`
 
 > **번호 체계**: Phase 번호(N1, N2)와 GitHub 이슈 번호(#12, #13)는 다르다.
 > `/create-issue`가 Phase → GitHub 이슈로 변환하며, SPEC.md에 `Phase N1 (#12)` 형태로 매핑을 기록한다.
@@ -143,8 +143,10 @@ git push
 
 ### 8. 후속 안내
 
-- `source scripts/create-worktree.sh {타입} {이슈번호} {설명}` 으로 워크트리 생성 + Claude 실행
-- 워크트리 Claude에서 `/resolve-issue 이슈번호` 로 구현
+- 브랜치 생성: `git checkout -b {타입}/{이슈번호}-{설명} origin/main`
+- 또는 워크트리 (병렬 시): `source scripts/create-worktree.sh {타입} {이슈번호} {설명}`
+- `/resolve-issue 이슈번호` 로 구현 + 커밋 + push
+- IDE에서 확인/테스트 후 `/submit-pr 이슈번호` 로 PR 생성
 - 병렬 가능 Phase는 동시 진행 가능
 - **컨텍스트가 쌓였으면 `/compact` 권장**
 

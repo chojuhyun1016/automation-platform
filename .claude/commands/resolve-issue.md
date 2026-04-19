@@ -1,4 +1,5 @@
 
+
 # ═══════════════════════════════════════════════════════════
 # 파일 3: .claude/commands/resolve-issue.md
 # ═══════════════════════════════════════════════════════════
@@ -6,7 +7,7 @@
 
 # Resolve Issue
 
-GitHub 이슈를 가져와 분석하고 해결한다.
+GitHub 이슈를 가져와 분석하고 해결한다. 구현 + 커밋 + push까지 수행하며, PR 생성은 `/submit-pr`로 분리되어 있다.
 
 **이슈 번호**: #$ARGUMENTS
 
@@ -19,20 +20,22 @@ GitHub 이슈를 가져와 분석하고 해결한다.
 ## 사용 방법
 
 ```
-# 워크트리에서 Claude 실행 후:
-/resolve-issue 12      ← GitHub 이슈 #12 (Phase 번호 아님)
-/resolve-issue 37      ← GitHub 이슈 #37
+# 워크트리에서:
+/resolve-issue 12
+
+# 일반 브랜치에서도 동일:
+git checkout -b fix/12-desc origin/main
+/resolve-issue 12
 ```
 
-**전제**: `source scripts/create-worktree.sh {타입} {이슈번호} {설명}` 로 생성된 워크트리에서 실행.
-워크트리가 이미 별도 브랜치이므로 브랜치를 생성하지 않는다.
-
-**전체 흐름 (번호 변환 과정)**:
+**전체 흐름**:
 ```
-/feature-breakdown                            → SPEC.md에 Phase N1, N2 기록
-/create-issue Phase N1                        → GitHub 이슈 #12 생성 + SPEC.md 역기록
-source scripts/create-worktree.sh feat 12 desc → 브랜치 feat/12-desc + 워크트리 생성
-/resolve-issue 12                              → GitHub #12 조회 → SPEC.md Phase 매칭 → 구현
+/feature-breakdown                              → SPEC.md에 Phase N1, N2 기록
+/create-issue Phase N1                          → GitHub 이슈 #12 생성
+git checkout -b feat/12-desc origin/main        → 브랜치 생성 (또는 워크트리)
+/resolve-issue 12                               → 구현 + 커밋 + push
+  사용자: IDE에서 확인, 테스트, 배포 검증
+/submit-pr 12                                   → Rebase + PR 생성 + SPEC.md 완료
 ```
 
 ---
@@ -56,7 +59,18 @@ SPEC.md에서 #$ARGUMENTS에 해당하는 Phase가 있는지 확인해라.
 - **영향 범위**: 어떤 파일/모듈에 영향
 - **수용 기준**: 해결 완료 조건
 
-### 4. 코드 탐색
+### 4. 브랜치 확인
+
+현재 브랜치 상태를 확인해라:
+- **main 브랜치인 경우**: 이슈 라벨에서 타입을 추출하여 브랜치 자동 생성
+  ```bash
+  git fetch origin main --quiet
+  git checkout -b {타입}/{이슈번호}-{설명} origin/main
+  ```
+- **feature/fix 브랜치인 경우**: 그대로 진행 (워크트리 또는 일반 브랜치)
+- **기타**: 사용자에게 확인
+
+### 5. 코드 탐색
 
 **Explore 서브에이전트를 병렬로 실행** (메인 컨텍스트 절약):
 - 영향 범위가 **1개 모듈**: Explore 1개
@@ -69,7 +83,7 @@ SPEC.md에서 #$ARGUMENTS에 해당하는 Phase가 있는지 확인해라.
 
 외부 라이브러리 관련 시 **Context7 MCP로 최신 문서 확인.** 추측 금지.
 
-### 5. 해결 계획
+### 6. 해결 계획
 
 **TodoWrite로 구조화해라.**
 
@@ -85,11 +99,11 @@ SPEC.md에서 #$ARGUMENTS에 해당하는 Phase가 있는지 확인해라.
 - [ ] [수용 기준별 검증]
 ```
 
-### 6. 사용자 검토
+### 7. 사용자 검토
 
 계획을 보여주고 승인 후 구현 진행.
 
-### 7. 구현
+### 8. 구현
 
 - **TDD 적용 기준** (브랜치 타입 확인):
   - `feat` 브랜치: **테스트 먼저 작성 (TDD 필수)** — skills/tdd-workflow 참조
@@ -102,7 +116,7 @@ SPEC.md에서 #$ARGUMENTS에 해당하는 Phase가 있는지 확인해라.
 - 검증 항목을 모두 통과시켜라
 - **컨텍스트가 쌓이면 `/compact` 실행**
 
-### 8. 자체 리뷰
+### 9. 자체 리뷰
 
 구현 완료 후 ECC 서브에이전트 **병렬 실행**:
 - **code-reviewer** + **java-reviewer** → 동시 실행
@@ -110,30 +124,21 @@ SPEC.md에서 #$ARGUMENTS에 해당하는 Phase가 있는지 확인해라.
 
 critical/high 이슈 → 수정 후 재검증.
 
-### 9. Rebase + PR 생성
+### 10. 브랜치 push
 
-- **PR 생성 전 rebase 필수**:
-  ```bash
-  git fetch origin
-  git rebase origin/main
-  ```
-  충돌 발생 시 `/resolve-conflict` 프로세스를 실행하여 해결해라.
-- `gh pr create --title "[#$ARGUMENTS] 제목" --body "resolves #$ARGUMENTS"`
-- PR 본문에 변경 요약 + 검증 결과
-- **SPEC.md Phase 체크박스 전체 완료 처리 (필수)**:
-  - 최상위 `- [x] Phase N 완료 (PR #N)` 체크
-  - `### 수정/개선` 내 **모든 세부 체크박스** `[x]` (중첩 항목 포함)
-  - `### 검증` 내 **모든 체크박스** `[x]`
-  - 관례는 루트 `CLAUDE.md` "SPEC.md Phase 체크박스 완료 규칙" 섹션 참조
-  - 누락 시 새 Claude 세션이 잘못된 "미완료" 상태를 신뢰하여 중복 작업 발생
-- `gh issue close $ARGUMENTS` 제안
+```bash
+git push -u origin {현재 브랜치}
+```
 
-### 10. 후속 안내
+### 11. 후속 안내
 
 ```
-1. 메인 프로젝트로: cd <프로젝트 루트>
-2. 워크트리 일괄 정리: bash scripts/cleanup-worktrees.sh
-3. 다음 이슈: source scripts/create-worktree.sh {타입} {번호} {설명}
+✅ 구현 완료 — 브랜치에 push됨.
+
+다음 단계:
+1. IDE에서 변경사항 확인 (diff, 빌드, 테스트)
+2. 필요 시 추가 수정 후 커밋 + push
+3. 만족하면: /submit-pr $ARGUMENTS
 ```
 
 ---
@@ -145,3 +150,4 @@ critical/high 이슈 → 수정 후 재검증.
 3. **SPEC.md 우선** — 기존 Phase가 있으면 따라라
 4. **검증 필수** — 수용 기준을 검증 항목에 반영
 5. **파일 경로 명시** — 모든 변경 항목에 경로 포함
+6. **PR은 분리** — 이 커맨드는 커밋+push까지만. PR은 `/submit-pr`
