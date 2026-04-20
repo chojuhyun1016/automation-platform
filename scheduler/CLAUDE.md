@@ -74,8 +74,8 @@ Load (S3 설정, 팀원) → Collect (Calendar, Jira, DynamoDB) → Format (Slac
 ## Confluence 페이지 계층
 
 ```
-Weekly: 実績報告 > {year}年週間 > Q{q} > {month}月 > W{week} {team} 実績
-Monthly: 実績報告 > {year}年月間 > Q{q} > {month}月 - {team} 実績
+Weekly: (rootParent) > {year}년 주간 > {year}년 주간 Q{q} > {year}년 주간 {month}월 > {year} {month}월 W{week} - {team} 실적
+Monthly: (rootParent) > {year}년 월간 > {year}년 월간 Q{q} > {year} Q{q} {month}월 - {team} 실적
 ```
 
 ## CalendarTicketParser 파싱 규칙
