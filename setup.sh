@@ -73,24 +73,13 @@ echo "   groupware/"
 # ─────────────────────────────────────────────────────────────
 
 mkdir -p groupware-bot
-touch groupware-bot/Dockerfile
-touch groupware-bot/requirements.txt
-touch groupware-bot/main.py
-touch groupware-bot/groupware_client.py
-touch groupware-bot/secrets_client.py
-touch groupware-bot/slack_notifier.py
-echo "   groupware-bot/ (Python Docker)"
+echo "   groupware-bot/"
 
 # ─────────────────────────────────────────────────────────────
 # config: S3 업로드용 런타임 설정 파일
 # ─────────────────────────────────────────────────────────────
 
 mkdir -p config/rules
-touch config/config.json
-touch config/scheduler-config.json
-touch config/team-members.json
-touch config/groupware-config.json
-touch config/announcements.json
 echo "   config/"
 
 # ─────────────────────────────────────────────────────────────
@@ -98,9 +87,6 @@ echo "   config/"
 # ─────────────────────────────────────────────────────────────
 
 mkdir -p scripts
-touch scripts/create-worktree.sh
-touch scripts/cleanup-worktrees.sh
-touch scripts/check-docs-update.sh
 echo "   scripts/"
 
 # ─────────────────────────────────────────────────────────────
